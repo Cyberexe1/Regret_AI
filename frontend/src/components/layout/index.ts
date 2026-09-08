@@ -2,6 +2,7 @@ export { AppShell } from './AppShell';
 export { CommandPalette } from './CommandPalette';
 export type { CommandPaletteProps } from './CommandPalette';
 export { PageContainer } from './PageContainer';
+export { PageLoading } from './PageLoading';
 export type { PageContainerProps, PageWidth } from './PageContainer';
 export { Sidebar } from './Sidebar';
 export type { SidebarProps } from './Sidebar';

@@ -2,6 +2,7 @@ import type {
   AssumptionSupport,
   Confidence,
   ExperimentStatus,
+  GraphCategory,
   Reversibility,
   RiskLevel,
   Severity,
@@ -63,6 +64,24 @@ export const assumptionSupportLabel: Record<AssumptionSupport, string> = {
   unsupported: 'Unsupported',
 };
 
+export const graphCategoryTone: Record<GraphCategory, Tone> = {
+  decision: 'accent',
+  assumption: 'info',
+  evidence: 'neutral',
+  uncertainty: 'warning',
+  threshold: 'danger',
+  outcome: 'success',
+};
+
+export const graphCategoryLabel: Record<GraphCategory, string> = {
+  decision: 'Decision',
+  assumption: 'Assumption',
+  evidence: 'Evidence',
+  uncertainty: 'Uncertainty',
+  threshold: 'Threshold',
+  outcome: 'Outcome',
+};
+
 export const riskTone: Record<RiskLevel, Tone> = {
   low: 'success',
   medium: 'warning',
@@ -86,6 +105,12 @@ export const confidenceTone: Record<Confidence, Tone> = {
   low: 'danger',
   medium: 'warning',
   high: 'success',
+};
+
+export const confidenceLabel: Record<Confidence, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
 };
 
 export const reversibilityTone: Record<Reversibility, Tone> = {

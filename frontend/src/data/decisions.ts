@@ -218,6 +218,103 @@ export const decisions: Decision[] = [
     createdAt: '2026-09-04T05:20:00.000Z',
     updatedAt: '2026-09-05T14:10:00.000Z',
     commitBy: '2026-10-10T00:00:00.000Z',
+    analysis: {
+      regretIndex: 79,
+      analysisConfidence: 52,
+      reversibility: 'costly-to-reverse',
+      verdictSummary:
+        'Analysis is still open. Five assumptions carry the decision and none of them has evidence strong enough to settle it, which is why the confidence in this read is low.',
+      assumptions: [
+        {
+          id: 'asm-16',
+          statement: 'Eleven months of full-time study is enough to clear the target rank.',
+          origin: 'stated',
+          confidence: 'low',
+          fragility: 76,
+          evidence: 'anecdotal',
+          impactIfWrong: 'critical',
+        },
+        {
+          id: 'asm-17',
+          statement: 'Six hours of focused study a day is sustainable without income.',
+          origin: 'hidden',
+          confidence: 'low',
+          fragility: 81,
+          evidence: 'partial',
+          impactIfWrong: 'high',
+        },
+        {
+          id: 'asm-18',
+          statement: 'A software role at a similar level is available if the attempt fails.',
+          origin: 'hidden',
+          confidence: 'low',
+          fragility: 72,
+          evidence: 'none',
+          impactIfWrong: 'critical',
+        },
+        {
+          id: 'asm-19',
+          statement: 'Savings cover eleven months of expenses without new debt.',
+          origin: 'stated',
+          confidence: 'medium',
+          fragility: 48,
+          evidence: 'documented',
+          impactIfWrong: 'high',
+        },
+        {
+          id: 'asm-20',
+          statement: 'An M.Tech materially changes the roles available afterwards.',
+          origin: 'hidden',
+          confidence: 'low',
+          fragility: 69,
+          evidence: 'anecdotal',
+          impactIfWrong: 'high',
+        },
+      ],
+      blindSpots: [
+        {
+          id: 'bsp-11',
+          title: 'No fallback attempt defined',
+          description:
+            'The plan assumes a single attempt. GATE runs annually, so failing once means either a second unpaid year or re-entering the market mid-cycle.',
+          severity: 'critical',
+          probingQuestion: 'What happens on the day the result arrives and the rank is short?',
+        },
+      ],
+      failureConditions: [
+        {
+          id: 'fcd-11',
+          trigger: 'Study hours settle below five a day by month three',
+          mechanism:
+            'Preparation falls behind the syllabus while income stays at zero, so the cost compounds without improving the odds.',
+          probability: 0.44,
+          horizon: '6-months',
+          severity: 'critical',
+          earlyWarningSignal: 'Two consecutive weeks averaging under five hours a day.',
+        },
+      ],
+      regretScenarios: [
+        {
+          id: 'rgs-12',
+          horizon: '1-year',
+          title: 'Rank short, year spent',
+          narrative:
+            'The attempt lands just outside the cutoff. Twelve months of income are gone and the market re-entry conversation starts from a gap on the CV.',
+          regretScore: 84,
+          likelihood: 0.38,
+          recoveryCost: 'costly-to-reverse',
+        },
+      ],
+      trajectory: [
+        { horizonMonths: 3, commitNow: 38, runExperiment: 22 },
+        { horizonMonths: 6, commitNow: 62, runExperiment: 29 },
+        { horizonMonths: 12, commitNow: 84, runExperiment: 37 },
+        { horizonMonths: 24, commitNow: 76, runExperiment: 34 },
+        { horizonMonths: 36, commitNow: 68, runExperiment: 31 },
+        { horizonMonths: 60, commitNow: 57, runExperiment: 27 },
+      ],
+      recommendedExperimentId: 'exp-2213',
+    },
   },
   {
     id: 'dcn-4812',

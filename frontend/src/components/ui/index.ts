@@ -31,6 +31,9 @@ export type { ProgressProps } from './Progress';
 export { Select } from './Select';
 export type { SelectOption, SelectProps } from './Select';
 
+export { Switch } from './Switch';
+export type { SwitchProps } from './Switch';
+
 export { Skeleton, SkeletonText } from './Skeleton';
 export type { SkeletonProps, SkeletonShape, SkeletonTextProps } from './Skeleton';
 

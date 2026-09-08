@@ -1,5 +1,13 @@
 export type WorkspacePlan = 'Free' | 'Analyst' | 'Operator' | 'Enterprise';
 
+export interface WorkspaceSubscription {
+  plan: WorkspacePlan;
+  /** Analyses left in the current billing month. */
+  analysesRemaining: number;
+  analysesPerMonth: number;
+  renewsOn: string;
+}
+
 export interface WorkspaceProfile {
   workspaceName: string;
   plan: WorkspacePlan;
@@ -15,8 +23,16 @@ export const workspaceProfile: WorkspaceProfile = {
   workspaceName: 'Northline Studio',
   plan: 'Free',
   user: {
-    name: 'Priya Raman',
+    name: 'Alex Morgan',
     role: 'Founder',
-    email: 'priya@northline.studio',
+    email: 'alex@example.com',
   },
+};
+
+/** Mock plan state. No billing is wired up. */
+export const workspaceSubscription: WorkspaceSubscription = {
+  plan: workspaceProfile.plan,
+  analysesRemaining: 3,
+  analysesPerMonth: 5,
+  renewsOn: '2026-10-01T00:00:00.000Z',
 };

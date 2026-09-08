@@ -9,12 +9,17 @@ export const ROUTES = {
   decisions: '/decisions',
   analysis: '/analysis',
   decisionDetail: '/decision/:id',
+  decisionGraph: '/decision/:id/graph',
   experiments: '/experiments',
   settings: '/settings',
 } as const;
 
 export function decisionPath(id: string): string {
   return `/decision/${id}`;
+}
+
+export function decisionGraphPath(id: string): string {
+  return `/decision/${id}/graph`;
 }
 
 /** Sidebar navigation, in the order a user moves through the product. */
@@ -41,7 +46,8 @@ export interface RouteMeta {
 export const routeMeta: RouteMeta[] = [
   { path: ROUTES.newDecision, title: 'New Decision', eyebrow: 'Intake' },
   { path: ROUTES.decisions, title: 'Decision History', eyebrow: 'Archive' },
-  { path: ROUTES.decisionDetail, title: 'Decision Analysis', eyebrow: 'Decision' },
+  { path: ROUTES.decisionGraph, title: 'Dependency Graph', eyebrow: 'Decision' },
+  { path: ROUTES.decisionDetail, title: 'Decision Report', eyebrow: 'Decision' },
   { path: ROUTES.analysis, title: 'Analysis Workspace', eyebrow: 'Engine' },
   { path: ROUTES.experiments, title: 'Experiments', eyebrow: 'Validation' },
   { path: ROUTES.settings, title: 'Settings', eyebrow: 'Workspace' },

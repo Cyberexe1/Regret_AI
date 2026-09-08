@@ -1,6 +1,7 @@
 import type {
   DecisionDomain,
   DecisionStatus,
+  ExperimentPhase,
   ExperimentStatus,
   RegretHorizon,
   Reversibility,
@@ -52,3 +53,13 @@ export const experimentStatusLabel: Record<ExperimentStatus, string> = {
   validated: 'Validated',
   invalidated: 'Invalidated',
 };
+
+/**
+ * Coarse grouping for listings. The precise status is still shown alongside, so
+ * "Completed" never hides whether the experiment actually settled the question.
+ */
+export function experimentPhase(status: ExperimentStatus): ExperimentPhase {
+  if (status === 'running') return 'Running';
+  if (status === 'proposed') return 'Proposed';
+  return 'Completed';
+}

@@ -43,6 +43,46 @@ export const experiments: Experiment[] = [
     createdAt: '2026-09-04T06:30:00.000Z',
   },
   {
+    id: 'exp-2212',
+    decisionId: 'dcn-5098',
+    title: 'Laptop battery test',
+    hypothesis:
+      'The current machine sustains a full build cycle off-charger, so the slowdown is thermal rather than age-related.',
+    method:
+      'Run three consecutive full builds off-charger, logging wall-clock time per build and remaining charge after each.',
+    status: 'validated',
+    cost: { currency: 'INR', amount: 0, days: 2, effort: 'low' },
+    informationGain: 41,
+    targets: ['asm-14'],
+    successCriteria: [
+      'Three builds complete without external power',
+      'Build time variance under 10% between first and third run',
+    ],
+    createdAt: '2026-09-05T13:20:00.000Z',
+    finding:
+      'Third build ran 34% slower than the first and the machine throttled at 71°C. The slowdown is the hardware, not the toolchain.',
+  },
+  {
+    id: 'exp-2213',
+    decisionId: 'dcn-5091',
+    title: 'GATE preparation trial',
+    hypothesis:
+      'A full-time study schedule of six hours a day is sustainable for eleven months.',
+    method:
+      'Hold the intended study schedule for fourteen consecutive days while still employed, recording hours actually completed each day.',
+    status: 'inconclusive',
+    cost: { currency: 'INR', amount: 0, days: 14, effort: 'high' },
+    informationGain: 58,
+    targets: [],
+    successCriteria: [
+      'Six hours completed on at least twelve of fourteen days',
+      'No decline in output at work',
+    ],
+    createdAt: '2026-08-22T05:45:00.000Z',
+    finding:
+      'Six hours held on nine of fourteen days, averaging 4.8 hours. Sustainable while employed is not the same as sustainable full time, so the trial does not settle the question.',
+  },
+  {
     id: 'exp-2201',
     decisionId: 'dcn-4812',
     title: 'Run a two-week paid build sprint with the prospective co-founder',

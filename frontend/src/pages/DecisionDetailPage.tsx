@@ -1,4 +1,4 @@
-import { ArrowLeft, ScanSearch } from 'lucide-react';
+import { ArrowLeft, Network, ScanSearch } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Reveal } from '@/components/Reveal';
@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/Badge';
 import { buttonClasses } from '@/components/ui/Button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/Card';
 import { findDecisionReport } from '@/data/decisionReport';
-import { ROUTES } from '@/data/navigation';
+import { decisionGraphPath, ROUTES } from '@/data/navigation';
 import { useDecision } from '@/hooks/useDecisions';
 import { cn } from '@/lib/cn';
 import { domainLabel, reversibilityLabel, statusLabel } from '@/lib/labels';
@@ -111,6 +111,15 @@ export function DecisionDetailPage() {
           index="02"
           title="What could break this decision?"
           description="Ranked by how much each one moves the outcome. Expand a card for the evidence behind it."
+          action={
+            <Link
+              to={decisionGraphPath(decision.id)}
+              className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+            >
+              <Network className="size-4" aria-hidden />
+              Dependency graph
+            </Link>
+          }
         >
           <div className="space-y-4">
             {report.uncertainties.map((uncertainty, index) => (

@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
-import { confidenceTone, riskLabel, riskTone } from '@/lib/tone';
+import { confidenceLabel, confidenceTone, riskLabel, riskTone } from '@/lib/tone';
 import type { CriticalUncertainty } from '@/types';
 
 export interface UncertaintyCardProps {
@@ -54,7 +54,7 @@ export function UncertaintyCard({ uncertainty, defaultOpen = false }: Uncertaint
                 {riskLabel[uncertainty.impact]} impact
               </Badge>
               <Badge tone={confidenceTone[uncertainty.confidence]} size="sm" variant="outline">
-                {uncertainty.confidence} confidence
+                {confidenceLabel[uncertainty.confidence]} confidence
               </Badge>
             </div>
 

@@ -1,9 +1,6 @@
-export { AnalysisPage } from './AnalysisPage';
-export { DashboardPage } from './DashboardPage';
-export { DecisionDetailPage } from './DecisionDetailPage';
-export { DecisionHistoryPage } from './DecisionHistoryPage';
-export { ExperimentsPage } from './ExperimentsPage';
 export { LandingPage } from './LandingPage';
-export { NewDecisionPage } from './NewDecisionPage';
 export { NotFoundPage } from './NotFoundPage';
-export { SettingsPage } from './SettingsPage';
+
+// Workspace pages are intentionally absent. `App.tsx` imports them with
+// `lazy(() => import(...))`, and re-exporting them here would statically pull
+// every page back into the main chunk.

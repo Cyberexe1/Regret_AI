@@ -1,5 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 
+export * from './experiment';
+export * from './graph';
 export * from './report';
 
 /* -------------------------------------------------------------------------- *
