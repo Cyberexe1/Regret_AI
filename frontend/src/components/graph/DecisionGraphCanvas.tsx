@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -15,6 +15,7 @@ import {
   GRAPH_NODE_WIDTH,
   relationLabel,
 } from '@/data/decisionGraph';
+import { graphCategoryLabel } from '@/lib/tone';
 import type { DecisionGraph, GraphRelation } from '@/types';
 import { GraphNodeCard, type GraphCardNode } from './GraphNodeCard';
 
@@ -111,6 +112,13 @@ export function DecisionGraphCanvas({ graph, selectedId, onSelect }: DecisionGra
         width: GRAPH_NODE_WIDTH,
         height: GRAPH_NODE_HEIGHT,
         handles: NODE_HANDLES,
+        // React Flow puts this on the focusable wrapper it renders around the
+        // node (role="group", tabindex="0"), not on anything inside GraphNodeCard.
+        // Without it, tabbing through the graph announces nothing about which
+        // node has focus.
+        ariaLabel: `${graphCategoryLabel[node.category]}: ${node.title}${
+          node.id === selectedId ? ', selected' : ''
+        }`,
         data: {
           category: node.category,
           title: node.title,
@@ -166,8 +174,35 @@ export function DecisionGraphCanvas({ graph, selectedId, onSelect }: DecisionGra
     [onSelect, selectedId],
   );
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * React Flow makes each node focusable and gives it arrow-key handling for
+   * repositioning, but ships no Enter/Space activation: selecting a node is
+   * mouse-only via `onNodeClick`. A keyboard-only user can tab onto a node
+   * and hear its label, but has no way to actually open it. This listener,
+   * scoped to the canvas, activates whichever node currently has focus.
+   */
+  const onCanvasKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+
+      const focused = containerRef.current?.querySelector<HTMLElement>(
+        '.react-flow__node:focus',
+      );
+      if (!focused) return;
+
+      const nodeId = focused.getAttribute('data-id');
+      if (!nodeId) return;
+
+      event.preventDefault();
+      onSelect(nodeId === selectedId ? null : nodeId);
+    },
+    [onSelect, selectedId],
+  );
+
   return (
-    <div className="size-full" style={FLOW_THEME}>
+    <div ref={containerRef} className="size-full" style={FLOW_THEME} onKeyDown={onCanvasKeyDown}>
       <ReactFlow
         nodes={nodes}
         edges={edges}

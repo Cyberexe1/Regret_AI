@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, CircleCheck } from 'lucide-react';
+import { ArrowRight, CircleCheck, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { buttonClasses } from '@/components/ui/Button';
 import { decisionPath } from '@/data/navigation';
@@ -10,9 +10,22 @@ import { DURATION, EASE_OUT } from '@/lib/motion';
 export interface CompletionBannerProps {
   isComplete: boolean;
   findingCount: number;
+  /**
+   * True when the decision text being analysed is the seeded sample (the
+   * cloud kitchen decision), which is the only one with a hand-authored full
+   * report and dependency graph. Everything else in this prototype has no
+   * backend behind it, so the report link would otherwise land the user on
+   * unrelated numbers for their own decision. When false, the CTA is
+   * relabelled and captioned so that hand-off is honest rather than silent.
+   */
+  isSampleDecision: boolean;
 }
 
-export function CompletionBanner({ isComplete, findingCount }: CompletionBannerProps) {
+export function CompletionBanner({
+  isComplete,
+  findingCount,
+  isSampleDecision,
+}: CompletionBannerProps) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -33,6 +46,14 @@ export function CompletionBanner({ isComplete, findingCount }: CompletionBannerP
                 {findingCount} findings, one failure threshold and a recommended experiment are
                 ready to review.
               </p>
+              {isSampleDecision ? null : (
+                <p className="mt-2 flex items-start gap-1.5 text-small text-ink-muted">
+                  <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                  This prototype has one fully worked example report. It walks through a
+                  different decision (a cloud kitchen investment) so you can see the full
+                  format the report would take for yours.
+                </p>
+              )}
             </div>
           </div>
 
@@ -40,7 +61,7 @@ export function CompletionBanner({ isComplete, findingCount }: CompletionBannerP
             to={decisionPath(DEMO_DECISION_ALIAS)}
             className={cn(buttonClasses({ variant: 'primary', size: 'lg' }), 'shrink-0')}
           >
-            View Decision Report
+            {isSampleDecision ? 'View Decision Report' : 'View Example Report'}
             <ArrowRight className="size-4.5" aria-hidden />
           </Link>
         </motion.section>

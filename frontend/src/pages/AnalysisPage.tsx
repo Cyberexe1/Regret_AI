@@ -23,14 +23,16 @@ export function AnalysisPage() {
     useAnalysisSimulation();
 
   // Prefer the draft handed over by intake, then a stored one, then the sample.
-  const decisionStatement = useMemo(() => {
+  // `isSampleDecision` is true only in that last case: no real input exists,
+  // so what's on screen is the seeded example rather than the user's own text.
+  const { decisionStatement, isSampleDecision } = useMemo(() => {
     const handedOver = (location.state as { draft?: DecisionDraft } | null)?.draft?.decision?.trim();
-    if (handedOver) return handedOver;
+    if (handedOver) return { decisionStatement: handedOver, isSampleDecision: false };
 
     const stored = readDecisionDraft()?.decision?.trim();
-    if (stored) return stored;
+    if (stored) return { decisionStatement: stored, isSampleDecision: false };
 
-    return fallbackDecisionStatement;
+    return { decisionStatement: fallbackDecisionStatement, isSampleDecision: true };
   }, [location.state]);
 
   return (
@@ -51,7 +53,11 @@ export function AnalysisPage() {
           />
         </div>
 
-        <CompletionBanner isComplete={isComplete} findingCount={findings.length} />
+        <CompletionBanner
+          isComplete={isComplete}
+          findingCount={findings.length}
+          isSampleDecision={isSampleDecision}
+        />
       </div>
     </PageContainer>
   );

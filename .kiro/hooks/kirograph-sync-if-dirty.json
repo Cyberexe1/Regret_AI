@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "KiroGraph Sync on Agent Stop",
+      "trigger": "Stop",
+      "description": "Syncs the KiroGraph knowledge graph after each agent run, using PowerShell-compatible output redirection.",
+      "action": {
+        "type": "command",
+        "command": "kirograph sync --quiet *> $null"
+      }
+    }
+  ]
+}
