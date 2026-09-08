@@ -19,6 +19,9 @@ export type { FieldProps } from './Field';
 export { Input } from './Input';
 export type { InputProps } from './Input';
 
+export { Kbd } from './Kbd';
+export type { KbdProps } from './Kbd';
+
 export { Modal } from './Modal';
 export type { ModalProps } from './Modal';
 

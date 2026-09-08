@@ -1,7 +1,7 @@
 import { LANDING_ANCHORS, processSteps, type ProcessStep } from '@/data/landing';
+import { Reveal } from '@/components/Reveal';
 import { cn } from '@/lib/cn';
 import { LandingSection } from './LandingSection';
-import { Reveal } from './Reveal';
 
 function StepBody({ step }: { step: ProcessStep }) {
   return (

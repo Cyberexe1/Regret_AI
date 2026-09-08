@@ -118,9 +118,9 @@
 
 /* --- Layout metrics (consumed via var() in layout components) ------------- */
 :root {
-  --sidebar-width: 15.5rem;
+  --sidebar-width: 15.5rem; /* 248px, inside the 240-260px band */
   --topbar-height: 3.75rem;
-  --page-max-width: 90rem;
+  --page-max-width: 87.5rem; /* 1400px content ceiling */
   --page-gutter: 1.25rem;
 }
 

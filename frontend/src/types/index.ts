@@ -9,12 +9,16 @@ export type Tone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'in
 
 export type Size = 'sm' | 'md' | 'lg';
 
+export type Currency = 'USD' | 'INR';
+
 export interface NavItem {
   label: string;
   to: string;
   icon: LucideIcon;
   /** Shown as a small counter in the sidebar when present. */
   count?: number;
+  /** Lifts the item above the rest of the nav as the primary action. */
+  emphasis?: boolean;
 }
 
 /* -------------------------------------------------------------------------- *
@@ -48,6 +52,41 @@ export type DecisionDomain = (typeof DECISION_DOMAINS)[number];
 export type Reversibility = 'reversible' | 'costly-to-reverse' | 'irreversible';
 
 export type Severity = 'low' | 'moderate' | 'high' | 'critical';
+
+/** Coarse risk band shown on decision summaries. */
+export type RiskLevel = 'low' | 'medium' | 'high';
+
+/** How much downside the user is willing to carry on this decision. */
+export type RiskTolerance = 'conservative' | 'balanced' | 'aggressive';
+
+/**
+ * A file the user attached during intake. Metadata only: the file itself never
+ * leaves the browser, because there is nothing to upload to yet.
+ */
+export interface DraftEvidenceFile {
+  id: string;
+  name: string;
+  /** Size in bytes. */
+  size: number;
+  mimeType: string;
+}
+
+/** Everything captured on the intake page before an analysis is requested. */
+export interface DecisionDraft {
+  decision: string;
+  desiredOutcome: string;
+  constraints: {
+    budget: string;
+    timeline: string;
+    location: string;
+    riskTolerance: RiskTolerance;
+  };
+  beliefs: string;
+  evidence: DraftEvidenceFile[];
+  sourceUrl: string;
+  /** ISO timestamp of the moment the draft was submitted. */
+  submittedAt?: string;
+}
 
 export type Confidence = 'low' | 'medium' | 'high';
 
@@ -114,7 +153,7 @@ export interface Experiment {
   method: string;
   status: ExperimentStatus;
   cost: {
-    currency: 'USD';
+    currency: Currency;
     amount: number;
     days: number;
     effort: 'low' | 'medium' | 'high';

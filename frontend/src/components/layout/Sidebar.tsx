@@ -1,25 +1,75 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
-import { cn } from '@/lib/cn';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Search, Sparkles, X } from 'lucide-react';
+import { Link, NavLink } from 'react-router-dom';
+import { Logo } from '@/components/Logo';
+import { Avatar } from '@/components/ui/Avatar';
+import { Button, buttonClasses } from '@/components/ui/Button';
+import { Kbd } from '@/components/ui/Kbd';
 import { primaryNav, ROUTES } from '@/data/navigation';
 import { workspaceProfile } from '@/data/workspace';
-import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { Avatar } from '@/components/ui/Avatar';
-import { Button } from '@/components/ui/Button';
-import { Logo } from '@/components/Logo';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { cn } from '@/lib/cn';
+import type { NavItem } from '@/types';
 
-function navLinkClasses({ isActive }: { isActive: boolean }): string {
+/**
+ * Row styling for one navigation item.
+ *
+ * Three states, in priority order: active, emphasised (New Decision) and
+ * default. Every row carries a transparent border so the emphasised item does
+ * not shift the others by a pixel.
+ */
+function navRowClasses(isActive: boolean, emphasis: boolean): string {
   return cn(
-    'group flex items-center gap-3 rounded-md px-3 py-2 text-small font-medium transition-colors duration-150',
-    isActive
-      ? 'bg-accent-soft text-ink'
-      : 'text-ink-secondary hover:bg-surface-raised hover:text-ink',
+    'group flex items-center gap-3 rounded-md border px-3 py-2 text-small font-medium transition-colors duration-150',
+    isActive && 'border-transparent bg-accent-soft text-ink',
+    !isActive && emphasis && 'border-accent-line/60 bg-accent-soft/40 text-ink hover:bg-accent-soft',
+    !isActive &&
+      !emphasis &&
+      'border-transparent text-ink-secondary hover:bg-surface-raised hover:text-ink',
   );
 }
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function NavRow({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
+  const { label, to, icon: Icon, count, emphasis = false } = item;
+
+  return (
+    <NavLink
+      to={to}
+      end={to === ROUTES.decisions}
+      onClick={onNavigate}
+      className={({ isActive }) => navRowClasses(isActive, emphasis)}
+    >
+      {({ isActive }) => (
+        <>
+          <Icon
+            className={cn(
+              'size-4 shrink-0 transition-colors',
+              isActive || emphasis
+                ? 'text-accent-ink'
+                : 'text-ink-muted group-hover:text-ink-secondary',
+            )}
+            aria-hidden
+          />
+          <span className="truncate">{label}</span>
+          <span className="ml-auto flex shrink-0 items-center gap-2">
+            {typeof count === 'number' ? (
+              <span className="numeric text-micro text-ink-muted">{count}</span>
+            ) : null}
+            {isActive ? <span className="h-4 w-0.5 rounded-full bg-accent" aria-hidden /> : null}
+          </span>
+        </>
+      )}
+    </NavLink>
+  );
+}
+
+interface SidebarContentProps {
+  onNavigate?: () => void;
+  onOpenCommandPalette: () => void;
+}
+
+function SidebarContent({ onNavigate, onOpenCommandPalette }: SidebarContentProps) {
   const { workspaceName, plan, user } = workspaceProfile;
 
   return (
@@ -30,51 +80,58 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </NavLink>
       </div>
 
+      {/* Command palette trigger */}
+      <div className="shrink-0 px-3 pt-3">
+        <button
+          type="button"
+          onClick={onOpenCommandPalette}
+          className="flex w-full items-center gap-2.5 rounded-md border border-hairline bg-surface-inset px-3 py-2 text-small text-ink-muted transition-colors duration-150 hover:border-hairline-strong hover:bg-surface-raised hover:text-ink-secondary"
+        >
+          <Search className="size-4 shrink-0" aria-hidden />
+          <span>Search</span>
+          <Kbd className="ml-auto">⌘ K</Kbd>
+        </button>
+      </div>
+
       <nav aria-label="Primary" className="flex-1 overflow-y-auto p-3">
         <ul className="space-y-1">
-          {primaryNav.map(({ label, to, icon: Icon, count }) => (
-            <li key={to}>
-              <NavLink
-                to={to}
-                end={to === ROUTES.decisions}
-                className={navLinkClasses}
-                onClick={onNavigate}
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon
-                      className={cn(
-                        'size-4 shrink-0 transition-colors',
-                        isActive ? 'text-accent-ink' : 'text-ink-muted group-hover:text-ink-secondary',
-                      )}
-                      aria-hidden
-                    />
-                    <span className="truncate">{label}</span>
-                    <span className="ml-auto flex shrink-0 items-center gap-2">
-                      {typeof count === 'number' ? (
-                        <span className="numeric text-micro text-ink-muted">{count}</span>
-                      ) : null}
-                      {isActive ? (
-                        <span className="h-4 w-0.5 rounded-full bg-accent" aria-hidden />
-                      ) : null}
-                    </span>
-                  </>
-                )}
-              </NavLink>
+          {primaryNav.map((item) => (
+            <li key={item.to}>
+              <NavRow item={item} onNavigate={onNavigate} />
             </li>
           ))}
         </ul>
       </nav>
 
-      <div className="shrink-0 border-t border-hairline p-3">
-        <div className="flex items-center gap-3 rounded-md px-1.5 py-1.5">
+      <div className="shrink-0 space-y-3 border-t border-hairline p-3">
+        <Link
+          to={ROUTES.settings}
+          onClick={onNavigate}
+          className="flex items-center gap-3 rounded-md px-1.5 py-1.5 transition-colors hover:bg-surface-raised"
+        >
           <Avatar name={user.name} size="md" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-small font-medium text-ink">{user.name}</p>
             <p className="truncate text-micro text-ink-muted">
-              {workspaceName} · {plan}
+              {user.role} · {workspaceName}
             </p>
           </div>
+        </Link>
+
+        <div className="rounded-lg border border-hairline bg-surface-raised p-3">
+          <p className="eyebrow">Plan</p>
+          <p className="mt-1 text-small font-medium text-ink">{plan} Plan</p>
+          <Link
+            to={ROUTES.settings}
+            onClick={onNavigate}
+            className={cn(
+              buttonClasses({ variant: 'primary', size: 'sm', fullWidth: true }),
+              'mt-3',
+            )}
+          >
+            <Sparkles className="size-3.5" aria-hidden />
+            Upgrade
+          </Link>
         </div>
       </div>
     </div>
@@ -85,9 +142,12 @@ export interface SidebarProps {
   /** Drawer state; ignored at `lg` and above where the sidebar is permanent. */
   open: boolean;
   onClose: () => void;
+  onOpenCommandPalette: () => void;
 }
 
-export function Sidebar({ open, onClose }: SidebarProps) {
+export function Sidebar({ open, onClose, onOpenCommandPalette }: SidebarProps) {
+  const reduceMotion = useReducedMotion();
+
   useLockBodyScroll(open);
   useEscapeKey(open, onClose);
 
@@ -95,7 +155,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     <>
       {/* Permanent rail from lg upwards */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[var(--sidebar-width)] border-r border-hairline bg-surface lg:block">
-        <SidebarContent />
+        <SidebarContent onOpenCommandPalette={onOpenCommandPalette} />
       </aside>
 
       {/* Drawer below lg */}
@@ -104,17 +164,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <div className="fixed inset-0 z-50 lg:hidden">
             <motion.div
               className="absolute inset-0 bg-canvas/80 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={reduceMotion ? undefined : { opacity: 0 }}
+              animate={reduceMotion ? undefined : { opacity: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0 }}
               transition={{ duration: 0.15 }}
               onClick={onClose}
             />
             <motion.aside
               className="absolute inset-y-0 left-0 w-[min(17rem,85vw)] border-r border-hairline-strong bg-surface shadow-overlay"
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
+              initial={reduceMotion ? undefined : { x: '-100%' }}
+              animate={reduceMotion ? undefined : { x: 0 }}
+              exit={reduceMotion ? undefined : { x: '-100%' }}
               transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
               aria-label="Sidebar"
             >
@@ -127,7 +187,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 className="absolute top-2.5 right-2.5 z-10"
                 onClick={onClose}
               />
-              <SidebarContent onNavigate={onClose} />
+              <SidebarContent onNavigate={onClose} onOpenCommandPalette={onOpenCommandPalette} />
             </motion.aside>
           </div>
         ) : null}

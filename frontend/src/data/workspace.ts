@@ -1,6 +1,8 @@
+export type WorkspacePlan = 'Free' | 'Analyst' | 'Operator' | 'Enterprise';
+
 export interface WorkspaceProfile {
   workspaceName: string;
-  plan: 'Analyst' | 'Operator' | 'Enterprise';
+  plan: WorkspacePlan;
   user: {
     name: string;
     role: string;
@@ -11,7 +13,7 @@ export interface WorkspaceProfile {
 /** Local placeholder identity. Replaced once accounts exist. */
 export const workspaceProfile: WorkspaceProfile = {
   workspaceName: 'Northline Studio',
-  plan: 'Operator',
+  plan: 'Free',
   user: {
     name: 'Priya Raman',
     role: 'Founder',

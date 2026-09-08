@@ -1,0 +1,105 @@
+import type { DecisionDraft, RiskTolerance } from '@/types';
+
+/* -------------------------------------------------------------------------- *
+ * Intake phases
+ *
+ * Four phases across one page. Section cards are tagged with the phase they
+ * belong to, so the progress rail and the form cannot drift apart.
+ * -------------------------------------------------------------------------- */
+
+export const INTAKE_SECTION_IDS = {
+  decision: 'intake-decision',
+  outcome: 'intake-outcome',
+  constraints: 'intake-constraints',
+  beliefs: 'intake-beliefs',
+  evidence: 'intake-evidence',
+  submit: 'intake-submit',
+} as const;
+
+export type IntakeStepStatus = 'complete' | 'current' | 'upcoming';
+
+export interface IntakeStep {
+  index: string;
+  label: string;
+  /** Section this step scrolls to. */
+  target: string;
+}
+
+export const intakeSteps: IntakeStep[] = [
+  { index: '01', label: 'Decision', target: INTAKE_SECTION_IDS.decision },
+  { index: '02', label: 'Context', target: INTAKE_SECTION_IDS.outcome },
+  { index: '03', label: 'Evidence', target: INTAKE_SECTION_IDS.evidence },
+  { index: '04', label: 'Stress Test', target: INTAKE_SECTION_IDS.submit },
+];
+
+export interface ResolvedIntakeStep extends IntakeStep {
+  status: IntakeStepStatus;
+}
+
+/**
+ * Marks each phase complete from the draft itself. The stress test never
+ * reports complete here: it only completes once it has actually been run.
+ */
+export function resolveIntakeSteps(draft: DecisionDraft): ResolvedIntakeStep[] {
+  const completion = [
+    draft.decision.trim().length > 0,
+    draft.desiredOutcome.trim().length > 0 && draft.beliefs.trim().length > 0,
+    draft.evidence.length > 0 || draft.sourceUrl.trim().length > 0,
+    false,
+  ];
+
+  const currentIndex = completion.indexOf(false);
+
+  return intakeSteps.map((step, index) => ({
+    ...step,
+    status: completion[index] ? 'complete' : index === currentIndex ? 'current' : 'upcoming',
+  }));
+}
+
+/* --- Constraints ---------------------------------------------------------- */
+
+export interface RiskToleranceOption {
+  value: RiskTolerance;
+  label: string;
+  description: string;
+}
+
+export const riskToleranceOptions: RiskToleranceOption[] = [
+  {
+    value: 'conservative',
+    label: 'Conservative',
+    description: 'Protect the downside, even at the cost of upside.',
+  },
+  {
+    value: 'balanced',
+    label: 'Balanced',
+    description: 'Accept measured risk where the evidence supports it.',
+  },
+  {
+    value: 'aggressive',
+    label: 'Aggressive',
+    description: 'Chase the upside and absorb a larger loss if wrong.',
+  },
+];
+
+/* --- Evidence ------------------------------------------------------------- */
+
+/** Extensions the picker offers and the drop handler accepts. */
+export const supportedEvidenceExtensions = [
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.xls',
+  '.xlsx',
+  '.csv',
+  '.txt',
+  '.md',
+  '.png',
+  '.jpg',
+  '.jpeg',
+] as const;
+
+export const supportedEvidenceLabel = 'PDF, DOC, XLS, CSV, TXT, MD, PNG, JPG';
+
+/** Enforced in the browser, so the limit shown is a real one. */
+export const maxEvidenceFileBytes = 25 * 1024 * 1024;

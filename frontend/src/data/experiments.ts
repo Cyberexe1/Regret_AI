@@ -6,6 +6,43 @@ import type { Experiment } from '@/types';
  */
 export const experiments: Experiment[] = [
   {
+    id: 'exp-2210',
+    decisionId: 'dcn-5104',
+    title: '14-day customer retention pilot',
+    hypothesis:
+      'At least 24% of first-time customers order again within 30 days without a discount attached.',
+    method:
+      'Cook the menu from a rented commercial kitchen for fourteen days, list on one aggregator, and track the second-order rate of the first 200 customers with no promo codes after day three.',
+    status: 'running',
+    cost: { currency: 'INR', amount: 42_000, days: 14, effort: 'medium' },
+    informationGain: 88,
+    targets: ['asm-11'],
+    successCriteria: [
+      'Second-order rate at or above 24% within 30 days',
+      'At least 200 unique first-time customers reached',
+      'No promotional discount active after day three',
+    ],
+    createdAt: '2026-09-03T06:00:00.000Z',
+  },
+  {
+    id: 'exp-2211',
+    decisionId: 'dcn-5104',
+    title: 'Cloud kitchen demand test',
+    hypothesis:
+      'A single brand can sustain 42 orders a day in this catchment without paid placement.',
+    method:
+      'Run a listing-only test with a limited menu from the same rented kitchen, holding marketing spend at zero, and record daily organic order volume across the catchment.',
+    status: 'running',
+    cost: { currency: 'INR', amount: 18_000, days: 21, effort: 'low' },
+    informationGain: 64,
+    targets: ['asm-13'],
+    successCriteria: [
+      'Median daily orders at or above 42 in the final week',
+      'No paid placement or aggregator promotion used',
+    ],
+    createdAt: '2026-09-04T06:30:00.000Z',
+  },
+  {
     id: 'exp-2201',
     decisionId: 'dcn-4812',
     title: 'Run a two-week paid build sprint with the prospective co-founder',

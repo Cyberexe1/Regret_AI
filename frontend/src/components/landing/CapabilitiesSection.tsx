@@ -1,7 +1,7 @@
 import { capabilities, LANDING_ANCHORS } from '@/data/landing';
+import { Reveal } from '@/components/Reveal';
 import { FeatureCard } from './FeatureCard';
 import { LandingSection } from './LandingSection';
-import { Reveal } from './Reveal';
 
 export function CapabilitiesSection() {
   return (

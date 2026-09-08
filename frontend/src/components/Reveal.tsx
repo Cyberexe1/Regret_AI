@@ -11,6 +11,9 @@ export interface RevealProps {
 /**
  * One-shot entrance as the element scrolls into view. Respects the operating
  * system reduced-motion preference by rendering statically.
+ *
+ * Shared by the landing page and the workspace, so entrance motion is
+ * consistent across the product.
  */
 export function Reveal({ children, delay = 0, className }: RevealProps) {
   const reduceMotion = useReducedMotion();

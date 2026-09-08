@@ -1,3 +1,5 @@
+import type { Currency } from '@/types';
+
 const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
@@ -6,11 +8,18 @@ const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
 
 const RELATIVE_FORMAT = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' });
 
-const USD_FORMAT = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 0,
-});
+const MONEY_FORMAT: Record<Currency, Intl.NumberFormat> = {
+  USD: new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }),
+  INR: new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }),
+};
 
 export function formatDate(iso: string): string {
   return DATE_FORMAT.format(new Date(iso));
@@ -28,8 +37,9 @@ export function formatRelative(iso: string, now: Date = new Date()): string {
   return RELATIVE_FORMAT.format(Math.round(diffDays / 365), 'year');
 }
 
-export function formatCurrency(amount: number): string {
-  return USD_FORMAT.format(amount);
+/** Locale-aware money, so ₹ and $ costs both render correctly. */
+export function formatMoney(amount: number, currency: Currency = 'USD'): string {
+  return MONEY_FORMAT[currency].format(amount);
 }
 
 /** Accepts a 0-1 ratio and renders it as a whole percentage. */
@@ -49,8 +59,25 @@ export function formatDays(days: number): string {
   return `${Math.round(days / 7)} weeks`;
 }
 
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+
+  const kilobytes = bytes / 1024;
+  if (kilobytes < 1024) return `${Math.round(kilobytes)} KB`;
+
+  return `${(kilobytes / 1024).toFixed(1)} MB`;
+}
+
 export function clamp(value: number, min = 0, max = 100): number {
   return Math.min(max, Math.max(min, value));
+}
+
+/** Time-of-day greeting for the dashboard header. */
+export function greeting(now: Date = new Date()): string {
+  const hour = now.getHours();
+  if (hour < 12) return 'Good morning.';
+  if (hour < 17) return 'Good afternoon.';
+  return 'Good evening.';
 }
 
 /** "career" -> "Career", "business-model" -> "Business model". */

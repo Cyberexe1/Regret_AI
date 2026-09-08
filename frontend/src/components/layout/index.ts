@@ -1,7 +1,11 @@
 export { AppShell } from './AppShell';
+export { CommandPalette } from './CommandPalette';
+export type { CommandPaletteProps } from './CommandPalette';
 export { PageContainer } from './PageContainer';
 export type { PageContainerProps, PageWidth } from './PageContainer';
 export { Sidebar } from './Sidebar';
 export type { SidebarProps } from './Sidebar';
 export { Topbar } from './Topbar';
 export type { TopbarProps } from './Topbar';
+export { TopbarMenu } from './TopbarMenu';
+export type { TopbarMenuProps } from './TopbarMenu';

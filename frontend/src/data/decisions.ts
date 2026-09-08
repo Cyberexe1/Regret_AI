@@ -6,6 +6,220 @@ import type { Decision } from '@/types';
  */
 export const decisions: Decision[] = [
   {
+    id: 'dcn-5104',
+    title: 'Start a cloud kitchen',
+    statement:
+      'Invest ₹5,00,000 to launch a single-brand cloud kitchen in Indiranagar, covering kitchen fit-out, three months of rent and initial marketing. Break-even needs roughly 42 orders a day.',
+    domain: 'financial',
+    status: 'analyzed',
+    stakes: 'high',
+    createdAt: '2026-09-02T07:30:00.000Z',
+    updatedAt: '2026-09-08T06:15:00.000Z',
+    commitBy: '2026-09-26T00:00:00.000Z',
+    analysis: {
+      regretIndex: 54,
+      analysisConfidence: 71,
+      reversibility: 'costly-to-reverse',
+      verdictSummary:
+        'The unit economics work only if customers order more than once. Every projection in the plan assumes a repeat rate of at least 24%, and the evidence available sits at 18–21%. That single number decides the outcome, and it can be measured for far less than ₹5,00,000.',
+      assumptions: [
+        {
+          id: 'asm-11',
+          statement: 'At least 24% of first-time customers order again within 30 days.',
+          origin: 'hidden',
+          confidence: 'low',
+          fragility: 82,
+          evidence: 'partial',
+          impactIfWrong: 'critical',
+        },
+        {
+          id: 'asm-12',
+          statement: 'Aggregator commission stays at 22% through the first year.',
+          origin: 'stated',
+          confidence: 'medium',
+          fragility: 61,
+          evidence: 'documented',
+          impactIfWrong: 'high',
+        },
+        {
+          id: 'asm-13',
+          statement: 'A single brand is enough to fill kitchen capacity.',
+          origin: 'hidden',
+          confidence: 'low',
+          fragility: 74,
+          evidence: 'none',
+          impactIfWrong: 'high',
+        },
+      ],
+      blindSpots: [
+        {
+          id: 'bsp-8',
+          title: 'Repeat behaviour is inferred from category averages',
+          description:
+            'The repeat rate in the plan comes from published category benchmarks, not from anyone who has ordered this menu at this price point.',
+          severity: 'critical',
+          probingQuestion:
+            'How many people have paid for this food twice, without a discount attached?',
+        },
+        {
+          id: 'bsp-9',
+          title: 'Kitchen lease outlasts the test',
+          description:
+            'The eleven-month lease and equipment purchase both commit capital before the first repeat cohort can even be observed.',
+          severity: 'high',
+          probingQuestion: 'What is the shortest lease that still lets you run a real trial?',
+        },
+      ],
+      failureConditions: [
+        {
+          id: 'fcd-8',
+          trigger: 'Repeat rate settles below 24% after the discount period ends',
+          mechanism:
+            'Contribution margin turns negative once acquisition has to be paid for twice, and daily orders plateau below break-even.',
+          probability: 0.52,
+          horizon: '6-months',
+          severity: 'critical',
+          earlyWarningSignal:
+            'Second-order rate under 20% in the first 200 customers, measured without promo codes.',
+        },
+        {
+          id: 'fcd-9',
+          trigger: 'Aggregator raises commission or changes ranking weight',
+          mechanism:
+            'Visibility falls, paid placement becomes mandatory, and the marketing budget is consumed before repeat behaviour compounds.',
+          probability: 0.34,
+          horizon: '1-year',
+          severity: 'high',
+          earlyWarningSignal: 'Organic impressions declining while order volume is flat.',
+        },
+      ],
+      regretScenarios: [
+        {
+          id: 'rgs-9',
+          horizon: '6-months',
+          title: 'Orders arrive, customers do not return',
+          narrative:
+            'Launch week looks healthy on discounts. By month four the cohort curve is flat, and the kitchen is running at 60% of break-even with rent already paid through the lease.',
+          regretScore: 78,
+          likelihood: 0.44,
+          recoveryCost: 'costly-to-reverse',
+        },
+        {
+          id: 'rgs-10',
+          horizon: '1-year',
+          title: 'Capital locked in equipment',
+          narrative:
+            'Winding down recovers perhaps a third of the fit-out. The lesson cost ₹3,00,000 more than a two-week test would have.',
+          regretScore: 71,
+          likelihood: 0.29,
+          recoveryCost: 'irreversible',
+        },
+      ],
+      trajectory: [
+        { horizonMonths: 3, commitNow: 31, runExperiment: 18 },
+        { horizonMonths: 6, commitNow: 58, runExperiment: 24 },
+        { horizonMonths: 12, commitNow: 67, runExperiment: 27 },
+        { horizonMonths: 24, commitNow: 61, runExperiment: 25 },
+        { horizonMonths: 36, commitNow: 54, runExperiment: 23 },
+        { horizonMonths: 60, commitNow: 47, runExperiment: 21 },
+      ],
+      recommendedExperimentId: 'exp-2210',
+    },
+  },
+  {
+    id: 'dcn-5098',
+    title: 'Buy a new laptop',
+    statement:
+      'Replace a four-year-old machine that now adds roughly 40 minutes a day to build and test cycles. Budget is ₹1,80,000, and the current machine still resells for about ₹35,000.',
+    domain: 'technology',
+    status: 'analyzed',
+    stakes: 'low',
+    createdAt: '2026-09-05T11:00:00.000Z',
+    updatedAt: '2026-09-07T09:45:00.000Z',
+    analysis: {
+      regretIndex: 16,
+      analysisConfidence: 88,
+      reversibility: 'reversible',
+      verdictSummary:
+        'Low regret exposure. The cost is bounded, the time saving is already measured, and resale keeps the downside small. No experiment is warranted; the decision is ready to make.',
+      assumptions: [
+        {
+          id: 'asm-14',
+          statement: 'The 40 minutes lost per day is caused by the machine, not the toolchain.',
+          origin: 'hidden',
+          confidence: 'high',
+          fragility: 28,
+          evidence: 'documented',
+          impactIfWrong: 'moderate',
+        },
+        {
+          id: 'asm-15',
+          statement: 'Resale value holds near ₹35,000 for the next month.',
+          origin: 'stated',
+          confidence: 'medium',
+          fragility: 34,
+          evidence: 'partial',
+          impactIfWrong: 'low',
+        },
+      ],
+      blindSpots: [
+        {
+          id: 'bsp-10',
+          title: 'Build times were measured on one project',
+          description:
+            'The time saving is extrapolated from a single repository, which may be the least representative workload.',
+          severity: 'low',
+          probingQuestion: 'Does the slowdown hold across the two other projects you touch weekly?',
+        },
+      ],
+      failureConditions: [
+        {
+          id: 'fcd-10',
+          trigger: 'Build times stay flat on the new machine',
+          mechanism:
+            'The bottleneck was toolchain configuration, so the spend buys no recovered time.',
+          probability: 0.18,
+          horizon: '6-months',
+          severity: 'low',
+          earlyWarningSignal: 'A profiling run showing most time spent waiting on network calls.',
+        },
+      ],
+      regretScenarios: [
+        {
+          id: 'rgs-11',
+          horizon: '6-months',
+          title: 'Marginal gain, easily absorbed',
+          narrative:
+            'The machine is faster but the saving is nearer fifteen minutes than forty. Mildly annoying, entirely recoverable, and the old laptop was already sold.',
+          regretScore: 22,
+          likelihood: 0.31,
+          recoveryCost: 'reversible',
+        },
+      ],
+      trajectory: [
+        { horizonMonths: 3, commitNow: 14, runExperiment: 12 },
+        { horizonMonths: 6, commitNow: 18, runExperiment: 15 },
+        { horizonMonths: 12, commitNow: 16, runExperiment: 14 },
+        { horizonMonths: 24, commitNow: 13, runExperiment: 12 },
+        { horizonMonths: 36, commitNow: 11, runExperiment: 11 },
+        { horizonMonths: 60, commitNow: 9, runExperiment: 9 },
+      ],
+      recommendedExperimentId: null,
+    },
+  },
+  {
+    id: 'dcn-5091',
+    title: 'Leave job for GATE preparation',
+    statement:
+      'Resign from a ₹14L software role to prepare full time for GATE, targeting an M.Tech admission. Preparation window is eleven months with no income, and the attempt cannot be repeated for a year if missed.',
+    domain: 'career',
+    status: 'analyzing',
+    stakes: 'defining',
+    createdAt: '2026-09-04T05:20:00.000Z',
+    updatedAt: '2026-09-05T14:10:00.000Z',
+    commitBy: '2026-10-10T00:00:00.000Z',
+  },
+  {
     id: 'dcn-4812',
     title: 'Leave staff engineering role to co-found a seed-stage startup',
     statement:

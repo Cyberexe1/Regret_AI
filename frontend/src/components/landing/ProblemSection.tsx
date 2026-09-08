@@ -1,7 +1,7 @@
 import { LANDING_ANCHORS, problems } from '@/data/landing';
+import { Reveal } from '@/components/Reveal';
 import { FeatureCard } from './FeatureCard';
 import { LandingSection } from './LandingSection';
-import { Reveal } from './Reveal';
 
 export function ProblemSection() {
   return (

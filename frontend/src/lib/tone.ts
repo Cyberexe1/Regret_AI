@@ -1,4 +1,11 @@
-import type { Confidence, ExperimentStatus, Reversibility, Severity, Tone } from '@/types';
+import type {
+  Confidence,
+  ExperimentStatus,
+  Reversibility,
+  RiskLevel,
+  Severity,
+  Tone,
+} from '@/types';
 
 /**
  * Single source of truth for how semantic tone maps onto tokens.
@@ -42,6 +49,18 @@ export const toneHex: Record<Tone, string> = {
 };
 
 /* --- Domain -> tone mappings ---------------------------------------------- */
+
+export const riskTone: Record<RiskLevel, Tone> = {
+  low: 'success',
+  medium: 'warning',
+  high: 'danger',
+};
+
+export const riskLabel: Record<RiskLevel, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+};
 
 export const severityTone: Record<Severity, Tone> = {
   low: 'neutral',

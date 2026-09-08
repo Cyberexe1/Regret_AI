@@ -17,6 +17,13 @@ export interface StatDelta {
   upIsGood: boolean;
 }
 
+const VALUE_SIZE = {
+  /** Default. Readable without dominating the page. */
+  compact: 'text-xl font-semibold tracking-[-0.012em]',
+  /** For pages where a single figure is the point. */
+  large: 'text-page-title',
+} as const;
+
 export interface StatCardProps {
   label: string;
   value: string;
@@ -24,6 +31,7 @@ export interface StatCardProps {
   unit?: string;
   icon?: LucideIcon;
   tone?: Tone;
+  valueSize?: keyof typeof VALUE_SIZE;
   /** Signed change versus the previous period. */
   delta?: StatDelta;
   /** Explanatory copy surfaced on hover over the label. */
@@ -42,6 +50,7 @@ export function StatCard({
   unit,
   icon: Icon,
   tone = 'neutral',
+  valueSize = 'compact',
   delta,
   help,
   footer,
@@ -69,7 +78,7 @@ export function StatCard({
       </div>
 
       <div className="flex items-baseline gap-1.5">
-        <span className="numeric text-page-title text-ink">{value}</span>
+        <span className={cn('numeric text-ink', VALUE_SIZE[valueSize])}>{value}</span>
         {unit ? <span className="text-small text-ink-muted">{unit}</span> : null}
         {delta ? (
           <span

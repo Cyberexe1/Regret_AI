@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
+import { Reveal } from '@/components/Reveal';
 import { cn } from '@/lib/cn';
-import { Reveal } from './Reveal';
 
 /** Shared horizontal container for every landing band, including nav and footer. */
 export const LANDING_CONTAINER = 'mx-auto w-full max-w-[76rem] px-[var(--page-gutter)]';

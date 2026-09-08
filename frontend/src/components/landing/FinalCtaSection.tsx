@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { buttonClasses } from '@/components/ui/Button';
 import { LANDING_ANCHORS } from '@/data/landing';
 import { ROUTES } from '@/data/navigation';
+import { Reveal } from '@/components/Reveal';
 import { cn } from '@/lib/cn';
 import { LANDING_CONTAINER } from './LandingSection';
-import { Reveal } from './Reveal';
 
 export function FinalCtaSection() {
   return (

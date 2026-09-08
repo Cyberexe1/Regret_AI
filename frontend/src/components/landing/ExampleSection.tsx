@@ -2,15 +2,18 @@ import { FlaskConical, TriangleAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Divider } from '@/components/ui/Divider';
 import { exampleAnalysis, LANDING_ANCHORS } from '@/data/landing';
+import { cn } from '@/lib/cn';
+import { toneFill, toneText } from '@/lib/tone';
+import type { Tone } from '@/types';
+import { Reveal } from '@/components/Reveal';
 import { LandingSection } from './LandingSection';
-import { Reveal } from './Reveal';
 
 /**
  * Horizontal scale showing the evidence band against the threshold the decision
  * needs to clear. Positions are derived from the example values, not hardcoded.
  */
 function ThresholdBar() {
-  const { scaleMax, evidenceRange, thresholdValue } = exampleAnalysis;
+  const { scaleMax, evidenceRange, thresholdValue, risk } = exampleAnalysis;
   const [low, high] = evidenceRange;
 
   const toPercent = (value: number) => `${(value / scaleMax) * 100}%`;
@@ -19,7 +22,7 @@ function ThresholdBar() {
     <div className="pt-2">
       <div className="relative h-2 w-full rounded-full bg-surface-inset">
         <div
-          className="absolute inset-y-0 rounded-full bg-warning/70"
+          className={cn('absolute inset-y-0 rounded-full', toneFill[risk.tone])}
           style={{ left: toPercent(low), width: toPercent(high - low) }}
         />
         <div
@@ -30,7 +33,7 @@ function ThresholdBar() {
 
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
         <span className="inline-flex items-center gap-2 text-small text-ink-secondary">
-          <span className="size-2 rounded-sm bg-warning/70" aria-hidden />
+          <span className={cn('size-2 rounded-sm', toneFill[risk.tone])} aria-hidden />
           Observed range
         </span>
         <span className="inline-flex items-center gap-2 text-small text-ink-secondary">
@@ -45,17 +48,11 @@ function ThresholdBar() {
   );
 }
 
-function MetricRow({ label, value, tone }: { label: string; value: string; tone?: 'warning' }) {
+function MetricRow({ label, value, tone }: { label: string; value: string; tone?: Tone }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-3">
       <span className="text-small text-ink-secondary">{label}</span>
-      <span
-        className={
-          tone === 'warning'
-            ? 'numeric text-card-title text-warning-ink'
-            : 'numeric text-card-title text-ink'
-        }
-      >
+      <span className={cn('numeric text-card-title', tone ? toneText[tone] : 'text-ink')}>
         {value}
       </span>
     </div>
@@ -96,7 +93,11 @@ export function ExampleSection() {
               <p className="mt-2 text-section-title text-ink">{example.criticalUncertainty}</p>
 
               <div className="mt-6 divide-y divide-hairline border-y border-hairline">
-                <MetricRow label="Current evidence" value={example.currentEvidence} tone="warning" />
+                <MetricRow
+                  label="Current evidence"
+                  value={example.currentEvidence}
+                  tone={example.risk.tone}
+                />
                 <MetricRow label="Required threshold" value={example.requiredThreshold} />
               </div>
 
@@ -106,7 +107,9 @@ export function ExampleSection() {
             {/* Right: risk read-out */}
             <div className="border-t border-hairline bg-surface-inset/60 px-5 py-6 md:px-7 lg:border-t-0 lg:border-l">
               <p className="eyebrow">Decision risk</p>
-              <p className="mt-2 text-page-title text-warning-ink">{example.risk.label}</p>
+              <p className={cn('mt-2 text-page-title', toneText[example.risk.tone])}>
+                {example.risk.label}
+              </p>
               <p className="mt-2 text-small text-ink-secondary">
                 Driven by one unresolved uncertainty with a measurable threshold, not by the size of
                 the cheque.
