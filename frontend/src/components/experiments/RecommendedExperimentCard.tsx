@@ -15,7 +15,7 @@ export interface RecommendedExperimentCardProps {
 
 function Fact({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="rounded-xl border border-hairline-strong bg-canvas/40 px-4 py-3.5">
+    <div className="rounded-xl border border-hairline-strong bg-panel-inset px-4 py-3.5">
       <p className="eyebrow">{label}</p>
       <p className={cn('numeric mt-2 text-card-title font-semibold', tone ?? 'text-ink')}>
         {value}
@@ -31,8 +31,8 @@ export function RecommendedExperimentCard({
   decision,
 }: RecommendedExperimentCardProps) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-accent-line bg-accent-soft/40 shadow-raised">
-      <div className="p-6 md:p-8">
+    <section className="overflow-hidden rounded-2xl border border-accent-line bg-panel-accent shadow-raised">
+      <div className="p-6 md:p-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <FlaskConical className="size-4 shrink-0 text-accent-ink" aria-hidden />
@@ -43,7 +43,7 @@ export function RecommendedExperimentCard({
           </Badge>
         </div>
 
-        <h2 className="mt-4 text-[1.625rem] leading-tight font-semibold tracking-[-0.02em] text-ink md:text-[1.875rem]">
+        <h2 className="mt-4 text-headline text-ink">
           {experiment.title}
         </h2>
 
@@ -60,7 +60,7 @@ export function RecommendedExperimentCard({
           </p>
         ) : null}
 
-        <div className="mt-6 rounded-xl border border-hairline-strong bg-canvas/40 px-5 py-4">
+        <div className="mt-6 rounded-xl border border-hairline-strong bg-panel-inset px-5 py-4">
           <p className="eyebrow">The question</p>
           <p className="mt-2 text-section-title text-ink">{detail.question}</p>
         </div>

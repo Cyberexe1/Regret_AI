@@ -1,11 +1,13 @@
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Outlet, useLocation } from 'react-router-dom';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useModifierHotkey } from '@/hooks/useModifierHotkey';
 import { CommandPalette } from './CommandPalette';
 import { PageLoading } from './PageLoading';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 /**
  * Application chrome for every workspace route: permanent sidebar at `lg`,
@@ -48,21 +50,24 @@ export function AppShell() {
         <Topbar onOpenSidebar={() => setDrawerOpen(true)} onOpenCommandPalette={openPalette} />
 
         <main id="main-content">
-          {/* Route modules load on demand; the chrome stays put while they do. */}
-          <Suspense fallback={<PageLoading />}>
-            {reduceMotion ? (
-              <Outlet />
-            ) : (
-              <motion.div
-                key={pathname}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              >
+          {/* A failing view must not blank the shell, and must not survive navigation. */}
+          <ErrorBoundary resetKey={pathname}>
+            {/* Route modules load on demand; the chrome stays put while they do. */}
+            <Suspense fallback={<PageLoading />}>
+              {reduceMotion ? (
                 <Outlet />
-              </motion.div>
-            )}
-          </Suspense>
+              ) : (
+                <motion.div
+                  key={pathname}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: DURATION.quick, ease: EASE_OUT }}
+                >
+                  <Outlet />
+                </motion.div>
+              )}
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
 

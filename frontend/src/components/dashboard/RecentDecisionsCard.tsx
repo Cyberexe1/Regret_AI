@@ -29,7 +29,7 @@ function DecisionRow({ row }: { row: RecentDecisionRow }) {
       <div className="flex shrink-0 items-center justify-between gap-2 sm:w-28 sm:justify-end">
         <span className="text-small text-ink-muted">{row.updatedLabel}</span>
         <ChevronRight
-          className="size-4 shrink-0 text-ink-faint transition-colors group-hover:text-ink-secondary"
+          className="size-4 shrink-0 text-ink-muted transition-colors group-hover:text-ink-secondary"
           aria-hidden
         />
       </div>
@@ -40,7 +40,7 @@ function DecisionRow({ row }: { row: RecentDecisionRow }) {
 export function RecentDecisionsCard() {
   return (
     <Card padding="none" className="overflow-hidden">
-      <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4">
+      <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 md:px-6">
         <div>
           <CardTitle>Recent decisions</CardTitle>
           <p className="mt-0.5 text-small text-ink-muted">Sorted by most recently updated</p>

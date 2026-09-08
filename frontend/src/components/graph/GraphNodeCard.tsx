@@ -29,12 +29,12 @@ const HANDLE_STYLE = {
 } as const;
 
 const SHELL: Record<GraphCategory, string> = {
-  decision: 'border-accent-line bg-accent-soft/45',
-  assumption: 'border-info-line/60 bg-info-soft/20',
+  decision: 'border-accent-line bg-panel-accent',
+  assumption: 'border-info-line bg-panel-info',
   evidence: 'border-hairline bg-surface-raised',
-  uncertainty: 'border-warning-line/60 bg-warning-soft/20',
-  threshold: 'border-danger-line/60 bg-danger-soft/20',
-  outcome: 'border-success-line/60 bg-success-soft/20',
+  uncertainty: 'border-warning-line bg-panel-warning',
+  threshold: 'border-danger-line bg-panel-danger',
+  outcome: 'border-success-line bg-panel-success',
 };
 
 export function GraphNodeCard({ data }: NodeProps<GraphCardNode>) {

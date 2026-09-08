@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { Reveal } from '@/components/Reveal';
-import { cn } from '@/lib/cn';
 
 export interface IntakeSectionProps {
   /** Scroll target for the progress rail. */
@@ -9,8 +8,6 @@ export interface IntakeSectionProps {
   phase: string;
   title: string;
   description?: ReactNode;
-  /** The opening section carries the largest heading. */
-  emphasis?: boolean;
   delay?: number;
   children: ReactNode;
 }
@@ -20,7 +17,6 @@ export function IntakeSection({
   phase,
   title,
   description,
-  emphasis = false,
   delay = 0,
   children,
 }: IntakeSectionProps) {
@@ -29,17 +25,11 @@ export function IntakeSection({
       <section
         id={id}
         aria-labelledby={`${id}-title`}
-        className="scroll-mt-[calc(var(--topbar-height)+1.5rem)] rounded-xl border border-hairline bg-surface p-6 md:p-8"
+        className="scroll-mt-[calc(var(--header-offset)+0.75rem)] rounded-xl border border-hairline bg-surface p-6 md:p-8"
       >
         <p className="eyebrow">{phase}</p>
 
-        <h2
-          id={`${id}-title`}
-          className={cn(
-            'mt-3 font-semibold tracking-[-0.015em] text-ink',
-            emphasis ? 'text-[1.375rem] leading-snug' : 'text-[1.1875rem] leading-snug',
-          )}
-        >
+        <h2 id={`${id}-title`} className="mt-3 text-subsection text-ink">
           {title}
         </h2>
 

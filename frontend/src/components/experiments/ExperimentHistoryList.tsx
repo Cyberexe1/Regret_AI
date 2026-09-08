@@ -26,7 +26,7 @@ export function ExperimentHistoryList({
 }: ExperimentHistoryListProps) {
   return (
     <Card padding="none" className="overflow-hidden">
-      <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4">
+      <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 md:px-6">
         <div>
           <CardTitle>Experiment history</CardTitle>
           <p className="mt-0.5 text-small text-ink-muted">
@@ -74,7 +74,7 @@ export function ExperimentHistoryList({
                     {formatRelative(experiment.createdAt)}
                   </span>
                   <ChevronRight
-                    className="size-4 shrink-0 text-ink-faint transition-colors group-hover:text-ink-secondary"
+                    className="size-4 shrink-0 text-ink-muted transition-colors group-hover:text-ink-secondary"
                     aria-hidden
                   />
                 </div>

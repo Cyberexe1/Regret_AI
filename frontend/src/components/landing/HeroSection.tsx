@@ -7,6 +7,7 @@ import { ROUTES } from '@/data/navigation';
 import { cn } from '@/lib/cn';
 import { AnalysisPreview } from './AnalysisPreview';
 import { LANDING_CONTAINER } from './LandingSection';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 export function HeroSection() {
   const reduceMotion = useReducedMotion();
@@ -17,7 +18,7 @@ export function HeroSection() {
       : {
           initial: { opacity: 0, y: 20 },
           animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] as const },
+          transition: { duration: DURATION.entrance, delay, ease: EASE_OUT },
         };
 
   return (
@@ -47,7 +48,7 @@ export function HeroSection() {
           </motion.h1>
 
           <motion.p
-            className="mt-6 max-w-xl text-body text-ink-secondary md:text-[1.0625rem]"
+            className="mt-6 max-w-xl text-body-lg text-ink-secondary"
             {...entrance(0.16)}
           >
             REGRET ENGINE stress-tests important decisions, exposes hidden assumptions, identifies

@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
 import type { ExperimentDetail } from '@/types';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 export interface ExperimentProgressTrackerProps {
   detail: ExperimentDetail;
@@ -20,11 +21,11 @@ export function ExperimentProgressTracker({ detail }: ExperimentProgressTrackerP
         <div>
           <p className="eyebrow">Elapsed</p>
           <p className="mt-1.5 flex items-baseline gap-1.5">
-            <span className="numeric text-xl font-semibold text-ink">Day {currentDay}</span>
+            <span className="numeric text-metric text-ink">Day {currentDay}</span>
             <span className="text-small text-ink-muted">of {durationDays}</span>
           </p>
         </div>
-        <p className="numeric text-xl font-semibold text-accent-ink">{progress}%</p>
+        <p className="numeric text-metric text-accent-ink">{progress}%</p>
       </div>
 
       {/* Track. The current-day marker sits at the same scale as the fill. */}
@@ -33,7 +34,7 @@ export function ExperimentProgressTracker({ detail }: ExperimentProgressTrackerP
           className="absolute -top-7 z-10 -translate-x-1/2"
           initial={reduceMotion ? undefined : { left: '0%', opacity: 0 }}
           animate={{ left: `${progress}%`, opacity: 1 }}
-          transition={{ duration: 0.9, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: DURATION.fill, delay: 0.1, ease: EASE_OUT }}
         >
           <span className="numeric rounded-sm border border-accent-line bg-accent-soft px-1.5 py-0.5 text-micro text-accent-ink">
             Day {currentDay}
@@ -45,7 +46,7 @@ export function ExperimentProgressTracker({ detail }: ExperimentProgressTrackerP
             className="h-full rounded-full bg-accent"
             initial={reduceMotion ? undefined : { width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.9, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: DURATION.fill, delay: 0.1, ease: EASE_OUT }}
           />
         </div>
 

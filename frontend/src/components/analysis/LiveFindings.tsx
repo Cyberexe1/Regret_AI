@@ -1,8 +1,11 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Hourglass } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { analysisAgents, type AnalysisFinding } from '@/data/analysisAgents';
 import { cn } from '@/lib/cn';
 import { toneFill, toneText } from '@/lib/tone';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 const agentNameById = new Map(analysisAgents.map((agent) => [agent.id, agent.name]));
 
@@ -34,7 +37,12 @@ export function LiveFindings({ findings, isComplete }: LiveFindingsProps) {
 
       <div className="px-5 py-5 md:px-6">
         {findings.length === 0 ? (
-          <p className="py-4 text-small text-ink-muted">Waiting on the first specialist.</p>
+          <EmptyState
+            size="inline"
+            icon={Hourglass}
+            title="Waiting on the first specialist"
+            description="Conclusions appear here as each agent finishes its pass."
+          />
         ) : (
           <ul className="space-y-3">
             <AnimatePresence initial={false}>
@@ -44,7 +52,7 @@ export function LiveFindings({ findings, isComplete }: LiveFindingsProps) {
                   layout={!reduceMotion}
                   initial={reduceMotion ? undefined : { opacity: 0, y: 8 }}
                   animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                  transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: DURATION.entrance, ease: EASE_OUT }}
                   className="flex gap-3 rounded-lg border border-hairline bg-surface-raised px-4 py-3"
                 >
                   <span

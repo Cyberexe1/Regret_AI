@@ -27,9 +27,9 @@ interface LegendItem {
 }
 
 const legend: LegendItem[] = [
-  { label: 'Current estimate', swatch: 'bg-warning/60' },
+  { label: 'Current estimate', swatch: 'bg-warning' },
   { label: 'Critical threshold', swatch: 'bg-danger' },
-  { label: 'Safe zone', swatch: 'bg-success/40' },
+  { label: 'Safe zone', swatch: 'bg-success' },
 ];
 
 export interface ThresholdSectionProps {
@@ -43,7 +43,7 @@ export function ThresholdSection({ report }: ThresholdSectionProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-danger-line/60 bg-danger-soft/25 px-5 py-4 md:px-6">
+      <div className="rounded-xl border border-danger-line bg-panel-danger px-5 py-4 md:px-6">
         <p className="text-body text-ink">{threshold.narrative}</p>
       </div>
 

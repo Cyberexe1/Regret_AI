@@ -37,7 +37,7 @@ function RiskToleranceField({
                 'cursor-pointer rounded-lg border p-4 transition-colors duration-150',
                 'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
                 selected
-                  ? 'border-accent-line bg-accent-soft/40'
+                  ? 'border-accent-line bg-panel-accent'
                   : 'border-hairline bg-surface-inset hover:border-hairline-strong hover:bg-surface-raised',
               )}
             >

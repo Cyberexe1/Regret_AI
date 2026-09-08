@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { axisDefaults, gridDefaults } from '@/components/charts/chartTheme';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { RegretThreshold } from '@/types';
 
 /** "-₹58k" / "₹16k". Compact enough for an axis tick. */
@@ -32,6 +33,12 @@ export function ThresholdChart({ threshold }: ThresholdChartProps) {
   const [low, high] = threshold.currentRange;
   const [domainMin, domainMax] = threshold.domain;
 
+  /**
+   * Recharts reference labels neither wrap nor shrink, so below `sm` they
+   * collide and clip. The legend beneath the chart carries the same meaning.
+   */
+  const showInlineLabels = useMediaQuery('(min-width: 640px)');
+
   return (
     <div className="h-64 w-full sm:h-72">
       <ResponsiveContainer width="100%" height="100%">
@@ -44,12 +51,16 @@ export function ThresholdChart({ threshold }: ThresholdChartProps) {
             x2={domainMax}
             fill="var(--color-success)"
             fillOpacity={0.08}
-            label={{
-              value: 'Safe zone',
-              position: 'insideTopRight',
-              fill: 'var(--color-success-ink)',
-              fontSize: 11,
-            }}
+            label={
+              showInlineLabels
+                ? {
+                    value: 'Safe zone',
+                    position: 'insideTopRight',
+                    fill: 'var(--color-success-ink)',
+                    fontSize: 11,
+                  }
+                : undefined
+            }
           />
 
           {/* Where the decision stands today */}
@@ -58,12 +69,16 @@ export function ThresholdChart({ threshold }: ThresholdChartProps) {
             x2={high}
             fill="var(--color-warning)"
             fillOpacity={0.18}
-            label={{
-              value: 'Current',
-              position: 'insideTopLeft',
-              fill: 'var(--color-warning-ink)',
-              fontSize: 11,
-            }}
+            label={
+              showInlineLabels
+                ? {
+                    value: 'Current',
+                    position: 'insideTopLeft',
+                    fill: 'var(--color-warning-ink)',
+                    fontSize: 11,
+                  }
+                : undefined
+            }
           />
 
           <XAxis
@@ -95,12 +110,16 @@ export function ThresholdChart({ threshold }: ThresholdChartProps) {
             stroke="var(--color-danger)"
             strokeDasharray="4 4"
             strokeWidth={1.5}
-            label={{
-              value: `Threshold ${threshold.thresholdValue}%`,
-              position: 'top',
-              fill: 'var(--color-danger-ink)',
-              fontSize: 11,
-            }}
+            label={
+              showInlineLabels
+                ? {
+                    value: `Threshold ${threshold.thresholdValue}%`,
+                    position: 'top',
+                    fill: 'var(--color-danger-ink)',
+                    fontSize: 11,
+                  }
+                : undefined
+            }
           />
 
           <Area

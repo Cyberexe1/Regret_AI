@@ -29,7 +29,7 @@ export function ExperimentDesign({ experiment, detail }: ExperimentDesignProps) 
       </Card>
 
       <div className="space-y-4">
-        <Card className="border-success-line/60 bg-success-soft/20">
+        <Card className="border-success-line bg-panel-success">
           <div className="flex items-center gap-2">
             <Check className="size-4 shrink-0 text-success-ink" aria-hidden />
             <p className="eyebrow">Success</p>
@@ -39,7 +39,7 @@ export function ExperimentDesign({ experiment, detail }: ExperimentDesignProps) 
           </p>
         </Card>
 
-        <Card className="border-danger-line/60 bg-danger-soft/20">
+        <Card className="border-danger-line bg-panel-danger">
           <div className="flex items-center gap-2">
             <X className="size-4 shrink-0 text-danger-ink" aria-hidden />
             <p className="eyebrow">Failure</p>

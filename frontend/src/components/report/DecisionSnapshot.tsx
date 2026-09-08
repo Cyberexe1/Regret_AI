@@ -13,7 +13,7 @@ export function DecisionSnapshot({ items }: DecisionSnapshotProps) {
         <Card key={item.label} className="flex flex-col justify-between gap-3">
           <p className="eyebrow">{item.label}</p>
           <div>
-            <p className="numeric text-xl font-semibold tracking-[-0.012em] text-ink">
+            <p className="numeric text-metric text-ink">
               {item.value}
             </p>
             {typeof item.percentage === 'number' ? (

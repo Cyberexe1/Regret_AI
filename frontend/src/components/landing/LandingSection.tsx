@@ -35,7 +35,7 @@ export function LandingSection({
     <section
       id={id}
       className={cn(
-        'scroll-mt-[calc(var(--topbar-height)+1rem)] py-20 md:py-28',
+        'scroll-mt-[calc(var(--header-offset)+0.25rem)] py-20 md:py-28',
         bordered && 'border-t border-hairline',
         className,
       )}

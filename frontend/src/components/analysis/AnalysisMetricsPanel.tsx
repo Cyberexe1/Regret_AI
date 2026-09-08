@@ -16,7 +16,7 @@ export function AnalysisMetricsPanel({
   metrics,
 }: AnalysisMetricsPanelProps) {
   return (
-    <Card className="lg:sticky lg:top-[calc(var(--topbar-height)+1.5rem)]">
+    <Card className="lg:sticky lg:top-[calc(var(--header-offset)+0.75rem)]">
       <CardTitle>Analysis progress</CardTitle>
 
       <div className="mt-4 flex items-baseline gap-1.5">
@@ -59,7 +59,7 @@ export function AnalysisMetricsPanel({
         ))}
       </ul>
 
-      <p className="mt-5 border-t border-hairline pt-4 text-micro text-ink-faint">
+      <p className="mt-5 border-t border-hairline pt-4 text-micro text-ink-muted">
         Simulated values for this prototype. No external sources are being read yet.
       </p>
     </Card>

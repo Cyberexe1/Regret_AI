@@ -8,7 +8,7 @@ const VARIANT: Record<CardVariant, string> = {
   default: 'border border-hairline bg-surface shadow-soft',
   raised: 'border border-hairline-strong bg-surface-raised shadow-raised',
   inset: 'border border-hairline bg-surface-inset',
-  quiet: 'border border-hairline/60 bg-transparent',
+  quiet: 'border border-hairline bg-transparent',
 };
 
 const PADDING: Record<CardPadding, string> = {

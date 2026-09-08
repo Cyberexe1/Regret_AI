@@ -3,7 +3,6 @@ import type {
   DecisionStatus,
   ExperimentPhase,
   ExperimentStatus,
-  RegretHorizon,
   Reversibility,
 } from '@/types';
 
@@ -24,20 +23,6 @@ export const domainLabel: Record<DecisionDomain, string> = {
   relocation: 'Relocation',
   technology: 'Technology',
   'business-model': 'Business model',
-};
-
-export const horizonLabel: Record<RegretHorizon, string> = {
-  '6-months': '6 months',
-  '1-year': '1 year',
-  '3-years': '3 years',
-  '5-years': '5 years',
-};
-
-export const horizonMonths: Record<RegretHorizon, number> = {
-  '6-months': 6,
-  '1-year': 12,
-  '3-years': 36,
-  '5-years': 60,
 };
 
 export const reversibilityLabel: Record<Reversibility, string> = {

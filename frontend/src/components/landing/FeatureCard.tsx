@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 export interface FeatureCardProps {
   icon: LucideIcon;
@@ -23,7 +24,7 @@ export function FeatureCard({ icon: Icon, title, body, emphasis = 'label' }: Fea
   return (
     <motion.div
       whileHover={reduceMotion ? undefined : { y: -3 }}
-      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: DURATION.quick, ease: EASE_OUT }}
       className="h-full rounded-xl border border-hairline bg-surface p-6 transition-colors duration-200 hover:border-hairline-strong hover:bg-surface-raised"
     >
       <span className="inline-flex size-9 items-center justify-center rounded-lg border border-accent-line bg-accent-soft text-accent-ink">

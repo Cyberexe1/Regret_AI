@@ -6,6 +6,7 @@ import { cn } from '@/lib/cn';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { Button } from './Button';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 const SIZE = {
   sm: 'max-w-md',
@@ -50,11 +51,11 @@ export function Modal({
       {open ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
           <motion.div
-            className="absolute inset-0 bg-canvas/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-scrim backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: DURATION.micro }}
             onClick={dismissOnBackdrop ? onClose : undefined}
           />
 
@@ -71,7 +72,7 @@ export function Modal({
             initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: DURATION.quick, ease: EASE_OUT }}
           >
             <div className="flex items-start justify-between gap-4 border-b border-hairline p-5">
               <div className="min-w-0 space-y-1">
@@ -93,7 +94,7 @@ export function Modal({
             {children ? <div className="max-h-[60vh] overflow-y-auto p-5">{children}</div> : null}
 
             {footer ? (
-              <div className="flex flex-wrap items-center justify-end gap-3 border-t border-hairline bg-surface-raised/60 p-4">
+              <div className="flex flex-wrap items-center justify-end gap-3 border-t border-hairline bg-header-bar p-4">
                 {footer}
               </div>
             ) : null}

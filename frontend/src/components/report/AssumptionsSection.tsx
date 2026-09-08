@@ -27,7 +27,7 @@ export function AssumptionsSection({ report }: AssumptionsSectionProps) {
             className="rounded-xl border border-hairline bg-surface px-5 py-4"
           >
             <div className="flex items-baseline gap-2">
-              <span className={cn('numeric text-xl font-semibold', toneText[item.tone])}>
+              <span className={cn('numeric text-metric', toneText[item.tone])}>
                 {item.value}
               </span>
               <span className="text-small text-ink-secondary">{item.label}</span>

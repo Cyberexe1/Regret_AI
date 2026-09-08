@@ -25,7 +25,7 @@ export function ReportHeader({ report }: ReportHeaderProps) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="eyebrow">Decision report</p>
-            <span className="numeric text-micro text-ink-faint">{report.decisionId}</span>
+            <span className="numeric text-micro text-ink-muted">{report.decisionId}</span>
           </div>
 
           <h2 className="mt-3 text-page-title text-ink">{report.title}</h2>
@@ -47,7 +47,7 @@ export function ReportHeader({ report }: ReportHeaderProps) {
           <p className="eyebrow">Main risk level</p>
           <p
             className={cn(
-              'mt-2 text-[1.75rem] leading-none font-semibold tracking-[-0.02em] uppercase',
+              'mt-2 text-headline uppercase',
               toneText[riskTone[report.riskLevel]],
             )}
           >

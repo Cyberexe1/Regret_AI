@@ -42,16 +42,6 @@ export function formatMoney(amount: number, currency: Currency = 'USD'): string 
   return MONEY_FORMAT[currency].format(amount);
 }
 
-/** Accepts a 0-1 ratio and renders it as a whole percentage. */
-export function formatRatio(ratio: number): string {
-  return `${Math.round(ratio * 100)}%`;
-}
-
-/** Accepts an already-scaled 0-100 score. */
-export function formatScore(score: number): string {
-  return String(Math.round(score));
-}
-
 export function formatDays(days: number): string {
   if (days === 0) return 'same day';
   if (days === 1) return '1 day';
@@ -80,8 +70,4 @@ export function greeting(now: Date = new Date()): string {
   return 'Good evening.';
 }
 
-/** "career" -> "Career", "business-model" -> "Business model". */
-export function titleCase(value: string): string {
-  const spaced = value.replace(/-/g, ' ');
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
+

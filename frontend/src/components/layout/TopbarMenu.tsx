@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { cn } from '@/lib/cn';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 export interface TopbarMenuProps {
   icon: LucideIcon;
@@ -61,7 +62,7 @@ export function TopbarMenu({ icon, label, title, className, children }: TopbarMe
             initial={reduceMotion ? undefined : { opacity: 0, y: -6, scale: 0.98 }}
             animate={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: -4, scale: 0.98 }}
-            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: DURATION.micro, ease: EASE_OUT }}
           >
             <div className="border-b border-hairline px-4 py-3">
               <p className="text-card-title text-ink">{title}</p>

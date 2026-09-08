@@ -73,7 +73,7 @@ export function ExampleSection() {
       <Reveal>
         <div className="overflow-hidden rounded-2xl border border-hairline-strong bg-surface shadow-raised">
           {/* Panel header */}
-          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-hairline bg-surface-raised/60 px-5 py-4 md:px-7 md:py-5">
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-hairline bg-header-bar px-5 py-4 md:px-6">
             <div className="min-w-0">
               <p className="eyebrow">Decision {example.reference}</p>
               <h3 className="mt-1.5 text-section-title text-ink">{example.decision}</h3>
@@ -105,7 +105,7 @@ export function ExampleSection() {
             </div>
 
             {/* Right: risk read-out */}
-            <div className="border-t border-hairline bg-surface-inset/60 px-5 py-6 md:px-7 lg:border-t-0 lg:border-l">
+            <div className="border-t border-hairline bg-surface-inset px-5 py-6 md:px-7 lg:border-t-0 lg:border-l">
               <p className="eyebrow">Decision risk</p>
               <p className={cn('mt-2 text-page-title', toneText[example.risk.tone])}>
                 {example.risk.label}
@@ -128,7 +128,7 @@ export function ExampleSection() {
           {/* Recommended experiment */}
           <div
             id={LANDING_ANCHORS.experiments}
-            className="scroll-mt-[calc(var(--topbar-height)+1rem)] border-t border-accent-line bg-accent-soft/50 px-5 py-5 md:px-7"
+            className="scroll-mt-[calc(var(--header-offset)+0.25rem)] border-t border-accent-line bg-panel-accent px-5 py-5 md:px-7"
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex min-w-0 gap-3">

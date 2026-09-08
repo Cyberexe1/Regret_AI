@@ -9,7 +9,7 @@ export function ActivityTimeline() {
 
   return (
     <Card variant="inset" padding="none" className="overflow-hidden">
-      <div className="border-b border-hairline px-5 py-4">
+      <div className="border-b border-hairline px-5 py-4 md:px-6">
         <CardTitle>Decision activity</CardTitle>
         <p className="mt-0.5 text-small text-ink-muted">Last five events in this workspace</p>
       </div>

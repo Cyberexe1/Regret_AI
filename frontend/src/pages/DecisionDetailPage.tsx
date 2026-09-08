@@ -1,5 +1,6 @@
-import { ArrowLeft, Network, ScanSearch } from 'lucide-react';
+import { FileSearch, Network, ScanSearch } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import { DecisionNotFound } from '@/components/DecisionNotFound';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Reveal } from '@/components/Reveal';
 import {
@@ -15,38 +16,19 @@ import {
 } from '@/components/report';
 import { Badge } from '@/components/ui/Badge';
 import { buttonClasses } from '@/components/ui/Button';
-import { Card, CardDescription, CardTitle } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { findDecisionReport } from '@/data/decisionReport';
 import { decisionGraphPath, ROUTES } from '@/data/navigation';
-import { useDecision } from '@/hooks/useDecisions';
+import { useDecision } from '@/hooks/useDecision';
 import { cn } from '@/lib/cn';
 import { domainLabel, reversibilityLabel, statusLabel } from '@/lib/labels';
 import { regretIndexTone, reversibilityTone } from '@/lib/tone';
-
-/** Shown when the id matches nothing in the workspace. */
-function NotFound({ id }: { id: string | undefined }) {
-  return (
-    <PageContainer eyebrow="Decision" title="Decision not found" width="narrow">
-      <Card padding="lg" className="space-y-4">
-        <CardTitle>No decision matches this identifier</CardTitle>
-        <CardDescription>
-          The reference <span className="numeric text-ink">{id}</span> is not in this workspace. It
-          may have been removed, or the link may be out of date.
-        </CardDescription>
-        <Link to={ROUTES.decisions} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-          <ArrowLeft className="size-4" aria-hidden />
-          Back to decision history
-        </Link>
-      </Card>
-    </PageContainer>
-  );
-}
 
 export function DecisionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const decision = useDecision(id);
 
-  if (!decision) return <NotFound id={id} />;
+  if (!decision) return <DecisionNotFound id={id} />;
 
   const report = findDecisionReport(decision.id);
 
@@ -79,21 +61,21 @@ export function DecisionDetailPage() {
           )}
         </div>
 
-        <Card padding="lg" className="max-w-2xl space-y-4">
-          <CardTitle>No full report yet</CardTitle>
-          <CardDescription>
-            {analysis
+        <EmptyState
+          icon={FileSearch}
+          title="No full report yet"
+          description={
+            analysis
               ? 'This decision has an analysis on file but has not been through a full stress test, so there is no threshold model or recommended experiment to show.'
-              : 'This decision has not been analysed yet. Run a stress test to surface its assumptions, failure conditions and breaking point.'}
-          </CardDescription>
-          <Link
-            to={ROUTES.analysis}
-            className={buttonClasses({ variant: 'primary', size: 'sm' })}
-          >
-            <ScanSearch className="size-4" aria-hidden />
-            Run stress test
-          </Link>
-        </Card>
+              : 'This decision has not been analysed yet. Run a stress test to surface its assumptions, failure conditions and breaking point.'
+          }
+          action={
+            <Link to={ROUTES.analysis} className={buttonClasses({ variant: 'primary', size: 'sm' })}>
+              <ScanSearch className="size-4" aria-hidden />
+              Run stress test
+            </Link>
+          }
+        />
       </PageContainer>
     );
   }

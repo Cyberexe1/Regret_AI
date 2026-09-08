@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 
 const BAR: Record<ResolvedIntakeStep['status'], string> = {
   complete: 'bg-accent',
-  current: 'bg-accent/45',
+  current: 'bg-accent-muted',
   upcoming: 'bg-hairline',
 };
 

@@ -216,10 +216,6 @@ export const experiments: Experiment[] = [
   },
 ];
 
-export function experimentsForDecision(decisionId: string): Experiment[] {
-  return experiments.filter((experiment) => experiment.decisionId === decisionId);
-}
-
 export function findExperiment(id: string): Experiment | undefined {
   return experiments.find((experiment) => experiment.id === id);
 }

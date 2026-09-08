@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
 import { toneText } from '@/lib/tone';
 import type { ExperimentDetail } from '@/types';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 export interface ExperimentResultsProps {
   detail: ExperimentDetail;
@@ -13,6 +14,10 @@ export interface ExperimentResultsProps {
  * Observed value against the threshold. A purpose-built bar rather than a chart
  * library: it is one comparison, and it should read instantly.
  */
+/**
+ * Sits directly on the page rather than in a card: the metric tiles above are
+ * already cards, and nesting another one made the section read as card soup.
+ */
 function ThresholdComparison({ detail }: { detail: ExperimentDetail }) {
   const reduceMotion = useReducedMotion();
   const { observedValue, thresholdValue, scaleMax } = detail;
@@ -21,7 +26,7 @@ function ThresholdComparison({ detail }: { detail: ExperimentDetail }) {
   const shortfall = (thresholdValue - observedValue).toFixed(1);
 
   return (
-    <Card variant="inset">
+    <div className="border-t border-hairline pt-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <p className="eyebrow">Repeat rate against threshold</p>
         <p className="numeric text-small text-warning-ink">{shortfall} points short</p>
@@ -32,7 +37,7 @@ function ThresholdComparison({ detail }: { detail: ExperimentDetail }) {
           className="absolute inset-y-0 left-0 rounded-full bg-warning"
           initial={reduceMotion ? undefined : { width: 0 }}
           animate={{ width: toPercent(observedValue) }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: DURATION.fill, ease: EASE_OUT }}
         />
         <div
           className="absolute -top-1.5 -bottom-1.5 w-0.5 rounded-full bg-danger"
@@ -52,7 +57,7 @@ function ThresholdComparison({ detail }: { detail: ExperimentDetail }) {
         </span>
         <span className="numeric ml-auto text-small text-ink-muted">Scale 0–{scaleMax}%</span>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -65,7 +70,7 @@ export function ExperimentResults({ detail }: ExperimentResultsProps) {
             <p className="eyebrow">{metric.label}</p>
             <p
               className={cn(
-                'numeric text-xl font-semibold tracking-[-0.012em]',
+                'numeric text-metric',
                 metric.tone ? toneText[metric.tone] : 'text-ink',
               )}
             >
@@ -76,7 +81,7 @@ export function ExperimentResults({ detail }: ExperimentResultsProps) {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 pt-1">
         <span className="text-small text-ink-secondary">Status</span>
         <Badge tone={detail.statusTone} dot>
           {detail.statusLabel}

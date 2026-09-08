@@ -20,6 +20,7 @@ import {
 import { cn } from '@/lib/cn';
 import { formatFileSize } from '@/lib/format';
 import type { DraftEvidenceFile } from '@/types';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 const ICON_BY_EXTENSION: Record<string, LucideIcon> = {
   pdf: FileText,
@@ -96,17 +97,17 @@ export function EvidenceDropzone({ files, errors, onAdd, onRemove }: EvidenceDro
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         animate={reduceMotion ? undefined : { scale: isDragging ? 1.008 : 1 }}
-        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: DURATION.quick, ease: EASE_OUT }}
         className={cn(
           'rounded-xl border border-dashed p-8 text-center transition-colors duration-200',
           isDragging
-            ? 'border-accent bg-accent-soft/50'
+            ? 'border-accent bg-panel-accent'
             : 'border-hairline-strong bg-surface-inset hover:border-accent-line',
         )}
       >
         <motion.span
           animate={reduceMotion ? undefined : { y: isDragging ? -3 : 0 }}
-          transition={{ duration: 0.18 }}
+          transition={{ duration: DURATION.quick }}
           className={cn(
             'mx-auto flex size-11 items-center justify-center rounded-lg border transition-colors',
             isDragging
@@ -167,7 +168,7 @@ export function EvidenceDropzone({ files, errors, onAdd, onRemove }: EvidenceDro
                   initial={reduceMotion ? undefined : { opacity: 0, y: 6 }}
                   animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
                   exit={reduceMotion ? undefined : { opacity: 0, height: 0 }}
-                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: DURATION.quick, ease: EASE_OUT }}
                   className="flex items-center gap-3 rounded-lg border border-hairline bg-surface-raised px-3.5 py-2.5"
                 >
                   <Icon className="size-4 shrink-0 text-ink-muted" aria-hidden />

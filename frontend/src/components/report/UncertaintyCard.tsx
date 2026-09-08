@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 import { confidenceLabel, confidenceTone, riskLabel, riskTone } from '@/lib/tone';
 import type { CriticalUncertainty } from '@/types';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 export interface UncertaintyCardProps {
   uncertainty: CriticalUncertainty;
@@ -43,7 +44,7 @@ export function UncertaintyCard({ uncertainty, defaultOpen = false }: Uncertaint
         className="w-full px-5 py-5 text-left transition-colors duration-150 hover:bg-surface-raised md:px-6"
       >
         <div className="flex items-start gap-4">
-          <span className="numeric mt-0.5 shrink-0 text-micro text-ink-faint">
+          <span className="numeric mt-0.5 shrink-0 text-micro text-ink-muted">
             {uncertainty.rank}
           </span>
 
@@ -90,7 +91,7 @@ export function UncertaintyCard({ uncertainty, defaultOpen = false }: Uncertaint
             initial={reduceMotion ? undefined : { height: 0, opacity: 0 }}
             animate={reduceMotion ? undefined : { height: 'auto', opacity: 1 }}
             exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: DURATION.quick, ease: EASE_OUT }}
             className="overflow-hidden"
           >
             <div className="space-y-5 border-t border-hairline bg-surface-inset px-5 py-5 md:px-6">
@@ -116,7 +117,7 @@ export function UncertaintyCard({ uncertainty, defaultOpen = false }: Uncertaint
                 </ul>
               </div>
 
-              <div className="rounded-lg border border-accent-line/60 bg-accent-soft/30 px-4 py-3">
+              <div className="rounded-lg border border-accent-line bg-panel-accent px-4 py-3">
                 <p className="eyebrow">How to resolve it</p>
                 <p className="mt-2 text-small text-ink-secondary">
                   {uncertainty.detail.howToResolve}

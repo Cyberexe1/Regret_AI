@@ -59,7 +59,6 @@ export function NewDecisionPage() {
           phase="01 · Decision"
           title="The decision"
           description="Write it as you would say it out loud, including the number and the commitment."
-          emphasis
         >
           <Textarea
             aria-label="The decision"
@@ -67,7 +66,7 @@ export function NewDecisionPage() {
             maxLength={600}
             showCount
             placeholder="Example: Should I invest ₹5,00,000 to start a cloud kitchen in Mumbai?"
-            className="md:text-[1.0625rem]"
+            className="md:text-body-lg"
             value={draft.decision}
             onChange={(event) => setField('decision', event.target.value)}
           />

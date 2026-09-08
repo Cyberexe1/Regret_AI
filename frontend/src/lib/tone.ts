@@ -5,7 +5,6 @@ import type {
   GraphCategory,
   Reversibility,
   RiskLevel,
-  Severity,
   Tone,
 } from '@/types';
 
@@ -92,13 +91,6 @@ export const riskLabel: Record<RiskLevel, string> = {
   low: 'Low',
   medium: 'Medium',
   high: 'High',
-};
-
-export const severityTone: Record<Severity, Tone> = {
-  low: 'neutral',
-  moderate: 'info',
-  high: 'warning',
-  critical: 'danger',
 };
 
 export const confidenceTone: Record<Confidence, Tone> = {

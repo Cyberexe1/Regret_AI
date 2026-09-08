@@ -27,19 +27,19 @@ export function RecommendationPanel({ recommendation }: RecommendationPanelProps
   ];
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-accent-line bg-accent-soft/40 shadow-raised">
-      <div className="p-6 md:p-8">
+    <section className="overflow-hidden rounded-2xl border border-accent-line bg-panel-accent shadow-raised">
+      <div className="p-6 md:p-7">
         <div className="flex items-center gap-2.5">
           <FlaskConical className="size-4 shrink-0 text-accent-ink" aria-hidden />
-          <span className="numeric text-micro text-ink-faint">06</span>
+          <span className="numeric text-micro text-ink-muted">06</span>
           <p className="eyebrow">Recommendation</p>
         </div>
 
-        <h3 className="mt-4 text-[1.75rem] leading-tight font-semibold tracking-[-0.02em] text-ink md:text-[2rem]">
+        <h3 className="mt-4 text-headline text-ink">
           {recommendation.verdict}
         </h3>
 
-        <p className="mt-4 max-w-2xl text-body text-ink-secondary md:text-[1.0625rem]">
+        <p className="mt-4 max-w-2xl text-body-lg text-ink-secondary">
           {recommendation.action}
         </p>
 
@@ -47,7 +47,7 @@ export function RecommendationPanel({ recommendation }: RecommendationPanelProps
           {facts.map((fact) => (
             <div
               key={fact.label}
-              className="rounded-xl border border-hairline-strong bg-canvas/40 px-5 py-4"
+              className="rounded-xl border border-hairline-strong bg-panel-inset px-5 py-4"
             >
               <dt className="eyebrow">{fact.label}</dt>
               <dd

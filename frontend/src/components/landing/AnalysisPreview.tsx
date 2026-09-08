@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge';
 import { previewStages } from '@/data/landing';
 import { cn } from '@/lib/cn';
 import { toneFill } from '@/lib/tone';
+import { DURATION, EASE_OUT, STAGGER_STEP } from '@/lib/motion';
 
 /**
  * Abstract product-interface preview for the hero: the five stages an analysis
@@ -26,7 +27,7 @@ export function AnalysisPreview() {
       />
 
       <div className="overflow-hidden rounded-2xl border border-hairline-strong bg-surface shadow-raised">
-        <div className="flex items-center justify-between gap-3 border-b border-hairline bg-surface-raised/60 px-5 py-3.5">
+        <div className="flex items-center justify-between gap-3 border-b border-hairline bg-header-bar px-5 py-4 md:px-6">
           <div className="min-w-0">
             <p className="eyebrow">Analysis pipeline</p>
             <p className="truncate text-card-title text-ink">Cloud kitchen investment</p>
@@ -47,9 +48,9 @@ export function AnalysisPreview() {
                 initial={reduceMotion ? undefined : { opacity: 0, y: 10 }}
                 animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
                 transition={{
-                  duration: 0.45,
-                  delay: 0.35 + index * 0.09,
-                  ease: [0.22, 1, 0.36, 1],
+                  duration: DURATION.quick,
+                  delay: 0.1 + index * STAGGER_STEP,
+                  ease: EASE_OUT,
                 }}
               >
                 <div className="flex flex-col items-center pt-1.5">
@@ -77,7 +78,7 @@ export function AnalysisPreview() {
           })}
         </ol>
 
-        <div className="flex items-center gap-2.5 border-t border-hairline bg-accent-soft/40 px-5 py-3.5">
+        <div className="flex items-center gap-2.5 border-t border-hairline bg-panel-accent px-5 py-3.5">
           <ArrowRight className="size-4 shrink-0 text-accent-ink" aria-hidden />
           <p className="text-small text-ink-secondary">
             Output is an experiment, not an answer.

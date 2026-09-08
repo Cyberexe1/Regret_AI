@@ -22,7 +22,7 @@ export function SettingsSection({
         aria-label={title}
         className={cn(
           'overflow-hidden rounded-xl border',
-          tone === 'danger' ? 'border-danger-line/60 bg-danger-soft/15' : 'border-hairline bg-surface',
+          tone === 'danger' ? 'border-danger-line bg-panel-danger' : 'border-hairline bg-surface',
         )}
       >
         <div className="border-b border-hairline px-5 py-4 md:px-6">

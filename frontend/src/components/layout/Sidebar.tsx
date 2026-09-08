@@ -11,6 +11,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { cn } from '@/lib/cn';
 import type { NavItem } from '@/types';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 /**
  * Row styling for one navigation item.
@@ -23,7 +24,7 @@ function navRowClasses(isActive: boolean, emphasis: boolean): string {
   return cn(
     'group flex items-center gap-3 rounded-md border px-3 py-2 text-small font-medium transition-colors duration-150',
     isActive && 'border-transparent bg-accent-soft text-ink',
-    !isActive && emphasis && 'border-accent-line/60 bg-accent-soft/40 text-ink hover:bg-accent-soft',
+    !isActive && emphasis && 'border-accent-line bg-panel-accent text-ink hover:bg-accent-soft',
     !isActive &&
       !emphasis &&
       'border-transparent text-ink-secondary hover:bg-surface-raised hover:text-ink',
@@ -74,7 +75,8 @@ function SidebarContent({ onNavigate, onOpenCommandPalette }: SidebarContentProp
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-[var(--topbar-height)] shrink-0 items-center border-b border-hairline px-4">
+      {/* pt-3 matches the floating topbar's top inset, so both headers align. */}
+      <div className="flex h-[var(--header-offset)] shrink-0 items-center border-b border-hairline px-4 pt-3">
         <NavLink to={ROUTES.dashboard} onClick={onNavigate} aria-label="REGRET ENGINE dashboard">
           <Logo />
         </NavLink>
@@ -163,11 +165,11 @@ export function Sidebar({ open, onClose, onOpenCommandPalette }: SidebarProps) {
         {open ? (
           <div className="fixed inset-0 z-50 lg:hidden">
             <motion.div
-              className="absolute inset-0 bg-canvas/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-scrim backdrop-blur-sm"
               initial={reduceMotion ? undefined : { opacity: 0 }}
               animate={reduceMotion ? undefined : { opacity: 1 }}
               exit={reduceMotion ? undefined : { opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              transition={{ duration: DURATION.micro }}
               onClick={onClose}
             />
             <motion.aside
@@ -175,7 +177,7 @@ export function Sidebar({ open, onClose, onOpenCommandPalette }: SidebarProps) {
               initial={reduceMotion ? undefined : { x: '-100%' }}
               animate={reduceMotion ? undefined : { x: 0 }}
               exit={reduceMotion ? undefined : { x: '-100%' }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: DURATION.quick, ease: EASE_OUT }}
               aria-label="Sidebar"
             >
               <Button

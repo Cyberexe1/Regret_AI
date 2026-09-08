@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/cn';
+import { DURATION } from '@/lib/motion';
 
 export type TooltipSide = 'top' | 'bottom' | 'left' | 'right';
 
@@ -54,7 +55,7 @@ export function Tooltip({ content, side = 'top', children, className }: TooltipP
             initial={{ opacity: 0, ...OFFSET[side] }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             exit={{ opacity: 0, ...OFFSET[side] }}
-            transition={{ duration: 0.14 }}
+            transition={{ duration: DURATION.micro }}
           >
             {content}
           </motion.span>

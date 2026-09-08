@@ -42,10 +42,4 @@ export function readDecisionDraft(): DecisionDraft | null {
   }
 }
 
-export function clearDecisionDraft(): void {
-  try {
-    sessionStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // Nothing to do.
-  }
-}
+

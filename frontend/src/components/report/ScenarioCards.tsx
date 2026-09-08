@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 import { riskLabel, riskTone, toneSurface, toneText } from '@/lib/tone';
 import type { FutureScenario, ScenarioKind } from '@/types';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 const KIND_ICON: Record<ScenarioKind, LucideIcon> = {
   base: Minus,
@@ -28,7 +29,7 @@ export function ScenarioCards({ scenarios }: ScenarioCardsProps) {
           <motion.article
             key={scenario.id}
             whileHover={reduceMotion ? undefined : { y: -3 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: DURATION.quick, ease: EASE_OUT }}
             className="flex h-full flex-col rounded-xl border border-hairline bg-surface p-5 transition-colors duration-200 hover:border-hairline-strong"
           >
             <div className="flex items-center justify-between gap-3">

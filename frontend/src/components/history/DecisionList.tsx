@@ -13,7 +13,7 @@ export function DecisionList({ rows }: DecisionListProps) {
       <div
         aria-hidden
         className={cn(
-          'hidden border-b border-hairline bg-surface-raised/60 px-5 py-2.5 lg:grid',
+          'hidden border-b border-hairline bg-header-bar px-5 py-2.5 xl:grid',
           DECISION_GRID,
         )}
       >
@@ -21,7 +21,7 @@ export function DecisionList({ rows }: DecisionListProps) {
         <span className="eyebrow">Risk</span>
         <span className="eyebrow">Status</span>
         <span className="eyebrow">Signals</span>
-        <span className="eyebrow lg:text-right">Updated</span>
+        <span className="eyebrow xl:text-right">Updated</span>
         <span />
       </div>
 

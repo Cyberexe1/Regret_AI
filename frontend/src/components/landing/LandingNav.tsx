@@ -9,14 +9,22 @@ import { ROUTES } from '@/data/navigation';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { cn } from '@/lib/cn';
 import { LANDING_CONTAINER } from './LandingSection';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 export function LandingNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   useEscapeKey(menuOpen, () => setMenuOpen(false));
 
   return (
-    <header className="glass sticky top-0 z-40 border-b border-hairline">
-      <div className={cn(LANDING_CONTAINER, 'flex h-[var(--topbar-height)] items-center gap-6')}>
+    <header className="sticky top-0 z-40 px-[var(--page-gutter)] pt-3">
+      {/* Floating, rounded bar to match the workspace topbar, rather than an
+          edge-to-edge strip. */}
+      <div
+        className={cn(
+          LANDING_CONTAINER,
+          'glass flex h-[var(--topbar-height)] items-center gap-6 rounded-xl border border-hairline px-4 shadow-soft',
+        )}
+      >
         <Link to={ROUTES.landing} aria-label="REGRET ENGINE home" className="shrink-0">
           <Logo />
         </Link>
@@ -37,9 +45,11 @@ export function LandingNav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          {/* Real sign-in affordance: bordered like an account action, not a
+              plain text link, even though there is no auth behind it yet. */}
           <Link
             to={ROUTES.dashboard}
-            className={cn(buttonClasses({ variant: 'ghost', size: 'sm' }), 'hidden sm:inline-flex')}
+            className={cn(buttonClasses({ variant: 'secondary', size: 'sm' }), 'hidden sm:inline-flex')}
           >
             Sign in
           </Link>
@@ -69,13 +79,13 @@ export function LandingNav() {
       <AnimatePresence>
         {menuOpen ? (
           <motion.div
-            className="overflow-hidden border-t border-hairline bg-surface lg:hidden"
+            className={cn(LANDING_CONTAINER, 'overflow-hidden lg:hidden')}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: DURATION.quick, ease: EASE_OUT }}
           >
-            <div className={cn(LANDING_CONTAINER, 'space-y-1 py-4')}>
+            <div className="mt-2 space-y-1 rounded-xl border border-hairline bg-surface p-3 shadow-soft">
               {landingNavLinks.map((link) => (
                 <a
                   key={link.href}
@@ -87,7 +97,7 @@ export function LandingNav() {
                 </a>
               ))}
 
-              <div className="flex flex-col gap-2 pt-3 sm:hidden">
+              <div className="flex flex-col gap-2 pt-2 sm:hidden">
                 <Link
                   to={ROUTES.newDecision}
                   className={buttonClasses({ variant: 'primary', size: 'md', fullWidth: true })}

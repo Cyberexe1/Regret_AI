@@ -3,8 +3,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, RotateCcw, TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button, buttonClasses, type ButtonVariant } from '@/components/ui/Button';
-import { cn } from '@/lib/cn';
 import type { ExperimentChoice, ExperimentVerdict } from '@/types';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 const EMPHASIS_TO_VARIANT: Record<ExperimentChoice['emphasis'], ButtonVariant> = {
   primary: 'primary',
@@ -27,7 +27,7 @@ export function ExperimentVerdictCard({ verdict }: ExperimentVerdictCardProps) {
   const chosen = verdict.choices.find((choice) => choice.id === chosenId) ?? null;
 
   return (
-    <section className="rounded-2xl border border-warning-line/70 bg-warning-soft/25 p-6 md:p-7">
+    <section className="rounded-2xl border border-warning-line bg-panel-warning p-6 md:p-7">
       <div className="flex gap-3.5">
         <TriangleAlert className="mt-0.5 size-5 shrink-0 text-warning-ink" aria-hidden />
         <div className="min-w-0">
@@ -43,8 +43,8 @@ export function ExperimentVerdictCard({ verdict }: ExperimentVerdictCardProps) {
             initial={reduceMotion ? undefined : { opacity: 0, y: 6 }}
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             exit={reduceMotion ? undefined : { opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6 rounded-xl border border-hairline-strong bg-canvas/50 p-5"
+            transition={{ duration: DURATION.quick, ease: EASE_OUT }}
+            className="mt-6 rounded-xl border border-hairline-strong bg-panel-inset p-5"
           >
             <p className="eyebrow">Path recorded locally</p>
             <p className="mt-2 text-body text-ink">{chosen.recorded}</p>
@@ -75,20 +75,19 @@ export function ExperimentVerdictCard({ verdict }: ExperimentVerdictCardProps) {
             initial={reduceMotion ? undefined : { opacity: 0 }}
             animate={reduceMotion ? undefined : { opacity: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={{ duration: DURATION.quick }}
             className="mt-6 grid gap-4 lg:grid-cols-3"
           >
             {verdict.choices.map((choice) => (
               <div
                 key={choice.id}
-                className="flex flex-col justify-between gap-4 rounded-xl border border-hairline-strong bg-canvas/40 p-4"
+                className="flex flex-col justify-between gap-4 rounded-xl border border-hairline-strong bg-panel-inset p-4"
               >
                 <p className="text-small text-ink-secondary">{choice.description}</p>
                 <Button
                   variant={EMPHASIS_TO_VARIANT[choice.emphasis]}
                   size="sm"
                   fullWidth
-                  className={cn(choice.emphasis === 'ghost' && 'border border-hairline')}
                   onClick={() => setChosenId(choice.id)}
                 >
                   {choice.label}

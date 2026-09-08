@@ -50,7 +50,7 @@ function ExperimentRow({ row }: { row: ExperimentProgressRow }) {
 export function OpenExperimentsCard() {
   return (
     <Card padding="none" className="flex h-full flex-col overflow-hidden">
-      <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4">
+      <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 md:px-6">
         <div>
           <CardTitle>Open experiments</CardTitle>
           <p className="mt-0.5 text-small text-ink-muted">

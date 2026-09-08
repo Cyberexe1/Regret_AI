@@ -11,7 +11,7 @@ export function FinalCtaSection() {
   return (
     <section
       id={LANDING_ANCHORS.about}
-      className="relative scroll-mt-[calc(var(--topbar-height)+1rem)] overflow-hidden border-t border-hairline py-24 md:py-32"
+      className="relative scroll-mt-[calc(var(--header-offset)+0.25rem)] overflow-hidden border-t border-hairline py-24 md:py-32"
     >
       <div
         aria-hidden
@@ -27,7 +27,7 @@ export function FinalCtaSection() {
           <h2 className="mx-auto max-w-3xl text-page-title text-ink">
             Don&rsquo;t ask AI what to choose.
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-body text-ink-secondary md:text-[1.0625rem]">
+          <p className="mx-auto mt-4 max-w-2xl text-body-lg text-ink-secondary">
             Ask what you need to know before you choose.
           </p>
 

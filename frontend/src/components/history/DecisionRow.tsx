@@ -8,9 +8,15 @@ import { domainLabel } from '@/lib/labels';
 import { riskLabel, riskTone } from '@/lib/tone';
 import type { DecisionSummary } from '@/lib/decisionSummary';
 
-/** Shared grid so the header labels and every row line up as real columns. */
+/**
+ * Shared grid so the header labels and every row line up as real columns.
+ *
+ * Table layout starts at `xl`, not `lg`: the fixed columns total roughly 35rem
+ * and at 1024px the content area is only ~46rem once the sidebar and gutters
+ * are removed, which squeezed the title column to almost nothing.
+ */
 export const DECISION_GRID =
-  'grid gap-x-6 gap-y-3 lg:grid-cols-[minmax(0,1fr)_6rem_11rem_9.5rem_7rem_1rem] lg:items-center';
+  'grid gap-x-6 gap-y-3 xl:grid-cols-[minmax(0,1fr)_6rem_11rem_9.5rem_7rem_1rem] xl:items-center';
 
 function countLabel(count: number, singular: string, plural: string) {
   return `${count} ${count === 1 ? singular : plural}`;
@@ -64,16 +70,16 @@ export function DecisionRow({ summary }: DecisionRowProps) {
             </p>
           ))
         ) : (
-          <p className="text-ink-faint">No signals yet</p>
+          <p className="text-ink-muted">No signals yet</p>
         )}
       </div>
 
-      <p className="text-small text-ink-muted lg:text-right">
+      <p className="text-small text-ink-muted xl:text-right">
         Updated {formatRelative(decision.updatedAt)}
       </p>
 
       <ChevronRight
-        className="hidden size-4 shrink-0 text-ink-faint transition-colors group-hover:text-ink-secondary lg:block"
+        className="hidden size-4 shrink-0 text-ink-muted transition-colors group-hover:text-ink-secondary xl:block"
         aria-hidden
       />
     </Link>

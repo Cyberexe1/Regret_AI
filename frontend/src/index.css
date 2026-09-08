@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/inter/standard.css';
 
 /* ------------------------------------------------------------------------- *
  * REGRET ENGINE — Design Tokens
@@ -10,9 +11,13 @@
  * ------------------------------------------------------------------------- */
 
 @theme {
-  /* --- Typefaces ---------------------------------------------------------- */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica,
-    Arial, sans-serif;
+  /* --- Typefaces -----------------------------------------------------------
+   * Inter Variable is self-hosted via @fontsource (no runtime Google Fonts
+   * request), so weight is available continuously rather than in the four
+   * static cuts a CDN link would give us.
+   * ------------------------------------------------------------------------ */
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace;
 
   /* --- Surfaces ----------------------------------------------------------- */
@@ -33,13 +38,15 @@
   --color-ink-faint: #4d5360;
   --color-ink-inverse: #0a0b0f;
 
-  /* --- Accent (restrained indigo / violet) -------------------------------- */
-  --color-accent: #6366f1;
-  --color-accent-hover: #767af5;
-  --color-accent-press: #5053dd;
-  --color-accent-ink: #c3c5fb;
-  --color-accent-soft: #6366f11f;
-  --color-accent-line: #6366f14d;
+  /* --- Accent (warm copper, deliberately not blue) ------------------------ */
+  --color-accent: #ae5c22;
+  --color-accent-hover: #c4702f;
+  --color-accent-press: #8f4a1b;
+  --color-accent-ink: #f0be8c;
+  --color-accent-soft: #ae5c221f;
+  --color-accent-line: #ae5c224d;
+  /* Partial / in-progress fills, distinct from a completed accent fill. */
+  --color-accent-muted: #ae5c2259;
 
   /* --- Semantic: success -------------------------------------------------- */
   --color-success: #10b981;
@@ -65,8 +72,27 @@
   --color-info-soft: #38bdf81f;
   --color-info-line: #38bdf84d;
 
+  /* --- Tinted panels ------------------------------------------------------ *
+   * One tint strength for every semantic panel, so sections that need
+   * emphasis do not each invent their own opacity.
+   * ----------------------------------------------------------------------- */
+  --color-panel-accent: #ae5c2212;
+  --color-panel-success: #10b98112;
+  --color-panel-warning: #f59e0b12;
+  --color-panel-danger: #ef444412;
+  --color-panel-info: #38bdf812;
+
+  /* Card inset sitting on top of a tinted panel. */
+  --color-panel-inset: #08090c66;
+  /* Header strip inside a card or list. */
+  --color-header-bar: #11141b99;
+  /* Overlay backdrop behind modals, drawers and the command palette. */
+  --color-scrim: #08090ccc;
+  /* Destructive button hover. */
+  --color-danger-hover: #ef444433;
+
   /* --- Focus -------------------------------------------------------------- */
-  --color-focus: #818cf8;
+  --color-focus: #e0a968;
 
   /* --- Radii (rounded, never pill-shaped) --------------------------------- */
   --radius-sm: 0.375rem;
@@ -90,6 +116,28 @@
   --text-page-title--line-height: 1.16;
   --text-page-title--letter-spacing: -0.022em;
   --text-page-title--font-weight: 600;
+
+  /* Statement-sized heading inside a page: verdicts, headline panels. */
+  --text-headline: clamp(1.625rem, 2.2vw, 2rem);
+  --text-headline--line-height: 1.18;
+  --text-headline--letter-spacing: -0.022em;
+  --text-headline--font-weight: 600;
+
+  /* Heading for a numbered section within a page. */
+  --text-subsection: 1.1875rem;
+  --text-subsection--line-height: 1.35;
+  --text-subsection--letter-spacing: -0.015em;
+  --text-subsection--font-weight: 600;
+
+  /* Single figure: metric tiles, scores, counters. */
+  --text-metric: 1.375rem;
+  --text-metric--line-height: 1.15;
+  --text-metric--letter-spacing: -0.018em;
+  --text-metric--font-weight: 600;
+
+  /* Lead paragraph, one step above body. */
+  --text-body-lg: 1.0625rem;
+  --text-body-lg--line-height: 1.6;
 
   --text-section-title: 1.0625rem;
   --text-section-title--line-height: 1.4;
@@ -120,6 +168,11 @@
 :root {
   --sidebar-width: 15.5rem; /* 248px, inside the 240-260px band */
   --topbar-height: 3.75rem;
+  /* Topbar/landing-nav is a floating bar with top padding, not an edge-to-edge
+   * strip, so the space it actually occupies is its height plus that inset.
+   * Scroll-margin and sticky-offset calculations use this, not
+   * --topbar-height directly, or anchored content would sit partly under it. */
+  --header-offset: calc(var(--topbar-height) + 0.75rem);
   --page-max-width: 87.5rem; /* 1400px content ceiling */
   --page-gutter: 1.25rem;
 }

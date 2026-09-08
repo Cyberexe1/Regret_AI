@@ -57,7 +57,7 @@ export function PortfolioCard() {
           </ResponsiveContainer>
 
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="numeric text-xl font-semibold text-ink">{total}</span>
+            <span className="numeric text-metric text-ink">{total}</span>
             <span className="text-micro text-ink-muted">analysed</span>
           </div>
         </div>

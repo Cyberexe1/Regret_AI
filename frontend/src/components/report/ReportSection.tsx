@@ -27,8 +27,8 @@ export function ReportSection({
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
-              {index ? <span className="numeric text-micro text-ink-faint">{index}</span> : null}
-              <h3 className="text-[1.1875rem] leading-snug font-semibold tracking-[-0.015em] text-ink">
+              {index ? <span className="numeric text-micro text-ink-muted">{index}</span> : null}
+              <h3 className="text-subsection text-ink">
                 {title}
               </h3>
             </div>

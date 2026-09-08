@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn';
  */
 export function UncertaintyCard() {
   return (
-    <section className="flex h-full flex-col rounded-xl border border-accent-line/70 bg-accent-soft/40 p-6">
+    <section className="flex h-full flex-col rounded-xl border border-accent-line bg-panel-accent p-6">
       <div className="flex items-center gap-2.5">
         <CircleQuestionMark className="size-4 shrink-0 text-accent-ink" aria-hidden />
         <p className="eyebrow">Your biggest unresolved uncertainty</p>

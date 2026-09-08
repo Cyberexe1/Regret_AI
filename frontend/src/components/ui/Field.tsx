@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn';
 
 /** Shared control chrome so Input, Textarea and Select stay visually identical. */
 export const CONTROL_BASE =
-  'w-full rounded-md border bg-surface-inset text-body text-ink placeholder:text-ink-faint ' +
+  'w-full rounded-md border bg-surface-inset text-body text-ink placeholder:text-ink-muted ' +
   'transition-[border-color,background-color] duration-150 ' +
   'hover:border-hairline-strong focus:border-accent focus:bg-surface ' +
   'disabled:cursor-not-allowed disabled:opacity-50';

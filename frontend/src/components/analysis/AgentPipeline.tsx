@@ -9,7 +9,7 @@ import { ActivityPulse } from './ActivityPulse';
 const ICON_SHELL: Record<AgentStatus, string> = {
   complete: 'border-accent-line bg-accent-soft text-accent-ink',
   running: 'border-accent bg-accent-soft text-accent-ink',
-  waiting: 'border-hairline bg-surface-inset text-ink-faint',
+  waiting: 'border-hairline bg-surface-inset text-ink-muted',
 };
 
 const NAME_COLOR: Record<AgentStatus, string> = {
@@ -90,7 +90,7 @@ function AgentRow({
       <div className={cn('min-w-0', isLast ? 'pb-0' : 'pb-6')}>
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="flex min-w-0 items-baseline gap-2.5">
-            <span className="numeric text-micro text-ink-faint">{agent.index}</span>
+            <span className="numeric text-micro text-ink-muted">{agent.index}</span>
             <p className={cn('truncate text-card-title transition-colors', NAME_COLOR[status])}>
               {agent.name}
             </p>
@@ -101,7 +101,7 @@ function AgentRow({
         <p
           className={cn(
             'mt-1.5 text-small transition-colors',
-            status === 'waiting' ? 'text-ink-faint' : 'text-ink-secondary',
+            status === 'waiting' ? 'text-ink-muted' : 'text-ink-secondary',
           )}
         >
           {agent.description}

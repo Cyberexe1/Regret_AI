@@ -18,11 +18,11 @@ export interface ThresholdJourneyProps {
 
 const TONE_SHELL: Record<Tone, string> = {
   neutral: 'border-hairline bg-surface-inset',
-  accent: 'border-accent-line/70 bg-accent-soft/40',
-  success: 'border-success-line/70 bg-success-soft/30',
-  warning: 'border-warning-line/70 bg-warning-soft/30',
-  danger: 'border-danger-line/70 bg-danger-soft/30',
-  info: 'border-info-line/70 bg-info-soft/30',
+  accent: 'border-accent-line bg-panel-accent',
+  success: 'border-success-line bg-panel-success',
+  warning: 'border-warning-line bg-panel-warning',
+  danger: 'border-danger-line bg-panel-danger',
+  info: 'border-info-line bg-panel-info',
 };
 
 const TONE_VALUE: Record<Tone, string> = {
@@ -73,7 +73,7 @@ export function ThresholdJourney({
             <p className="eyebrow">{step.eyebrow}</p>
             <p
               className={cn(
-                'numeric mt-2 text-[1.5rem] leading-none font-semibold tracking-[-0.02em]',
+                'numeric mt-2 text-metric',
                 TONE_VALUE[step.tone],
               )}
             >
@@ -84,7 +84,7 @@ export function ThresholdJourney({
 
           {index < steps.length - 1 ? (
             <ArrowRight
-              className="mx-auto size-4 shrink-0 rotate-90 text-ink-faint md:rotate-0"
+              className="mx-auto size-4 shrink-0 rotate-90 text-ink-muted md:rotate-0"
               aria-hidden
             />
           ) : null}

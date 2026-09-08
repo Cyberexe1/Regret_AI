@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { FlaskConical } from 'lucide-react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Reveal } from '@/components/Reveal';
 import { ReportSection } from '@/components/report/ReportSection';
@@ -10,7 +11,7 @@ import {
   ExperimentVerdictCard,
   RecommendedExperimentCard,
 } from '@/components/experiments';
-import { Card, CardDescription, CardTitle } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { decisions } from '@/data/decisions';
 import { experiments, findExperiment } from '@/data/experiments';
 import { findExperimentDetail, recommendedExperimentId } from '@/data/experimentProgram';
@@ -84,13 +85,11 @@ export function ExperimentsPage() {
             </Reveal>
           </>
         ) : (
-          <Card padding="lg" className="max-w-2xl space-y-3">
-            <CardTitle>No experiment recommended yet</CardTitle>
-            <CardDescription>
-              Run a stress test on a decision and the engine will propose the cheapest test that
-              would change your mind.
-            </CardDescription>
-          </Card>
+          <EmptyState
+            icon={FlaskConical}
+            title="No experiment recommended yet"
+            description="Run a stress test on a decision and the engine will propose the cheapest test that would change your mind."
+          />
         )}
 
         <Reveal>

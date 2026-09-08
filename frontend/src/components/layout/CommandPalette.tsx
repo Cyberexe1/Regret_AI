@@ -9,6 +9,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { cn } from '@/lib/cn';
 import type { NavItem } from '@/types';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 /** Everywhere the palette can take you. Navigation only, for now. */
 const destinations: NavItem[] = [
@@ -86,11 +87,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {open ? (
         <div className="fixed inset-0 z-60 flex items-start justify-center px-4 pt-[12vh]">
           <motion.div
-            className="absolute inset-0 bg-canvas/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-scrim backdrop-blur-sm"
             initial={reduceMotion ? undefined : { opacity: 0 }}
             animate={reduceMotion ? undefined : { opacity: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: DURATION.micro }}
             onClick={onClose}
           />
 
@@ -102,7 +103,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             initial={reduceMotion ? undefined : { opacity: 0, y: -8, scale: 0.985 }}
             animate={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: -6, scale: 0.985 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: DURATION.quick, ease: EASE_OUT }}
           >
             <div className="flex items-center gap-3 border-b border-hairline px-4">
               <Search className="size-4 shrink-0 text-ink-muted" aria-hidden />
@@ -113,7 +114,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 onKeyDown={onKeyDown}
                 placeholder="Jump to a page"
                 aria-label="Search commands"
-                className="h-13 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-faint"
+                className="h-13 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-muted"
               />
               <Kbd>Esc</Kbd>
             </div>
@@ -167,7 +168,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-hairline bg-surface-raised/60 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-hairline bg-header-bar px-4 py-3">
               <span className="flex items-center gap-1.5 text-micro text-ink-muted">
                 <Kbd>↑</Kbd>
                 <Kbd>↓</Kbd>
@@ -177,7 +178,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 <Kbd>↵</Kbd>
                 to open
               </span>
-              <span className="ml-auto text-micro text-ink-faint">
+              <span className="ml-auto text-micro text-ink-muted">
                 Decision search arrives with the analysis engine
               </span>
             </div>

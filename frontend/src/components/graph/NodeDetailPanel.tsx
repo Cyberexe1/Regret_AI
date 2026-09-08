@@ -4,10 +4,12 @@ import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { buttonClasses } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { ROUTES } from '@/data/navigation';
 import { cn } from '@/lib/cn';
 import { graphCategoryLabel, graphCategoryTone, toneText } from '@/lib/tone';
 import type { GraphNodeDatum } from '@/types';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 export interface NodeDetailPanelProps {
   node: GraphNodeDatum | null;
@@ -18,13 +20,13 @@ export function NodeDetailPanel({ node }: NodeDetailPanelProps) {
 
   if (!node) {
     return (
-      <Card className="flex flex-col items-start gap-3">
-        <MousePointerClick className="size-4 text-ink-muted" aria-hidden />
-        <p className="text-card-title text-ink">Nothing selected</p>
-        <p className="text-small text-ink-secondary">
-          Select any node to see what it depends on, what evidence backs it, and where its
-          threshold sits.
-        </p>
+      <Card padding="none">
+        <EmptyState
+          size="inline"
+          icon={MousePointerClick}
+          title="Nothing selected"
+          description="Select any node to see what it depends on, what evidence backs it, and where its threshold sits."
+        />
       </Card>
     );
   }
@@ -39,9 +41,9 @@ export function NodeDetailPanel({ node }: NodeDetailPanelProps) {
           initial={reduceMotion ? undefined : { opacity: 0, y: 6 }}
           animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
           exit={reduceMotion ? undefined : { opacity: 0 }}
-          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: DURATION.quick, ease: EASE_OUT }}
         >
-          <div className="border-b border-hairline px-5 py-4">
+          <div className="border-b border-hairline px-5 py-4 md:px-6">
             <Badge tone={tone} size="sm" dot>
               {graphCategoryLabel[node.category]}
             </Badge>

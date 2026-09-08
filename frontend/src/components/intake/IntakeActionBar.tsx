@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { ROUTES } from '@/data/navigation';
 import { cn } from '@/lib/cn';
+import { DURATION, EASE_OUT } from '@/lib/motion';
 
 export interface IntakeActionBarProps {
   id: string;
@@ -21,7 +22,7 @@ export function IntakeActionBar({ id, canSubmit, onSubmit }: IntakeActionBarProp
   return (
     <div
       id={id}
-      className="glass sticky bottom-0 z-10 -mx-[var(--page-gutter)] scroll-mt-[calc(var(--topbar-height)+1.5rem)] border-t border-hairline px-[var(--page-gutter)] py-4"
+      className="glass sticky bottom-0 z-10 -mx-[var(--page-gutter)] scroll-mt-[calc(var(--header-offset)+0.75rem)] border-t border-hairline px-[var(--page-gutter)] py-4"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="order-2 text-small text-ink-muted sm:order-1">
@@ -40,7 +41,7 @@ export function IntakeActionBar({ id, canSubmit, onSubmit }: IntakeActionBarProp
 
           <motion.div
             animate={reduceMotion ? undefined : { opacity: canSubmit ? 1 : 0.55 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: DURATION.quick, ease: EASE_OUT }}
             className="flex-1 sm:flex-none"
           >
             <Button

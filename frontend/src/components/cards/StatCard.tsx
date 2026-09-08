@@ -19,7 +19,7 @@ export interface StatDelta {
 
 const VALUE_SIZE = {
   /** Default. Readable without dominating the page. */
-  compact: 'text-xl font-semibold tracking-[-0.012em]',
+  compact: 'text-metric',
   /** For pages where a single figure is the point. */
   large: 'text-page-title',
 } as const;

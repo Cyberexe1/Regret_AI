@@ -29,8 +29,10 @@ export function Topbar({ onOpenSidebar, onOpenCommandPalette }: TopbarProps) {
   const meta = resolveMeta(pathname);
 
   return (
-    <header className="glass sticky top-0 z-20 border-b border-hairline">
-      <div className="flex h-[var(--topbar-height)] items-center gap-3 px-[var(--page-gutter)]">
+    <header className="sticky top-0 z-20 px-[var(--page-gutter)] pt-3">
+      {/* Floating, rounded bar rather than an edge-to-edge strip, so the
+          workspace chrome reads as a distinct panel over the canvas. */}
+      <div className="glass flex h-[var(--topbar-height)] items-center gap-3 rounded-xl border border-hairline px-4 shadow-soft">
         <Button
           variant="ghost"
           size="sm"

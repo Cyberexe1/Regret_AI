@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft, FileText, Workflow } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import { DecisionNotFound } from '@/components/DecisionNotFound';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { DecisionGraphCanvas } from '@/components/graph/DecisionGraphCanvas';
 import { GraphLegend, NodeDetailPanel } from '@/components/graph';
 import { buttonClasses } from '@/components/ui/Button';
-import { Card, CardDescription, CardTitle } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { findDecisionGraph } from '@/data/decisionGraph';
-import { decisionPath, ROUTES } from '@/data/navigation';
-import { useDecision } from '@/hooks/useDecisions';
+import { decisionPath } from '@/data/navigation';
+import { useDecision } from '@/hooks/useDecision';
 import { cn } from '@/lib/cn';
 
 export function DecisionGraphPage() {
@@ -23,43 +24,25 @@ export function DecisionGraphPage() {
     setSelectedId(graph?.defaultNodeId ?? null);
   }, [graph?.decisionId, graph?.defaultNodeId]);
 
-  if (!decision) {
-    return (
-      <PageContainer eyebrow="Decision" title="Decision not found" width="narrow">
-        <Card padding="lg" className="space-y-4">
-          <CardTitle>No decision matches this identifier</CardTitle>
-          <CardDescription>
-            The reference <span className="numeric text-ink">{id}</span> is not in this workspace.
-          </CardDescription>
-          <Link
-            to={ROUTES.decisions}
-            className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-          >
-            <ArrowLeft className="size-4" aria-hidden />
-            Back to decision history
-          </Link>
-        </Card>
-      </PageContainer>
-    );
-  }
+  if (!decision) return <DecisionNotFound id={id} />;
 
   if (!graph) {
     return (
       <PageContainer eyebrow="Dependency graph" title={decision.title} width="narrow">
-        <Card padding="lg" className="space-y-4">
-          <CardTitle>No dependency graph yet</CardTitle>
-          <CardDescription>
-            A graph is built from a completed stress test. This decision has not produced one, so
-            there is nothing to map.
-          </CardDescription>
-          <Link
-            to={decisionPath(decision.id)}
-            className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-          >
-            <ArrowLeft className="size-4" aria-hidden />
-            Back to the decision
-          </Link>
-        </Card>
+        <EmptyState
+          icon={Workflow}
+          title="No dependency graph yet"
+          description="A graph is built from a completed stress test. This decision has not produced one, so there is nothing to map."
+          action={
+            <Link
+              to={decisionPath(decision.id)}
+              className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+            >
+              <ArrowLeft className="size-4" aria-hidden />
+              Back to the decision
+            </Link>
+          }
+        />
       </PageContainer>
     );
   }
@@ -81,9 +64,10 @@ export function DecisionGraphPage() {
         </Link>
       }
     >
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      {/* Side panel waits for xl: the canvas needs the width more than the panel does. */}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
         <div className="overflow-hidden rounded-xl border border-hairline bg-surface-inset">
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-4 md:px-6">
             <GraphLegend />
             <p className="text-small text-ink-muted">Drag to pan · zoom with the controls</p>
           </div>
@@ -97,7 +81,7 @@ export function DecisionGraphPage() {
           </div>
         </div>
 
-        <div className="lg:sticky lg:top-[calc(var(--topbar-height)+1.5rem)]">
+        <div className="xl:sticky xl:top-[calc(var(--header-offset)+0.75rem)]">
           <NodeDetailPanel node={selectedNode} />
         </div>
       </div>

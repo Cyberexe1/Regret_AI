@@ -70,7 +70,7 @@ export function DangerZone() {
           </li>
         </ul>
 
-        <p className="mt-5 rounded-lg border border-info-line/60 bg-info-soft/25 px-4 py-3 text-small text-ink-secondary">
+        <p className="mt-5 rounded-lg border border-info-line bg-panel-info px-4 py-3 text-small text-ink-secondary">
           Nothing will actually be deleted. This build has no backend, so confirming only
           demonstrates the flow.
         </p>

@@ -63,10 +63,10 @@ export function Logo({ markOnly = false, className }: LogoProps) {
       <LogoMark className="size-7 shrink-0" />
       {markOnly ? null : (
         <span className="flex flex-col leading-none">
-          <span className="text-[0.8125rem] font-semibold tracking-[0.14em] text-ink uppercase">
+          <span className="text-small font-semibold tracking-[0.14em] text-ink uppercase">
             Regret
           </span>
-          <span className="text-[0.8125rem] font-semibold tracking-[0.14em] text-ink-muted uppercase">
+          <span className="text-small font-semibold tracking-[0.14em] text-ink-muted uppercase">
             Engine
           </span>
         </span>
