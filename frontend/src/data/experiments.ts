@@ -14,7 +14,7 @@ export const experiments: Experiment[] = [
     method:
       'Cook the menu from a rented commercial kitchen for fourteen days, list on one aggregator, and track the second-order rate of the first 200 customers with no promo codes after day three.',
     status: 'running',
-    cost: { currency: 'INR', amount: 42_000, days: 14, effort: 'medium' },
+    cost: { currency: 'INR', amount: 15_000, days: 14, effort: 'medium' },
     informationGain: 88,
     targets: ['asm-11'],
     successCriteria: [

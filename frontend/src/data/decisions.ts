@@ -18,7 +18,7 @@ export const decisions: Decision[] = [
     commitBy: '2026-09-26T00:00:00.000Z',
     analysis: {
       regretIndex: 54,
-      analysisConfidence: 71,
+      analysisConfidence: 68,
       reversibility: 'costly-to-reverse',
       verdictSummary:
         'The unit economics work only if customers order more than once. Every projection in the plan assumes a repeat rate of at least 24%, and the evidence available sits at 18–21%. That single number decides the outcome, and it can be measured for far less than ₹5,00,000.',
@@ -674,6 +674,17 @@ export const decisions: Decision[] = [
   },
 ];
 
+/**
+ * Readable id the analysis hand-off uses, so `/decision/demo` resolves to a
+ * real report instead of a not-found state.
+ */
+export const DEMO_DECISION_ALIAS = 'demo';
+
+const ID_ALIASES: Record<string, string> = {
+  [DEMO_DECISION_ALIAS]: 'dcn-5104',
+};
+
 export function findDecision(id: string): Decision | undefined {
-  return decisions.find((decision) => decision.id === id);
+  const resolvedId = ID_ALIASES[id] ?? id;
+  return decisions.find((decision) => decision.id === resolvedId);
 }

@@ -1,4 +1,5 @@
 import type {
+  AssumptionSupport,
   Confidence,
   ExperimentStatus,
   Reversibility,
@@ -49,6 +50,18 @@ export const toneHex: Record<Tone, string> = {
 };
 
 /* --- Domain -> tone mappings ---------------------------------------------- */
+
+export const assumptionSupportTone: Record<AssumptionSupport, Tone> = {
+  supported: 'success',
+  uncertain: 'warning',
+  unsupported: 'danger',
+};
+
+export const assumptionSupportLabel: Record<AssumptionSupport, string> = {
+  supported: 'Supported',
+  uncertain: 'Uncertain',
+  unsupported: 'Unsupported',
+};
 
 export const riskTone: Record<RiskLevel, Tone> = {
   low: 'success',

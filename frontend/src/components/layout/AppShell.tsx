@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useModifierHotkey } from '@/hooks/useModifierHotkey';
 import { CommandPalette } from './CommandPalette';
+import { PageLoading } from './PageLoading';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 
@@ -47,18 +48,21 @@ export function AppShell() {
         <Topbar onOpenSidebar={() => setDrawerOpen(true)} onOpenCommandPalette={openPalette} />
 
         <main id="main-content">
-          {reduceMotion ? (
-            <Outlet />
-          ) : (
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            >
+          {/* Route modules load on demand; the chrome stays put while they do. */}
+          <Suspense fallback={<PageLoading />}>
+            {reduceMotion ? (
               <Outlet />
-            </motion.div>
-          )}
+            ) : (
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <Outlet />
+              </motion.div>
+            )}
+          </Suspense>
         </main>
       </div>
 

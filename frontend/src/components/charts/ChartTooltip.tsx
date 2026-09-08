@@ -11,18 +11,31 @@ export interface ChartTooltipProps {
   payload?: ChartTooltipItem[];
   /** Appended to every value, e.g. "/100". */
   valueSuffix?: string;
+  /** Overrides rendering of each value, e.g. for currency. */
+  formatValue?: (value: number | string | undefined) => string;
+  /** Overrides rendering of the axis label. */
+  formatLabel?: (label: string | number) => string;
 }
 
 /**
  * Dark tooltip surface for Recharts. Pass as `<Tooltip content={<ChartTooltip />} />`.
  */
-export function ChartTooltip({ active, label, payload, valueSuffix = '' }: ChartTooltipProps) {
+export function ChartTooltip({
+  active,
+  label,
+  payload,
+  valueSuffix = '',
+  formatValue,
+  formatLabel,
+}: ChartTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
 
   return (
     <div className="rounded-md border border-hairline-strong bg-surface-overlay px-3 py-2 shadow-overlay">
       {label !== undefined ? (
-        <p className="mb-1.5 text-micro tracking-wide text-ink-muted uppercase">{label}</p>
+        <p className="mb-1.5 text-micro tracking-wide text-ink-muted uppercase">
+          {formatLabel ? formatLabel(label) : label}
+        </p>
       ) : null}
       <ul className="space-y-1">
         {payload.map((item, index) => (
@@ -34,8 +47,7 @@ export function ChartTooltip({ active, label, payload, valueSuffix = '' }: Chart
             />
             <span className="text-ink-secondary">{item.name}</span>
             <span className="numeric ml-auto font-medium text-ink">
-              {item.value}
-              {valueSuffix}
+              {formatValue ? formatValue(item.value) : `${item.value}${valueSuffix}`}
             </span>
           </li>
         ))}

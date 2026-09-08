@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { decisions as allDecisions } from '@/data/decisions';
+import { decisions as allDecisions, findDecision } from '@/data/decisions';
 import { experiments as allExperiments } from '@/data/experiments';
 import type { Decision, DecisionDomain, DecisionStatus, Experiment } from '@/types';
 
@@ -35,7 +35,8 @@ export function useDecisions(filters: DecisionFilters = {}): Decision[] {
 }
 
 export function useDecision(id: string | undefined): Decision | undefined {
-  return useMemo(() => allDecisions.find((decision) => decision.id === id), [id]);
+  // Goes through `findDecision` so id aliases resolve in one place.
+  return useMemo(() => (id ? findDecision(id) : undefined), [id]);
 }
 
 /** All experiments, or only those attached to one decision. */
