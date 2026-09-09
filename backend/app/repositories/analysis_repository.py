@@ -46,6 +46,7 @@ class AnalysisRepository:
             "started_at": None,
             "completed_at": None,
             "error_message": None,
+            "result": None,
         }
         self._gateway.put_item(item)
         return AnalysisRun.model_validate(_strip_keys(item))
@@ -57,9 +58,8 @@ class AnalysisRepository:
         return AnalysisRun.model_validate(_strip_keys(item)) if item is not None else None
 
     def list_for_decision(self, decision_id: UUID) -> list[AnalysisRun]:
-        items, _ = self._gateway.query(
-            key_condition=Key("PK").eq(_decision_pk(decision_id)) & Key("SK").begins_with("ANALYSIS#")
-        )
+        key_condition = Key("PK").eq(_decision_pk(decision_id)) & Key("SK").begins_with("ANALYSIS#")
+        items, _ = self._gateway.query(key_condition=key_condition)
         return [AnalysisRun.model_validate(_strip_keys(item)) for item in items]
 
     def update_status(
@@ -70,6 +70,7 @@ class AnalysisRepository:
         started_at: datetime | None = None,
         completed_at: datetime | None = None,
         error_message: str | None = None,
+        result: dict[str, Any] | None = None,
     ) -> AnalysisRun:
         set_clauses = ["#status = :status"]
         values: dict[str, Any] = {":status": status.value}
@@ -84,6 +85,10 @@ class AnalysisRepository:
         if error_message is not None:
             set_clauses.append("error_message = :error_message")
             values[":error_message"] = error_message
+        if result is not None:
+            set_clauses.append("#result = :result")
+            values[":result"] = result
+            names["#result"] = "result"
 
         updated = self._gateway.update_item(
             key={"PK": _decision_pk(decision_id), "SK": _analysis_sk(run_id)},

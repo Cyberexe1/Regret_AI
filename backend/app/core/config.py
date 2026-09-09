@@ -49,6 +49,38 @@ class Settings(BaseSettings):
     # access patterns are already user-scoped and ready for real auth later.
     default_user_id: str = "local-dev-user"
 
+    # --- Amazon Bedrock (AI agents) --------------------------------------------
+    # No API keys live here: the Strands Agents SDK's BedrockModel resolves AWS
+    # credentials through boto3's standard provider chain, same as DynamoDB
+    # above. `bedrock_model_id` defaults to the Strands SDK's own current
+    # default model - override via env if your account/region needs a
+    # different one.
+    bedrock_model_id: str = "global.anthropic.claude-sonnet-4-6"
+    # Wall-clock budget for a single agent model call. Guards against a hung
+    # Bedrock request blocking an API request indefinitely.
+    bedrock_invoke_timeout_seconds: float = 60.0
+
+    # --- Evidence storage -----------------------------------------------------
+    # "local" is the only implemented backend. The interface
+    # (app.services.storage.StorageBackend) is shaped so "s3" can be added
+    # later without changing any calling code; selecting it today raises a
+    # clear NotImplementedError rather than silently doing the wrong thing.
+    storage_backend: str = "local"
+    # Directory evidence files are written to. Relative paths are resolved
+    # against the backend/ working directory. Never requires AWS credentials.
+    local_storage_dir: str = "./data/evidence"
+    max_upload_size_bytes: int = 10 * 1024 * 1024  # 10 MB
+    # Comma-separated list of allowed upload extensions, dot-prefixed.
+    allowed_evidence_extensions: str = ".pdf,.docx,.txt"
+
+    @property
+    def allowed_extensions(self) -> set[str]:
+        return {
+            ext.strip().lower()
+            for ext in self.allowed_evidence_extensions.split(",")
+            if ext.strip()
+        }
+
     @property
     def cors_origins(self) -> list[str]:
         """Parsed list of allowed CORS origins."""

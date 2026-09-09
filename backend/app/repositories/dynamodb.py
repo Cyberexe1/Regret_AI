@@ -173,7 +173,9 @@ class DynamoDBGateway:
             )
             raise RepositoryError() from exc
         except BotoCoreError as exc:
-            logger.error("DynamoDB client error: op=%s type=%s", operation.__name__, type(exc).__name__)
+            logger.error(
+                "DynamoDB client error: op=%s type=%s", operation.__name__, type(exc).__name__
+            )
             raise RepositoryError() from exc
 
 
@@ -205,6 +207,8 @@ def create_table_if_not_exists() -> None:
             {"AttributeName": "SK", "AttributeType": "S"},
             {"AttributeName": "GSI1PK", "AttributeType": "S"},
             {"AttributeName": "GSI1SK", "AttributeType": "S"},
+            {"AttributeName": "GSI2PK", "AttributeType": "S"},
+            {"AttributeName": "GSI2SK", "AttributeType": "S"},
         ],
         GlobalSecondaryIndexes=[
             {
@@ -214,7 +218,18 @@ def create_table_if_not_exists() -> None:
                     {"AttributeName": "GSI1SK", "KeyType": "RANGE"},
                 ],
                 "Projection": {"ProjectionType": "ALL"},
-            }
+            },
+            {
+                # Lets evidence be looked up by its own id alone (no
+                # decision id needed) without a table scan - see
+                # app.repositories.evidence_repository.get_by_id.
+                "IndexName": "GSI2",
+                "KeySchema": [
+                    {"AttributeName": "GSI2PK", "KeyType": "HASH"},
+                    {"AttributeName": "GSI2SK", "KeyType": "RANGE"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+            },
         ],
         BillingMode="PAY_PER_REQUEST",
     )

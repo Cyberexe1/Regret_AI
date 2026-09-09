@@ -7,3 +7,6 @@ __pycache__/
 venv/
 .env
 *.log
+
+# Locally stored evidence uploads (runtime data, never source).
+/data/

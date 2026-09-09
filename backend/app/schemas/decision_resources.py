@@ -64,10 +64,13 @@ class Blindspot(BaseModel):
 
 
 class Evidence(BaseModel):
-    """Metadata and a reference to evidence content, never the content itself.
+    """Metadata, extracted text, and a storage reference for one piece of evidence.
 
-    Large uploaded documents belong in Amazon S3 (not implemented yet);
-    `storage_key` is reserved for that S3 object key once ingestion exists.
+    The full original file lives in a `StorageBackend` (local disk today,
+    S3 later) under `storage_key` - never inline in this record.
+    `content_reference` holds extracted text up to a bounded length so this
+    record stays a metadata-sized object rather than duplicating an entire
+    large document; `content_truncated` says whether that bound was hit.
     """
 
     id: UUID
@@ -75,9 +78,20 @@ class Evidence(BaseModel):
     title: str
     source_type: SourceType
     source_url: str | None = None
-    storage_key: str | None = Field(default=None, description="Future S3 object key.")
+    storage_key: str | None = Field(
+        default=None, description="Key into the storage backend (local path today, S3 key later)."
+    )
+    filename: str | None = Field(default=None, description="Original filename, sanitized.")
+    file_type: str | None = Field(
+        default=None, description="Extension without the dot, e.g. 'pdf'."
+    )
+    size_bytes: int | None = None
+    page_count: int | None = Field(default=None, description="Available for PDF; null otherwise.")
     content_reference: str | None = Field(
-        default=None, description="Short reference/summary, not the full document body."
+        default=None, description="Extracted text, bounded in length - not the full document body."
+    )
+    content_truncated: bool = Field(
+        default=False, description="True if extracted text exceeded the stored bound."
     )
     credibility: str | None = None
     created_at: datetime
@@ -130,3 +144,8 @@ class AnalysisRun(BaseModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
     error_message: str | None = None
+    # Structured agent output for this run (currently just the Decision
+    # Analyzer's DecisionAnalysis, dumped to a plain dict). Stored as a
+    # generic dict rather than a specific model type here so this schema
+    # doesn't need to change as more agents contribute to a run later.
+    result: dict[str, object] | None = None

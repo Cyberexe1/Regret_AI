@@ -31,7 +31,7 @@ class NotFoundError(AppError):
 
 
 class ValidationError(AppError):
-    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
     detail = "Validation error."
 
 
@@ -40,6 +40,20 @@ class ConflictError(AppError):
 
     status_code = status.HTTP_409_CONFLICT
     detail = "The resource was modified by another request. Please retry."
+
+
+class UnsupportedMediaTypeError(AppError):
+    """Raised when an uploaded file's extension/content isn't a supported type."""
+
+    status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+    detail = "Unsupported file type."
+
+
+class PayloadTooLargeError(AppError):
+    """Raised when an uploaded file exceeds the configured size limit."""
+
+    status_code = status.HTTP_413_CONTENT_TOO_LARGE
+    detail = "File is too large."
 
 
 class RepositoryError(AppError):

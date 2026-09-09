@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import decisions, health
+from app.api.routes import analysis, decisions, evidence, health
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
@@ -60,3 +60,6 @@ register_exception_handlers(app)
 
 app.include_router(health.router, prefix=settings.api_v1_prefix)
 app.include_router(decisions.router, prefix=settings.api_v1_prefix)
+app.include_router(evidence.decision_evidence_router, prefix=settings.api_v1_prefix)
+app.include_router(evidence.evidence_router, prefix=settings.api_v1_prefix)
+app.include_router(analysis.router, prefix=settings.api_v1_prefix)
