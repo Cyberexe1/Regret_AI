@@ -21,7 +21,7 @@ import asyncio
 
 from strands import Agent
 
-from app.agents.config import get_bedrock_model
+from app.agents.config import get_bedrock_model, invoke_with_retry
 from app.agents.schemas import AssumptionAnalysis, DecisionAnalysis
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -168,8 +168,11 @@ async def run_assumption_hunter(
         decision_analysis.decision_type,
         len(evidence),
     )
-    result = await asyncio.wait_for(
-        agent.invoke_async(prompt), timeout=settings.bedrock_invoke_timeout_seconds
+    result = await invoke_with_retry(
+        lambda: asyncio.wait_for(
+            agent.invoke_async(prompt), timeout=settings.bedrock_invoke_timeout_seconds
+        ),
+        agent_name="assumption_hunter",
     )
 
     if result.structured_output is None:

@@ -1,5 +1,7 @@
 export { AssumptionsSection } from './AssumptionsSection';
 export type { AssumptionsSectionProps } from './AssumptionsSection';
+export { ChallengeCards } from './ChallengeCards';
+export type { ChallengeCardsProps } from './ChallengeCards';
 export { DecisionSnapshot } from './DecisionSnapshot';
 export type { DecisionSnapshotProps } from './DecisionSnapshot';
 export { RecommendationPanel } from './RecommendationPanel';

@@ -21,7 +21,7 @@ const DecisionGraphCanvas = lazy(async () => {
 
 function CanvasFallback() {
   return (
-    <div className="h-full w-full p-6" aria-busy>
+    <div className="h-full w-full p-6" role="status" aria-label="Loading dependency graph">
       <Skeleton shape="block" className="size-full" />
     </div>
   );
@@ -65,7 +65,9 @@ export function DecisionGraphPage() {
   if (decisionState.isLoading || reportState.isLoading || !decisionState.data) {
     return (
       <PageContainer eyebrow="Dependency graph" title="Loading…" width="narrow">
-        <Skeleton shape="block" className="h-96 w-full" />
+        <div role="status" aria-label="Loading">
+          <Skeleton shape="block" className="h-96 w-full" />
+        </div>
       </PageContainer>
     );
   }

@@ -1,0 +1,66 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DynamoDBTableAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:BatchGetItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DescribeTable"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:ap-south-1:961308088417:table/regret-engine",
+        "arn:aws:dynamodb:ap-south-1:961308088417:table/regret-engine/index/*"
+      ]
+    },
+    {
+      "Sid": "S3EvidenceBucketObjectAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::regret-engine-evidence-961308088417/*"
+    },
+    {
+      "Sid": "S3EvidenceBucketListAccess",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::regret-engine-evidence-961308088417"
+    },
+    {
+      "Sid": "BedrockInvokeNovaProInferenceProfile",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "arn:aws:bedrock:ap-south-1:961308088417:inference-profile/apac.amazon.nova-pro-v1:0"
+    },
+    {
+      "Sid": "BedrockInvokeNovaProUnderlyingModels",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:ap-south-1::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:ap-southeast-1::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:ap-northeast-1::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:ap-northeast-2::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:ap-northeast-3::foundation-model/amazon.nova-pro-v1:0"
+      ]
+    }
+  ]
+}

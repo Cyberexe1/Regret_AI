@@ -1,0 +1,48 @@
+flowchart TD
+    User(["User's browser"])
+
+    subgraph client["CLIENT (browser)"]
+        CF["Amazon CloudFront<br/>(public HTTPS entry point)"]
+        React["React + TypeScript SPA<br/>(static build, served from a<br/>private S3 bucket via CloudFront OAC)"]
+    end
+
+    subgraph backend["APPLICATION BACKEND (AWS App Runner)"]
+        AppRunner["AWS App Runner<br/>(runs the container, IAM instance role,<br/>no AWS access keys)"]
+        FastAPI["FastAPI<br/>(app/main.py, versioned /api/v1 routes)"]
+    end
+
+    subgraph orchestration["AI ORCHESTRATION"]
+        Strands["Strands Agents SDK<br/>(AnalysisOrchestrator, 9-stage pipeline)"]
+        Bedrock["Amazon Bedrock<br/>(Amazon Nova Pro,<br/>cross-region inference profile)"]
+    end
+
+    subgraph storage["PERSISTENT STORAGE (AWS managed)"]
+        DynamoDB["Amazon DynamoDB<br/>(single table: decisions, agent<br/>results, analysis runs)"]
+        S3Evidence["Amazon S3<br/>(evidence bucket, private,<br/>reserved for future S3 storage backend)"]
+    end
+
+    subgraph external["EXTERNAL SERVICES (optional)"]
+        Research["Research Agent<br/>DuckDuckGo HTML search<br/>(RESEARCH_PROVIDER=http, off by default)"]
+    end
+
+    User -->|HTTPS| CF
+    CF -->|serves static assets| React
+    React -->|HTTPS fetch, VITE_API_BASE_URL<br/>ONLY this call ever leaves the browser| AppRunner
+    AppRunner --> FastAPI
+    FastAPI -->|invokes agents via orchestrator| Strands
+    Strands -->|structured Pydantic I/O| Bedrock
+    Strands -.->|optional external evidence,<br/>never blocks the pipeline| Research
+    FastAPI -->|persists decisions,<br/>agent results, run status| DynamoDB
+    FastAPI -->|evidence file storage<br/>bucket provisioned, not yet wired up| S3Evidence
+
+    classDef client fill:#1e293b,stroke:#38bdf8,color:#e2e8f0
+    classDef backend fill:#1e293b,stroke:#a78bfa,color:#e2e8f0
+    classDef orchestration fill:#1e293b,stroke:#f472b6,color:#e2e8f0
+    classDef storage fill:#1e293b,stroke:#34d399,color:#e2e8f0
+    classDef external fill:#1e293b,stroke:#fbbf24,color:#e2e8f0
+
+    class CF,React client
+    class AppRunner,FastAPI backend
+    class Strands,Bedrock orchestration
+    class DynamoDB,S3Evidence storage
+    class Research external

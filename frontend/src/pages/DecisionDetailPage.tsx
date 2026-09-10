@@ -5,6 +5,7 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { Reveal } from '@/components/Reveal';
 import {
   AssumptionsSection,
+  ChallengeCards,
   DecisionSnapshot,
   RecommendationPanel,
   ReportActions,
@@ -25,6 +26,7 @@ import { cn } from '@/lib/cn';
 import {
   buildCriticalUncertainties,
   buildReportAssumptionRows,
+  buildReportChallenges,
   buildReportScenarios,
   buildReportThresholds,
 } from '@/lib/buildDecisionReport';
@@ -119,12 +121,14 @@ export function DecisionDetailPage() {
   const scenarios = buildReportScenarios(report.regretScenarios);
   const thresholds = buildReportThresholds(report.thresholds);
   const assumptionRows = buildReportAssumptionRows(report.assumptions);
+  const challenges = buildReportChallenges(report.challenges);
   const recommendedExperiment =
     report.experiments.find((experiment) => experiment.status === 'recommended') ?? report.experiments[0] ?? null;
 
   const snapshot = [
     { label: 'Assumptions', value: String(report.assumptions.length) },
     { label: 'Blindspots', value: String(report.blindspots.length) },
+    { label: 'Challenges', value: String(report.challenges.length) },
     { label: 'Regret scenarios', value: String(report.regretScenarios.length) },
     { label: 'Thresholds', value: String(report.thresholds.length) },
   ];
@@ -178,6 +182,14 @@ export function DecisionDetailPage() {
           description="What the decision quietly depends on, and how well each one is backed by evidence."
         >
           <AssumptionsSection assumptions={assumptionRows} />
+        </ReportSection>
+
+        <ReportSection
+          index="06"
+          title="Challenges"
+          description="The Devil's Advocate's strongest counter-arguments against this decision."
+        >
+          <ChallengeCards challenges={challenges} />
         </ReportSection>
 
         <Reveal>

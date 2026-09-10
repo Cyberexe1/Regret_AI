@@ -1,0 +1,22 @@
+# Root-level ignores. `backend/.gitignore` and `frontend/.gitignore` cover
+# their own directories in more detail - this file only catches things that
+# can appear at the repository root itself.
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+
+# Never commit real secrets or local AWS config.
+.env
+.env.*
+!.env.example
+.aws/
+
+# Stray shell-redirect artifacts (e.g. an accidental `> $null` on Windows).
+$null
+
+# Local IDE/tooling state - not source, not needed for a fresh clone, and
+# not something that belongs in a public submission repository.
+.kirograph/
+

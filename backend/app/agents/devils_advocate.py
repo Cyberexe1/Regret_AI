@@ -25,7 +25,7 @@ import asyncio
 
 from strands import Agent
 
-from app.agents.config import get_bedrock_model
+from app.agents.config import get_bedrock_model, invoke_with_retry
 from app.agents.schemas import DecisionAnalysis, DevilAdvocateAnalysis
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -205,8 +205,11 @@ async def run_devils_advocate(
         len(blindspots),
         len(evidence_findings),
     )
-    result = await asyncio.wait_for(
-        agent.invoke_async(prompt), timeout=settings.bedrock_invoke_timeout_seconds
+    result = await invoke_with_retry(
+        lambda: asyncio.wait_for(
+            agent.invoke_async(prompt), timeout=settings.bedrock_invoke_timeout_seconds
+        ),
+        agent_name="devils_advocate",
     )
 
     if result.structured_output is None:

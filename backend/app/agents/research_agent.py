@@ -49,7 +49,7 @@ import asyncio
 from pydantic import BaseModel, Field
 from strands import Agent
 
-from app.agents.config import get_bedrock_model
+from app.agents.config import get_bedrock_model, invoke_with_retry
 from app.agents.schemas import DecisionAnalysis, ExternalEvidence, ResearchAnalysis
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -381,8 +381,11 @@ async def run_research_agent(
         len(assumptions),
         len(blindspots),
     )
-    query_result = await asyncio.wait_for(
-        query_agent.invoke_async(query_prompt), timeout=settings.bedrock_invoke_timeout_seconds
+    query_result = await invoke_with_retry(
+        lambda: asyncio.wait_for(
+            query_agent.invoke_async(query_prompt), timeout=settings.bedrock_invoke_timeout_seconds
+        ),
+        agent_name="research_agent_query",
     )
     if query_result.structured_output is None:
         raise ValueError("Research agent (query phase) did not return structured output.")
@@ -423,8 +426,12 @@ async def run_research_agent(
         decision_analysis.decision_type,
         len(all_results),
     )
-    mapping_result = await asyncio.wait_for(
-        mapping_agent.invoke_async(mapping_prompt), timeout=settings.bedrock_invoke_timeout_seconds
+    mapping_result = await invoke_with_retry(
+        lambda: asyncio.wait_for(
+            mapping_agent.invoke_async(mapping_prompt),
+            timeout=settings.bedrock_invoke_timeout_seconds,
+        ),
+        agent_name="research_agent_mapping",
     )
     if mapping_result.structured_output is None:
         raise ValueError("Research agent (mapping phase) did not return structured output.")

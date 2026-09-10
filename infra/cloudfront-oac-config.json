@@ -1,0 +1,7 @@
+{
+  "Name": "regret-engine-frontend-oac",
+  "Description": "OAC for regret-engine-frontend-961308088417 S3 origin",
+  "SigningProtocol": "sigv4",
+  "SigningBehavior": "always",
+  "OriginAccessControlOriginType": "s3"
+}

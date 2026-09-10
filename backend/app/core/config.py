@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     # above. `bedrock_model_id` defaults to the Strands SDK's own current
     # default model - override via env if your account/region needs a
     # different one.
-    bedrock_model_id: str = "global.anthropic.claude-sonnet-4-6"
+    bedrock_model_id: str = "apac.amazon.nova-pro-v1:0"
     # Wall-clock budget for a single agent model call. Guards against a hung
     # Bedrock request blocking an API request indefinitely.
     bedrock_invoke_timeout_seconds: float = 60.0

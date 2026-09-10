@@ -1,5 +1,11 @@
-import type { ApiAssumption, ApiBlindspot, ApiRegretScenario, ApiThreshold } from '@/api/types';
-import type { CriticalUncertainty, ReportAssumptionRow, ReportScenario, ReportThreshold } from '@/types/report';
+import type { ApiAssumption, ApiBlindspot, ApiChallenge, ApiRegretScenario, ApiThreshold } from '@/api/types';
+import type {
+  CriticalUncertainty,
+  ReportAssumptionRow,
+  ReportChallenge,
+  ReportScenario,
+  ReportThreshold,
+} from '@/types/report';
 import {
   blindspotEvidenceStatusLabel,
   blindspotEvidenceStatusTone,
@@ -120,4 +126,34 @@ export function buildReportAssumptionRows(assumptions: ApiAssumption[]): ReportA
     evidenceStatusTone: evidenceStatusTone(assumption.evidence_status),
     note: assumption.reason,
   }));
+}
+
+/** The Devil's Advocate's real, evidence-grounded attacks on the decision -
+ * ranked by severity, then confidence, the same deterministic ordering
+ * used for critical uncertainties above. */
+export function buildReportChallenges(challenges: ApiChallenge[]): ReportChallenge[] {
+  const severityWeight = (value: string | null) => {
+    const lower = (value ?? '').toLowerCase();
+    if (lower === 'critical') return 3;
+    if (lower === 'high') return 2;
+    if (lower === 'medium') return 1;
+    return 0;
+  };
+
+  return [...challenges]
+    .sort((a, b) => {
+      const bySeverity = severityWeight(b.severity) - severityWeight(a.severity);
+      if (bySeverity !== 0) return bySeverity;
+      return (b.confidence ?? 0) - (a.confidence ?? 0);
+    })
+    .map((challenge) => ({
+      id: challenge.id,
+      claim: challenge.claim,
+      attack: challenge.attack,
+      severityLabel: importanceLabel(challenge.severity),
+      severityTone: severityTone(challenge.severity),
+      confidencePercent: confidencePercent(challenge.confidence),
+      failureMechanism: challenge.failure_mechanism,
+      evidenceBasis: challenge.evidence_basis,
+    }));
 }

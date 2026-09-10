@@ -29,7 +29,7 @@ import asyncio
 
 from strands import Agent
 
-from app.agents.config import get_bedrock_model
+from app.agents.config import get_bedrock_model, invoke_with_retry
 from app.agents.schemas import DecisionAnalysis, ExperimentPlan
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -268,8 +268,11 @@ async def run_experiment_planner(
         len(thresholds),
         len(regret_scenarios),
     )
-    result = await asyncio.wait_for(
-        agent.invoke_async(prompt), timeout=settings.bedrock_invoke_timeout_seconds
+    result = await invoke_with_retry(
+        lambda: asyncio.wait_for(
+            agent.invoke_async(prompt), timeout=settings.bedrock_invoke_timeout_seconds
+        ),
+        agent_name="experiment_planner",
     )
 
     if result.structured_output is None:

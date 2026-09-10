@@ -77,3 +77,16 @@ export interface ReportAssumptionRow {
   evidenceStatusTone: Tone;
   note: string | null;
 }
+
+/** One concrete attack on the decision, as identified by the Devil's
+ * Advocate - `Challenge` on the backend. */
+export interface ReportChallenge {
+  id: string;
+  claim: string;
+  attack: string;
+  severityLabel: string;
+  severityTone: Tone;
+  confidencePercent?: number;
+  failureMechanism: string | null;
+  evidenceBasis: string | null;
+}

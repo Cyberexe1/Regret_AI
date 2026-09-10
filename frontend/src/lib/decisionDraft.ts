@@ -1,7 +1,12 @@
 import type { DecisionDraft } from '@/types';
 
-const STORAGE_KEY = 'regret-engine:decision-draft';
-
+/**
+ * Initial, empty intake form state. Submission now goes straight to the
+ * real API (`useDecisionSubmission`) rather than being staged through
+ * `sessionStorage` and handed off via router state - once a decision is
+ * created it has a real id and every later page (analysis, report, graph)
+ * fetches it fresh from the backend instead of reading a local draft.
+ */
 export const emptyDecisionDraft: DecisionDraft = {
   decision: '',
   desiredOutcome: '',
@@ -15,31 +20,5 @@ export const emptyDecisionDraft: DecisionDraft = {
   evidence: [],
   sourceUrl: '',
 };
-
-/**
- * Session-scoped handoff between the intake page and the analysis workspace.
- *
- * Deliberately not a network call and not global state: the draft is written on
- * submit and read by whichever page needs it next. `sessionStorage` keeps it
- * across a reload without persisting a half-finished decision forever.
- */
-export function saveDecisionDraft(draft: DecisionDraft): void {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-  } catch {
-    // Storage can be unavailable (private browsing, quota). The draft is still
-    // passed through router state, so submission must not fail because of this.
-  }
-}
-
-export function readDecisionDraft(): DecisionDraft | null {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as DecisionDraft;
-  } catch {
-    return null;
-  }
-}
 
 

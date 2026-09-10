@@ -1,0 +1,32 @@
+flowchart TD
+    Decision(["Decision<br/>(user's stated decision + uploaded evidence)"])
+
+    DA["Decision Analyzer<br/>type, goal, constraints, success criteria"]
+    AH["Assumption Hunter<br/>Assumptions"]
+    BH["Blindspot Hunter<br/>Blindspots"]
+    RA["Research Agent (optional)<br/>External Evidence"]
+    EA["Evidence Agent<br/>Evidence Findings<br/>(supports / contradicts / insufficient)"]
+    DV["Devil's Advocate<br/>Challenges"]
+    RS["Regret Simulator<br/>Regret Scenarios"]
+
+    TE["★ Threshold Engine ★<br/>Breaking Thresholds<br/>(the specific variable + tipping point)"]
+    EP["★ Experiment Planner ★<br/>Cheapest credible Experiment<br/>(hypothesis, steps, success/failure criteria, decision rule)"]
+
+    Report(["Decision Report"])
+    RealWorld(["Real-world Experiment<br/>(run by the user, outside the system)"])
+    ResultSubmit["Experiment Result submitted"]
+    Reeval["Deterministic Re-evaluation<br/>(app/services/re_evaluation_service.py — no model call)"]
+    Assessment(["Updated Decision Assessment<br/>strengthened / weakened / unchanged /<br/>inconclusive / requires_more_evidence"])
+
+    Decision --> DA --> AH --> BH --> RA --> EA --> DV --> RS --> TE --> EP --> Report
+    Report --> RealWorld --> ResultSubmit --> Reeval --> Assessment
+
+    classDef stage fill:#1e293b,stroke:#94a3b8,color:#e2e8f0
+    classDef highlight fill:#3b0764,stroke:#e879f9,color:#f5d0fe,stroke-width:3px
+    classDef terminal fill:#0f172a,stroke:#38bdf8,color:#e2e8f0,stroke-width:2px
+    classDef optional fill:#1e293b,stroke:#fbbf24,color:#e2e8f0,stroke-dasharray: 4 3
+
+    class Decision,Report,RealWorld,Assessment terminal
+    class DA,AH,BH,EA,DV,RS,ResultSubmit,Reeval stage
+    class RA optional
+    class TE,EP highlight

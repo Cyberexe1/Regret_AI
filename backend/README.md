@@ -94,7 +94,7 @@ Copy-Item .env.example .env
 | `LOCAL_STORAGE_DIR`      | `./data/evidence`                               | Where evidence files are written when using the `local` backend. Requires no AWS credentials. |
 | `MAX_UPLOAD_SIZE_BYTES`  | `10485760` (10 MB)                              | Maximum accepted evidence upload size.                                              |
 | `ALLOWED_EVIDENCE_EXTENSIONS` | `.pdf,.docx,.txt`                          | Comma-separated allow-list of accepted upload extensions.                           |
-| `BEDROCK_MODEL_ID`       | `global.anthropic.claude-sonnet-4-6`            | Bedrock model id the Decision Analyzer uses. Override per account/region if needed. |
+| `BEDROCK_MODEL_ID`       | `apac.amazon.nova-pro-v1:0`                     | Bedrock model id/inference-profile the agent pipeline uses. Override per account/region if needed. |
 | `BEDROCK_INVOKE_TIMEOUT_SECONDS` | `60`                                     | Wall-clock budget for one agent model call before it's treated as a failure.        |
 | `S3_BUCKET_NAME`         | *(unset)*                                       | Reserved for the future S3-backed `StorageBackend`. Required in production only if/when `STORAGE_BACKEND=s3`. |
 | `RESEARCH_PROVIDER`      | `none`                                          | `none` disables external research entirely; `http` enables the built-in DuckDuckGo HTML-search provider (no API key). |
@@ -383,13 +383,23 @@ if the model produced something that doesn't conform, the run is marked
 
 ### Cost and performance
 
-- Exactly one model call per `/analyze` request - no retries-by-default
-  loop, no speculative multi-agent fan-out (only one agent exists).
+- One model call per pipeline stage per `/analyze` request, no
+  speculative multi-agent fan-out.
 - A configurable timeout (`BEDROCK_INVOKE_TIMEOUT_SECONDS`, default 60s)
   bounds how long a single call can block a request.
 - No streaming - the SDK's structured-output path returns one complete
   result, which matches this endpoint's synchronous, non-streaming
   contract.
+- `app.agents.config.invoke_with_retry` wraps every one of the pipeline's
+  Bedrock calls (all ~9 agent stages) with a narrow, capped retry (up to
+  3 attempts, short backoff with jitter) - but *only* for
+  `botocore.exceptions.EventStreamError`, the transient mid-stream
+  provider error occasionally seen with `modelStreamErrorException`
+  ("Model produced invalid sequence as part of ToolUse"). Every other
+  failure (throttling, validation, timeout, access-denied, a genuine bug)
+  propagates on the first attempt exactly as before - this exists purely
+  to absorb one specific, observed-in-production transient failure mode,
+  never to mask a real one.
 
 ## 10. DynamoDB architecture
 
@@ -646,6 +656,93 @@ docker run -p 8000:8000 --env-file .env regret-engine-backend
   `BedrockModel`) picks up the role automatically via the same credential
   provider chain used everywhere else in this codebase.
 
+### Deployed on AWS App Runner
+
+The API is deployed to **AWS App Runner** in `ap-south-1`, running the
+image above unmodified (no App-Runner-specific code paths):
+
+| Item | Value |
+| --- | --- |
+| ECR repository | `961308088417.dkr.ecr.ap-south-1.amazonaws.com/regret-engine-api` (private, image scanning on push, immutable tags) |
+| App Runner service | `regret-engine-api` |
+| App Runner instance role | `RegretEngineAppRunnerRole` - the *only* way the running container touches DynamoDB/S3/Bedrock; no access keys anywhere in the App Runner env vars |
+| App Runner ECR access role | `RegretEngineAppRunnerECRAccessRole` - a separate role App Runner's build pipeline uses only to pull the image from ECR; distinct from the instance role above and carries no application permissions |
+| Public URL | `https://usahfepdsw.ap-south-1.awsapprunner.com` (HTTPS-terminated by App Runner) |
+| Health check | `GET /api/v1/health`, 10s interval |
+| Compute | 1 vCPU / 2 GB memory |
+| Deployment | Manual (`AutoDeploymentsEnabled=false`) - a new image must be explicitly pushed and the service explicitly updated; App Runner does not auto-redeploy on every ECR push |
+
+Redeploying after a code change - note the ECR repo has `imageTagMutability=IMMUTABLE`, so a previously-pushed tag (e.g. `latest`) cannot be overwritten; push a new, unique tag each time and point App Runner at it:
+
+```powershell
+aws ecr get-login-password --region ap-south-1 --profile <profile> | `
+  docker login --username AWS --password-stdin 961308088417.dkr.ecr.ap-south-1.amazonaws.com
+docker build -t regret-engine-api .
+docker tag regret-engine-api:latest 961308088417.dkr.ecr.ap-south-1.amazonaws.com/regret-engine-api:<new-tag>
+docker push 961308088417.dkr.ecr.ap-south-1.amazonaws.com/regret-engine-api:<new-tag>
+# Update the service's SourceConfiguration.ImageRepository.ImageIdentifier to the new tag,
+# then apply it (this also triggers a new deployment):
+aws apprunner update-service --service-arn <service-arn> --region ap-south-1 --profile <profile> `
+  --source-configuration file://infra/app-runner-update-source-config.json
+```
+
+The instance role's permissions are the least-privilege policy documented
+in [IAM (least privilege)](#iam-least-privilege) below, defined in
+`infra/app-runner-permissions-policy.json` and attached to
+`RegretEngineAppRunnerRole` as the customer-managed policy
+`RegretEngineAppRunnerPolicy`.
+
+### Production frontend deployment
+
+The React frontend (`frontend/`) is deployed as a static site behind
+CloudFront, in front of a private S3 bucket - the browser never talks to
+AWS directly, only to this backend's App Runner URL:
+
+```text
+Browser --HTTPS--> CloudFront --OAC--> private S3 bucket (React build)
+Browser --HTTPS--> App Runner (this backend) --IAM role--> DynamoDB/S3/Bedrock
+```
+
+| Item | Value |
+| --- | --- |
+| Frontend S3 bucket | `regret-engine-frontend-961308088417` (`ap-south-1`) - private, all four Block Public Access settings on, AES256 encryption, `BucketOwnerEnforced`. Holds only the `frontend/dist` build output, never user evidence. |
+| CloudFront distribution | `E2YLQGKUTLGNF6` |
+| Public URL | `https://d20l6vg17brb6a.cloudfront.net` (CloudFront's default domain - no custom domain/ACM cert yet) |
+| Origin access | CloudFront Origin Access Control (OAC) `regret-engine-frontend-oac` - the bucket policy grants `s3:GetObject` only to the `cloudfront.amazonaws.com` service principal, scoped by `AWS:SourceArn` to this exact distribution. The bucket itself has no public read access at all; requesting an S3 object URL directly returns `403`. |
+| SPA routing | CloudFront custom error responses map both `403` and `404` from S3 to `/index.html` with an HTTP `200`, so client-side routes like `/decision/:id` resolve correctly on a direct load or browser refresh, without changing any React Router code. |
+| Caching | Hashed Vite output (`assets/*-<hash>.js/css`) is uploaded with `Cache-Control: public, max-age=31536000, immutable`; `index.html` is uploaded separately with `Cache-Control: no-cache, no-store, must-revalidate` so a new deployment is picked up immediately instead of being cached by the browser or CloudFront's default cache policy. |
+
+Deploying a frontend change:
+
+```powershell
+cd frontend
+npm run build                     # tsc --noEmit && vite build -> dist/
+aws s3 sync dist/ s3://regret-engine-frontend-961308088417/ `
+  --exclude "index.html" --cache-control "public, max-age=31536000, immutable" --delete
+aws s3 cp dist/index.html s3://regret-engine-frontend-961308088417/index.html `
+  --cache-control "no-cache, no-store, must-revalidate" --content-type "text/html"
+aws cloudfront create-invalidation --distribution-id E2YLQGKUTLGNF6 --paths "/*"
+```
+
+The production build reads `VITE_API_BASE_URL` from `frontend/.env.production`
+(gitignored, like every other `.env*` file in this repo) at build time - Vite
+loads it automatically in production mode. It currently points at this
+backend's App Runner URL:
+
+```env
+VITE_API_BASE_URL=https://usahfepdsw.ap-south-1.awsapprunner.com/api/v1
+```
+
+No AWS credentials are ever present in the frontend build - the browser only
+calls this documented API base URL over HTTPS; it never calls
+DynamoDB/S3/Bedrock directly. `CORS_ALLOWED_ORIGINS` on this backend (App
+Runner) is set to the CloudFront domain above, so it's an exact-origin
+allowlist, never `*` - if the CloudFront domain ever changes (e.g. once a
+custom domain is added), this backend's `CORS_ALLOWED_ORIGINS` env var must
+be updated and the App Runner service redeployed
+(`aws apprunner update-service`) to match, or the browser will start
+rejecting cross-origin requests.
+
 ## 13. AWS setup
 
 Minimum AWS resources to run this backend against real AWS (as opposed to
@@ -653,14 +750,16 @@ the moto-mocked test suite, which needs none of this):
 
 | Resource | Required? | Notes |
 | --- | --- | --- |
-| DynamoDB table | **Required** | See [DynamoDB architecture](#10-dynamodb-architecture) - create via `python scripts/create_table.py`, or point `AWS_ENDPOINT_URL` at a local DynamoDB-compatible endpoint for development instead. |
-| Amazon Bedrock model access | **Required** to actually call `/analyze` against a real model | Enable model access for `BEDROCK_MODEL_ID` in the target account/region. The rest of the API (decisions, evidence, experiments) works without this. |
-| S3 bucket | Optional (not implemented yet) | Reserved for a future S3-backed `StorageBackend`; `STORAGE_BACKEND=local` needs no AWS resources at all. |
+| DynamoDB table | **Required** | See [DynamoDB architecture](#10-dynamodb-architecture) - create via `python scripts/create_table.py`, or point `AWS_ENDPOINT_URL` at a local DynamoDB-compatible endpoint for development instead. Deployed as `regret-engine` in `ap-south-1`. |
+| Amazon Bedrock model access | **Required** to actually call `/analyze` against a real model | Enable model access for `BEDROCK_MODEL_ID` in the target account/region. The rest of the API (decisions, evidence, experiments) works without this. Deployed model: Amazon Nova Pro via the cross-region inference profile `apac.amazon.nova-pro-v1:0` - Nova Pro is not invocable by its raw foundation-model ID alone; both the inference-profile ARN and its underlying per-region foundation-model ARNs must be authorized (see policy below). |
+| S3 bucket | Created, not yet wired up | `regret-engine-evidence-961308088417` exists in `ap-south-1` (private, `BucketOwnerEnforced`, AES256, all public access blocked) and is fully IAM-permissioned for the app role, but `STORAGE_BACKEND` is still `local` - no S3-backed `StorageBackend` implementation exists yet (see [Current limitations](#14-current-limitations)). The bucket is provisioned ahead of that work. |
 | External research provider | Optional | The built-in DuckDuckGo HTML provider (`RESEARCH_PROVIDER=http`) needs no AWS resource or API key - just outbound HTTPS access. |
 
 ### IAM (least privilege)
 
-The running application's role/user needs only:
+The deployed App Runner instance role (`RegretEngineAppRunnerRole`) uses
+this policy (`infra/app-runner-permissions-policy.json`), scoped to the
+exact resources above - no wildcards, no `AdministratorAccess`:
 
 ```json
 {
@@ -670,37 +769,65 @@ The running application's role/user needs only:
       "Sid": "DynamoDBTableAccess",
       "Effect": "Allow",
       "Action": [
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem",
-        "dynamodb:Query"
+        "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:Scan",
+        "dynamodb:BatchGetItem", "dynamodb:BatchWriteItem",
+        "dynamodb:ConditionCheckItem", "dynamodb:DescribeTable"
       ],
       "Resource": [
-        "arn:aws:dynamodb:<region>:<account-id>:table/regret-engine",
-        "arn:aws:dynamodb:<region>:<account-id>:table/regret-engine/index/GSI1",
-        "arn:aws:dynamodb:<region>:<account-id>:table/regret-engine/index/GSI2"
+        "arn:aws:dynamodb:ap-south-1:<account-id>:table/regret-engine",
+        "arn:aws:dynamodb:ap-south-1:<account-id>:table/regret-engine/index/*"
       ]
     },
     {
-      "Sid": "BedrockInvoke",
+      "Sid": "S3EvidenceObjectAccess",
       "Effect": "Allow",
-      "Action": ["bedrock:InvokeModel"],
-      "Resource": "arn:aws:bedrock:<region>::foundation-model/<bedrock-model-id>"
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::regret-engine-evidence-961308088417/*"
+    },
+    {
+      "Sid": "S3EvidenceBucketList",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::regret-engine-evidence-961308088417"
+    },
+    {
+      "Sid": "BedrockInvokeNovaProInferenceProfile",
+      "Effect": "Allow",
+      "Action": ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
+      "Resource": "arn:aws:bedrock:ap-south-1:<account-id>:inference-profile/apac.amazon.nova-pro-v1:0"
+    },
+    {
+      "Sid": "BedrockInvokeNovaProUnderlyingModels",
+      "Effect": "Allow",
+      "Action": ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
+      "Resource": [
+        "arn:aws:bedrock:ap-south-1::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:ap-southeast-1::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:ap-northeast-1::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:ap-northeast-2::foundation-model/amazon.nova-pro-v1:0",
+        "arn:aws:bedrock:ap-northeast-3::foundation-model/amazon.nova-pro-v1:0"
+      ]
     }
   ]
 }
 ```
 
-- Never grant `AdministratorAccess` or a wildcard `dynamodb:*`/`bedrock:*`
+- Never grant `AdministratorAccess` or a wildcard `dynamodb:*`/`s3:*`/`bedrock:*`
   to the running application.
 - `dynamodb:CreateTable` is intentionally **not** included - table
   provisioning is a separate, deliberate one-time administrative action
   (`scripts/create_table.py`), never something the running API does on its
   own.
-- If/when an S3-backed `StorageBackend` is added, its role should be
-  scoped to `s3:GetObject`/`s3:PutObject`/`s3:DeleteObject` on the specific
-  bucket/prefix only - never account-wide S3 access.
+- The S3 statements are scoped to the single evidence bucket only - never
+  account-wide S3 access - and will start being exercised once an
+  S3-backed `StorageBackend` is implemented.
+- The Bedrock resource list looks broad (six regions) only because AWS
+  cross-region inference profiles require authorizing both the profile
+  ARN *and* every underlying per-region foundation-model ARN it can route
+  to; it is still scoped to exactly one model (`amazon.nova-pro-v1:0`),
+  never `bedrock:*` or `resource: "*"`.
 - If a future research provider requires an API key
   (`RESEARCH_API_KEY`), treat it exactly like any other secret: environment
   variable only, never committed, never logged.
@@ -741,10 +868,20 @@ credentials itself via the standard provider chain:
   nothing currently lets a caller submit `/analyze` and disconnect before
   it finishes. `ANALYSIS_MAX_DURATION_SECONDS`/`ANALYSIS_LOCK_GRACE_SECONDS`
   and the idempotency guard exist specifically because of this constraint.
-- **No infrastructure-as-code.** The Dockerfile packages the app; nothing
-  yet provisions ECS/Fargate/App Runner/etc. automatically.
-- **No production deployment.** This has been hardened for readiness, not
-  actually deployed anywhere yet.
+- **No infrastructure-as-code.** The Dockerfile packages the app; the AWS
+  resources (App Runner service, IAM roles, ECR repo, DynamoDB table, S3
+  bucket) were provisioned via one-off AWS CLI commands, not CloudFormation/
+  CDK/Terraform. Redeploying to a different account/region means repeating
+  those steps by hand (see [Deployed on AWS App Runner](#deployed-on-aws-app-runner)).
+- **Frontend is deployed too, but without a custom domain.** The React
+  frontend is live on CloudFront + a private S3 bucket (see
+  [Production frontend deployment](#production-frontend-deployment) below).
+  Route 53 and a custom domain/ACM certificate are deliberately not set up
+  yet - the CloudFront default domain is the production URL for now.
+- **No CI/CD.** Both the backend (Docker build → ECR push → App Runner
+  deploy) and frontend (Vite build → S3 sync → CloudFront invalidation)
+  are deployed by running the documented commands by hand - there is no
+  GitHub Actions/CodePipeline automation yet.
 
 ## 15. Planned architecture
 
@@ -758,7 +895,10 @@ Roughly, in upcoming steps:
   interface that already exists.
 - Add OCR/image support to `document_parser.py` for scanned documents.
 - Replace the placeholder user id with real authentication/authorization.
-- Add infrastructure-as-code and an actual production deployment.
+- Add infrastructure-as-code (CDK/Terraform/CloudFormation) for the resources
+  currently provisioned by hand, and CI/CD for both deployments.
+- Add a custom domain, ACM certificate, and Route 53 record for the
+  CloudFront distribution.
 
 None of the above is implemented yet — this README will be updated as each
 step lands.
