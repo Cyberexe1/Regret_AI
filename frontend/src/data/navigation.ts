@@ -7,10 +7,17 @@ export const ROUTES = {
   dashboard: '/dashboard',
   newDecision: '/decisions/new',
   decisions: '/decisions',
-  analysis: '/analysis',
+  /**
+   * Scoped to a decision id, since starting analysis is always a real
+   * backend call against a specific, already-created decision
+   * (`POST /decisions/{id}/analyze`) - see `AnalysisPage`. `analysisPath`
+   * below is the only way this route is ever linked to.
+   */
+  analysis: '/decision/:id/analysis',
   decisionDetail: '/decision/:id',
   decisionGraph: '/decision/:id/graph',
   experiments: '/experiments',
+  experimentDetail: '/experiments/:id',
   settings: '/settings',
 } as const;
 
@@ -20,6 +27,14 @@ export function decisionPath(id: string): string {
 
 export function decisionGraphPath(id: string): string {
   return `/decision/${id}/graph`;
+}
+
+export function analysisPath(decisionId: string): string {
+  return `/decision/${decisionId}/analysis`;
+}
+
+export function experimentDetailPath(experimentId: string): string {
+  return `/experiments/${experimentId}`;
 }
 
 /** Sidebar navigation, in the order a user moves through the product. */

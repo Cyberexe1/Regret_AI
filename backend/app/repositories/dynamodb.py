@@ -179,6 +179,23 @@ class DynamoDBGateway:
             raise RepositoryError() from exc
 
 
+def check_table_reachable() -> bool:
+    """Whether the configured DynamoDB table is currently reachable.
+
+    Used only by the readiness endpoint (`GET /api/v1/ready`) - a cheap,
+    bounded metadata call (`describe_table` under the hood via boto3's
+    resource `.load()`), never a `Scan`/`Query` against application data.
+    Kept here (not in the route) so no route ever imports boto3/botocore
+    directly - see this module's docstring.
+    """
+    try:
+        get_table().load()
+        return True
+    except (ClientError, BotoCoreError) as exc:
+        logger.warning("Readiness check: DynamoDB unreachable: %s", type(exc).__name__)
+        return False
+
+
 def create_table_if_not_exists() -> None:
     """Create the single application table if it doesn't already exist.
 

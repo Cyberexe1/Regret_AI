@@ -1,12 +1,16 @@
 import { StatCard } from '@/components/cards/StatCard';
 import { Reveal } from '@/components/Reveal';
-import { dashboardMetrics } from '@/data/dashboard';
+import type { DashboardMetric } from '@/lib/buildDashboard';
+
+export interface MetricRowProps {
+  metrics: DashboardMetric[];
+}
 
 /** Four compact figures: context for the page, not the headline. */
-export function MetricRow() {
+export function MetricRow({ metrics }: MetricRowProps) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {dashboardMetrics.map((metric, index) => (
+      {metrics.map((metric, index) => (
         <Reveal key={metric.label} delay={index * 0.05}>
           <StatCard
             label={metric.label}

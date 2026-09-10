@@ -2,9 +2,14 @@ import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardTitle } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { FileText } from 'lucide-react';
 import { decisionPath, ROUTES } from '@/data/navigation';
-import { recentDecisions, type RecentDecisionRow } from '@/data/dashboard';
-import { riskLabel, riskTone } from '@/lib/tone';
+import type { RecentDecisionRow } from '@/lib/buildDashboard';
+
+export interface RecentDecisionsCardProps {
+  rows: RecentDecisionRow[];
+}
 
 function DecisionRow({ row }: { row: RecentDecisionRow }) {
   return (
@@ -18,12 +23,14 @@ function DecisionRow({ row }: { row: RecentDecisionRow }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Badge tone={riskTone[row.risk]} size="sm" dot>
-          {riskLabel[row.risk]} risk
+        <Badge tone={row.statusTone} size="sm" dot>
+          {row.statusLabel}
         </Badge>
-        <Badge tone={row.signal.tone} size="sm" variant="outline">
-          {row.signal.label}
-        </Badge>
+        {row.experimentCount > 0 ? (
+          <Badge tone="neutral" size="sm" variant="outline">
+            {row.experimentCount} experiment{row.experimentCount === 1 ? '' : 's'}
+          </Badge>
+        ) : null}
       </div>
 
       <div className="flex shrink-0 items-center justify-between gap-2 sm:w-28 sm:justify-end">
@@ -37,7 +44,7 @@ function DecisionRow({ row }: { row: RecentDecisionRow }) {
   );
 }
 
-export function RecentDecisionsCard() {
+export function RecentDecisionsCard({ rows }: RecentDecisionsCardProps) {
   return (
     <Card padding="none" className="overflow-hidden">
       <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 md:px-6">
@@ -53,11 +60,20 @@ export function RecentDecisionsCard() {
         </Link>
       </div>
 
-      <div className="divide-y divide-hairline">
-        {recentDecisions.map((row) => (
-          <DecisionRow key={row.id} row={row} />
-        ))}
-      </div>
+      {rows.length === 0 ? (
+        <EmptyState
+          size="inline"
+          icon={FileText}
+          title="No decisions yet"
+          description="Start by testing a decision."
+        />
+      ) : (
+        <div className="divide-y divide-hairline">
+          {rows.map((row) => (
+            <DecisionRow key={row.id} row={row} />
+          ))}
+        </div>
+      )}
     </Card>
   );
 }

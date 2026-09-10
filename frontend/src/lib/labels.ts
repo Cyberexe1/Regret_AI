@@ -1,50 +1,51 @@
-import type {
-  DecisionDomain,
-  DecisionStatus,
-  ExperimentPhase,
-  ExperimentStatus,
-  Reversibility,
-} from '@/types';
+import type { AgentRunStatus, AnalysisRunStatus, DecisionStatus, ExperimentStatus } from '@/api/types';
 
+/** Mirrors the backend's real `DecisionStatus` enum - see app/schemas/decision.py. */
 export const statusLabel: Record<DecisionStatus, string> = {
   draft: 'Draft',
+  queued: 'Queued',
   analyzing: 'Analyzing',
-  analyzed: 'Analyzed',
-  testing: 'Experiment running',
-  committed: 'Committed',
-  abandoned: 'Abandoned',
+  completed: 'Analysis complete',
+  needs_validation: 'Needs validation',
+  archived: 'Archived',
 };
 
-export const domainLabel: Record<DecisionDomain, string> = {
-  career: 'Career',
-  product: 'Product',
-  financial: 'Financial',
-  hiring: 'Hiring',
-  relocation: 'Relocation',
-  technology: 'Technology',
-  'business-model': 'Business model',
-};
-
-export const reversibilityLabel: Record<Reversibility, string> = {
-  reversible: 'Reversible',
-  'costly-to-reverse': 'Costly to reverse',
-  irreversible: 'Irreversible',
-};
-
+/** Mirrors the backend's real `ExperimentStatus` enum - see app/schemas/decision_resources.py. */
 export const experimentStatusLabel: Record<ExperimentStatus, string> = {
-  proposed: 'Proposed',
-  running: 'Running',
-  inconclusive: 'Inconclusive',
-  validated: 'Validated',
-  invalidated: 'Invalidated',
+  recommended: 'Recommended',
+  planned: 'Planned',
+  active: 'Active',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
 };
 
-/**
- * Coarse grouping for listings. The precise status is still shown alongside, so
- * "Completed" never hides whether the experiment actually settled the question.
- */
-export function experimentPhase(status: ExperimentStatus): ExperimentPhase {
-  if (status === 'running') return 'Running';
-  if (status === 'proposed') return 'Proposed';
-  return 'Completed';
-}
+/** Mirrors the backend's real `AnalysisRunStatus` enum. */
+export const analysisRunStatusLabel: Record<AnalysisRunStatus, string> = {
+  queued: 'Queued',
+  running: 'Running',
+  completed: 'Complete',
+  failed: 'Failed',
+};
+
+/** Mirrors the backend's real per-stage `AgentRunStatus` enum. */
+export const agentRunStatusLabel: Record<AgentRunStatus, string> = {
+  pending: 'Waiting',
+  running: 'Running',
+  completed: 'Complete',
+  failed: 'Failed',
+  skipped: 'Skipped',
+  unavailable: 'Unavailable',
+};
+
+/** Human names for the 9 real backend pipeline stage ids. */
+export const stageLabel: Record<string, string> = {
+  decision_analyzer: 'Decision Analyzer',
+  assumption_hunter: 'Assumption Hunter',
+  blindspot_hunter: 'Blindspot Hunter',
+  research_agent: 'Research Agent',
+  evidence_agent: 'Evidence Agent',
+  devils_advocate: "Devil's Advocate",
+  regret_simulator: 'Regret Simulator',
+  threshold_engine: 'Threshold Engine',
+  experiment_planner: 'Experiment Planner',
+};

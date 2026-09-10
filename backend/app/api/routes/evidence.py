@@ -16,7 +16,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, UploadFile, status
 
-from app.core.errors import NotFoundError
+from app.core.config import get_settings
+from app.core.errors import NotFoundError, PayloadTooLargeError
 from app.dependencies.decisions import CurrentUserIdDep, DecisionServiceDep
 from app.dependencies.evidence import EvidenceServiceDep
 from app.schemas.decision_resources import Evidence
@@ -43,7 +44,7 @@ async def upload_evidence(
     this only stores it.
     """
     decision_service.get_decision(user_id, decision_id)  # existence + ownership, raises 404
-    content = await file.read()
+    content = await _read_bounded(file)
     return evidence_service.upload_evidence(
         decision_id=decision_id,
         filename=file.filename or "untitled",
@@ -96,6 +97,36 @@ async def delete_evidence(
     evidence = evidence_service.get_evidence(evidence_id)
     _ensure_owns_parent_decision(decision_service, user_id, evidence)
     evidence_service.delete_evidence(evidence_id)
+
+
+async def _read_bounded(file: UploadFile) -> bytes:
+    """Read an uploaded file's body, rejecting it once it exceeds the
+    configured size limit rather than after buffering the whole thing.
+
+    `EvidenceService.upload_evidence` also re-checks the final size (a
+    defense-in-depth check on whatever bytes it's handed), but reading in
+    bounded chunks here means an oversized upload is rejected as soon as
+    it crosses the limit instead of first being fully read into memory -
+    an oversized-upload DoS shouldn't be able to exhaust memory before
+    validation ever runs.
+    """
+    max_bytes = get_settings().max_upload_size_bytes
+    chunk_size = 1024 * 1024  # 1 MB
+    chunks: list[bytes] = []
+    total = 0
+
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise PayloadTooLargeError(
+                detail=f"File exceeds the maximum allowed size of {max_bytes} bytes."
+            )
+        chunks.append(chunk)
+
+    return b"".join(chunks)
 
 
 def _ensure_owns_parent_decision(

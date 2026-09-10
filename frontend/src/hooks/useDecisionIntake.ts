@@ -2,16 +2,22 @@ import { useCallback, useMemo, useState } from 'react';
 import { resolveIntakeSteps, type ResolvedIntakeStep } from '@/data/intake';
 import { emptyDecisionDraft } from '@/lib/decisionDraft';
 import type { DecisionDraft } from '@/types';
-import { useEvidenceFiles } from './useEvidenceFiles';
+import { useEvidenceFiles, type DraftEvidenceFileWithBlob } from './useEvidenceFiles';
 
 type IntakeForm = Omit<DecisionDraft, 'evidence'>;
 type ConstraintKey = keyof DecisionDraft['constraints'];
 type TextFieldKey = 'decision' | 'desiredOutcome' | 'beliefs' | 'sourceUrl';
 
+/** Same shape as `DecisionDraft`, but `evidence` keeps the real `File`
+ * blobs so submission can actually upload them. */
+export type DecisionDraftWithFiles = Omit<DecisionDraft, 'evidence'> & {
+  evidence: DraftEvidenceFileWithBlob[];
+};
+
 const { evidence: _ignoredEvidence, ...emptyForm } = emptyDecisionDraft;
 
 export interface DecisionIntake {
-  draft: DecisionDraft;
+  draft: DecisionDraftWithFiles;
   steps: ResolvedIntakeStep[];
   /** The decision statement is the only hard requirement. */
   canSubmit: boolean;
@@ -45,7 +51,7 @@ export function useDecisionIntake(): DecisionIntake {
     }));
   }, []);
 
-  const draft = useMemo<DecisionDraft>(
+  const draft = useMemo<DecisionDraftWithFiles>(
     () => ({ ...form, evidence: evidence.files }),
     [form, evidence.files],
   );

@@ -1,5 +1,5 @@
-import type { FormEvent } from 'react';
-import { Globe } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { Globe, TriangleAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import {
@@ -12,9 +12,9 @@ import {
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { INTAKE_SECTION_IDS } from '@/data/intake';
-import { ROUTES } from '@/data/navigation';
+import { analysisPath } from '@/data/navigation';
 import { useDecisionIntake } from '@/hooks/useDecisionIntake';
-import { saveDecisionDraft } from '@/lib/decisionDraft';
+import { useDecisionSubmission } from '@/hooks/useDecisionSubmission';
 
 export function NewDecisionPage() {
   const navigate = useNavigate();
@@ -28,20 +28,29 @@ export function NewDecisionPage() {
     addFiles,
     removeFile,
   } = useDecisionIntake();
+  const submission = useDecisionSubmission();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const startStressTest = () => {
-    if (!canSubmit) return;
+  const isSubmitting = submission.stage === 'creating-decision' || submission.stage === 'uploading-evidence';
 
-    const submitted = { ...draft, submittedAt: new Date().toISOString() };
+  const startStressTest = async () => {
+    if (!canSubmit || isSubmitting) return;
+    setSubmitError(null);
 
-    // Stored locally and handed to the next route. No network call.
-    saveDecisionDraft(submitted);
-    navigate(ROUTES.analysis, { state: { draft: submitted } });
+    const decisionId = await submission.submit(draft);
+    if (!decisionId) {
+      setSubmitError(submission.error?.message ?? 'Could not create the decision. Please try again.');
+      return;
+    }
+
+    // Evidence uploads that failed are reported, but never block moving on -
+    // the decision itself was created successfully and analysis can still run.
+    navigate(analysisPath(decisionId));
   };
 
   const onFormSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    startStressTest();
+    void startStressTest();
   };
 
   return (
@@ -52,6 +61,13 @@ export function NewDecisionPage() {
       description="Give REGRET ENGINE enough context to discover what you may be missing."
     >
       <IntakeProgress steps={steps} />
+
+      {submitError ? (
+        <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-danger-line bg-panel-danger px-5 py-4 text-small text-danger-ink">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {submitError}
+        </div>
+      ) : null}
 
       <form onSubmit={onFormSubmit} noValidate className="mt-10 space-y-5">
         <IntakeSection
@@ -140,8 +156,9 @@ export function NewDecisionPage() {
 
         <IntakeActionBar
           id={INTAKE_SECTION_IDS.submit}
-          canSubmit={canSubmit}
-          onSubmit={startStressTest}
+          canSubmit={canSubmit && !isSubmitting}
+          submitting={isSubmitting}
+          onSubmit={() => void startStressTest()}
         />
       </form>
     </PageContainer>

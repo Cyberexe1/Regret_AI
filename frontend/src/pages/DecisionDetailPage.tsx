@@ -14,63 +14,98 @@ import {
   ThresholdSection,
   UncertaintyCard,
 } from '@/components/report';
-import { Badge } from '@/components/ui/Badge';
 import { buttonClasses } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { findDecisionReport } from '@/data/decisionReport';
-import { decisionGraphPath, ROUTES } from '@/data/navigation';
-import { useDecision } from '@/hooks/useDecision';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { SkeletonText } from '@/components/ui/Skeleton';
+import { analysisPath, decisionGraphPath } from '@/data/navigation';
+import { useDecisionById } from '@/hooks/useDecisionById';
+import { useDecisionReportData } from '@/hooks/useDecisionReportData';
 import { cn } from '@/lib/cn';
-import { domainLabel, reversibilityLabel, statusLabel } from '@/lib/labels';
-import { regretIndexTone, reversibilityTone } from '@/lib/tone';
+import {
+  buildCriticalUncertainties,
+  buildReportAssumptionRows,
+  buildReportScenarios,
+  buildReportThresholds,
+} from '@/lib/buildDecisionReport';
 
 export function DecisionDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const decision = useDecision(id);
+  const decisionState = useDecisionById(id);
+  const reportState = useDecisionReportData(id);
 
-  if (!decision) return <DecisionNotFound id={id} />;
+  if (!id) return <DecisionNotFound id={id} />;
 
-  const report = findDecisionReport(decision.id);
-
-  // Only decisions with a completed stress test have a full report.
-  if (!report) {
-    const { analysis } = decision;
-
+  if (decisionState.status === 'error') {
+    if (decisionState.error?.message.toLowerCase().includes('not found')) {
+      return <DecisionNotFound id={id} />;
+    }
     return (
-      <PageContainer
-        eyebrow={`Decision ${decision.id}`}
-        title={decision.title}
-        description={decision.statement}
-      >
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <Badge tone="neutral" dot>
-            {statusLabel[decision.status]}
-          </Badge>
-          <Badge variant="outline">{domainLabel[decision.domain]}</Badge>
-          {analysis ? (
-            <>
-              <Badge tone={reversibilityTone[analysis.reversibility]}>
-                {reversibilityLabel[analysis.reversibility]}
-              </Badge>
-              <Badge tone={regretIndexTone(analysis.regretIndex)}>
-                Regret index <span className="numeric ml-1">{analysis.regretIndex}</span>
-              </Badge>
-            </>
-          ) : (
-            <Badge tone="info">Not yet analysed</Badge>
-          )}
-        </div>
+      <PageContainer eyebrow={`Decision ${id}`} title="Decision report">
+        <ErrorState
+          title="Unable to load this decision"
+          description={decisionState.error?.message}
+          detail={decisionState.error?.requestId ? `Request ID: ${decisionState.error.requestId}` : undefined}
+        />
+      </PageContainer>
+    );
+  }
 
+  if (decisionState.isLoading || !decisionState.data) {
+    return (
+      <PageContainer eyebrow="Decision" title="Loading…">
+        <SkeletonText lines={6} />
+      </PageContainer>
+    );
+  }
+
+  const decision = decisionState.data;
+
+  if (reportState.status === 'error') {
+    return (
+      <PageContainer eyebrow={`Decision ${decision.id}`} title={decision.title} description={decision.description}>
+        <ErrorState
+          title="Unable to load the analysis for this decision"
+          description={reportState.error?.message}
+          detail={reportState.error?.requestId ? `Request ID: ${reportState.error.requestId}` : undefined}
+          action={
+            <button
+              type="button"
+              onClick={reportState.refetch}
+              className="text-small font-medium text-accent-ink underline-offset-4 hover:underline"
+            >
+              Retry
+            </button>
+          }
+        />
+      </PageContainer>
+    );
+  }
+
+  if (reportState.isLoading || !reportState.data) {
+    return (
+      <PageContainer eyebrow={`Decision ${decision.id}`} title={decision.title}>
+        <SkeletonText lines={8} />
+      </PageContainer>
+    );
+  }
+
+  const report = reportState.data;
+  const hasAnyAnalysis =
+    report.assumptions.length > 0 ||
+    report.blindspots.length > 0 ||
+    report.thresholds.length > 0 ||
+    report.regretScenarios.length > 0;
+
+  if (!hasAnyAnalysis) {
+    return (
+      <PageContainer eyebrow={`Decision ${decision.id}`} title={decision.title} description={decision.description}>
         <EmptyState
           icon={FileSearch}
-          title="No full report yet"
-          description={
-            analysis
-              ? 'This decision has an analysis on file but has not been through a full stress test, so there is no threshold model or recommended experiment to show.'
-              : 'This decision has not been analysed yet. Run a stress test to surface its assumptions, failure conditions and breaking point.'
-          }
+          title="No analysis yet"
+          description="This decision has not been analysed yet. Run a stress test to surface its assumptions, blindspots and breaking points."
           action={
-            <Link to={ROUTES.analysis} className={buttonClasses({ variant: 'primary', size: 'sm' })}>
+            <Link to={analysisPath(decision.id)} className={buttonClasses({ variant: 'primary', size: 'sm' })}>
               <ScanSearch className="size-4" aria-hidden />
               Run stress test
             </Link>
@@ -80,70 +115,77 @@ export function DecisionDetailPage() {
     );
   }
 
+  const uncertainties = buildCriticalUncertainties(report.assumptions, report.blindspots);
+  const scenarios = buildReportScenarios(report.regretScenarios);
+  const thresholds = buildReportThresholds(report.thresholds);
+  const assumptionRows = buildReportAssumptionRows(report.assumptions);
+  const recommendedExperiment =
+    report.experiments.find((experiment) => experiment.status === 'recommended') ?? report.experiments[0] ?? null;
+
+  const snapshot = [
+    { label: 'Assumptions', value: String(report.assumptions.length) },
+    { label: 'Blindspots', value: String(report.blindspots.length) },
+    { label: 'Regret scenarios', value: String(report.regretScenarios.length) },
+    { label: 'Thresholds', value: String(report.thresholds.length) },
+  ];
+
   return (
     <PageContainer>
       <div className="mx-auto max-w-5xl space-y-12 md:space-y-14">
-        <ReportHeader report={report} />
+        <ReportHeader decision={decision} />
 
         <ReportSection index="01" title="Decision snapshot">
-          <DecisionSnapshot items={report.snapshot} />
+          <DecisionSnapshot items={snapshot} />
         </ReportSection>
 
         <ReportSection
           index="02"
           title="What could break this decision?"
-          description="Ranked by how much each one moves the outcome. Expand a card for the evidence behind it."
+          description="Assumptions and blindspots, ranked by importance. Expand a card for detail."
           action={
-            <Link
-              to={decisionGraphPath(decision.id)}
-              className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-            >
+            <Link to={decisionGraphPath(decision.id)} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
               <Network className="size-4" aria-hidden />
               Dependency graph
             </Link>
           }
         >
           <div className="space-y-4">
-            {report.uncertainties.map((uncertainty, index) => (
-              <UncertaintyCard
-                key={uncertainty.id}
-                uncertainty={uncertainty}
-                defaultOpen={index === 0}
-              />
+            {uncertainties.map((uncertainty, index) => (
+              <UncertaintyCard key={uncertainty.id} uncertainty={uncertainty} defaultOpen={index === 0} />
             ))}
           </div>
         </ReportSection>
 
         <ReportSection
           index="03"
-          title="The breaking point"
-          description="The single value that decides whether this decision works."
+          title="Thresholds"
+          description="The tipping points that decide whether this decision holds."
         >
-          <ThresholdSection report={report} />
+          <ThresholdSection thresholds={thresholds} />
         </ReportSection>
 
         <ReportSection
           index="04"
-          title="Future scenarios"
-          description="Three futures, with what would have to happen for each. Probabilities are illustrative."
+          title="Regret scenarios"
+          description="Conditions under which this decision would be regretted."
         >
-          <ScenarioCards scenarios={report.scenarios} />
+          <ScenarioCards scenarios={scenarios} />
         </ReportSection>
 
         <ReportSection
           index="05"
-          title="Hidden assumptions"
-          description="What the decision quietly depends on, and how well each one is backed."
+          title="Assumptions"
+          description="What the decision quietly depends on, and how well each one is backed by evidence."
         >
-          <AssumptionsSection report={report} />
+          <AssumptionsSection assumptions={assumptionRows} />
         </ReportSection>
 
         <Reveal>
-          <RecommendationPanel recommendation={report.recommendation} />
+          <RecommendationPanel experiment={recommendedExperiment} />
         </Reveal>
 
         <ReportSection index="07" title="Actions" className={cn('print:hidden')}>
-          <ReportActions />
+          <ReportActions decisionId={decision.id} onEvidenceUploaded={reportState.refetch} />
         </ReportSection>
       </div>
     </PageContainer>

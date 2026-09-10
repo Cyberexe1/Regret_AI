@@ -10,52 +10,106 @@ import {
   RecentDecisionsCard,
   UncertaintyCard,
 } from '@/components/dashboard';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { SkeletonText } from '@/components/ui/Skeleton';
+import { useDashboard } from '@/hooks/useDashboard';
+import {
+  buildActivityEvents,
+  buildDashboardMetrics,
+  buildOpenExperimentRows,
+  buildPortfolioBands,
+  buildRecentDecisionRows,
+} from '@/lib/buildDashboard';
 
-/**
- * The portfolio ring is the only consumer of Recharts on this page, so it loads
- * as its own chunk. That keeps the charting library out of the main bundle and
- * off every other route.
- */
 const PortfolioCard = lazy(async () => {
   const module = await import('@/components/dashboard/PortfolioCard');
   return { default: module.PortfolioCard };
 });
 
 /**
- * Composition only. Each band is a dashboard component, and all figures come
- * from `data/dashboard.ts`.
+ * Every figure on this page comes from `GET /decisions` (plus each
+ * decision's experiments) via `useDashboard` - no static sample data
+ * remains. A backend failure surfaces as a real error state, never a
+ * silent fallback to fake numbers.
  */
 export function DashboardPage() {
+  const dashboard = useDashboard();
+
+  if (dashboard.status === 'error') {
+    return (
+      <PageContainer>
+        <DashboardHeader />
+        <div className="mt-8">
+          <ErrorState
+            title="Unable to load your dashboard"
+            description={dashboard.error?.message}
+            detail={dashboard.error?.requestId ? `Request ID: ${dashboard.error.requestId}` : undefined}
+            action={
+              <button
+                type="button"
+                onClick={dashboard.refetch}
+                className="text-small font-medium text-accent-ink underline-offset-4 hover:underline"
+              >
+                Retry
+              </button>
+            }
+          />
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (dashboard.isLoading || !dashboard.data) {
+    return (
+      <PageContainer>
+        <DashboardHeader />
+        <div className="mt-8">
+          <SkeletonText lines={8} />
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const data = dashboard.data;
+  const metrics = buildDashboardMetrics(data);
+  const recentRows = buildRecentDecisionRows(data);
+  const portfolioBands = buildPortfolioBands(data);
+  const openExperimentRows = buildOpenExperimentRows(data);
+  const totalOpenExperiments = [...data.experimentsByDecisionId.values()]
+    .flat()
+    .filter((e) => e.status === 'recommended' || e.status === 'active' || e.status === 'planned').length;
+  const activityEvents = buildActivityEvents(data);
+  const needsValidationCount = data.decisions.filter((d) => d.status === 'needs_validation').length;
+
   return (
     <PageContainer>
       <div className="space-y-8">
         <DashboardHeader />
 
-        <MetricRow />
+        <MetricRow metrics={metrics} />
 
-        {/* Decisions get the wider column; portfolio composition sits beside it. */}
         <div className="grid gap-5 lg:grid-cols-3">
           <Reveal className="lg:col-span-2">
-            <RecentDecisionsCard />
+            <RecentDecisionsCard rows={recentRows} />
           </Reveal>
           <Reveal delay={0.06}>
             <Suspense fallback={<ChartCardFallback />}>
-              <PortfolioCard />
+              <PortfolioCard bands={portfolioBands} />
             </Suspense>
           </Reveal>
         </div>
 
         <div className="grid gap-5 lg:grid-cols-3">
           <Reveal className="lg:col-span-2">
-            <OpenExperimentsCard />
+            <OpenExperimentsCard rows={openExperimentRows} totalCount={totalOpenExperiments} />
           </Reveal>
           <Reveal delay={0.06}>
-            <UncertaintyCard />
+            <UncertaintyCard needsValidationCount={needsValidationCount} />
           </Reveal>
         </div>
 
         <Reveal>
-          <ActivityTimeline />
+          <ActivityTimeline events={activityEvents} />
         </Reveal>
       </div>
     </PageContainer>

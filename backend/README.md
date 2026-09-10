@@ -26,14 +26,27 @@ This directory is the backend API for that product.
   PDF/DOCX/TXT files as evidence for a decision, extracting their text, and
   storing the file itself through a storage abstraction (local disk today,
   Amazon S3 later).
-- **Step 4** (this step): the foundation for the AI agent pipeline - a real
+- **Step 4** (done): the foundation for the AI agent pipeline - a real
   [Strands Agents SDK](https://strandsagents.com/) agent (the **Decision
   Analyzer**) running on **Amazon Bedrock**, orchestrated behind a new
-  `/analyze` endpoint. Only this one agent exists so far.
-
-No Assumption Hunter, Blindspot Hunter, Evidence Agent, Devil's Advocate,
-Regret Simulator, Threshold Engine, Experiment Planner, or vector search
-yet — see [Current limitations](#11-current-limitations) below.
+  `/analyze` endpoint.
+- **Steps 5-9** (done): the remaining core pipeline agents - Assumption
+  Hunter, Blindspot Hunter, Evidence Agent, Devil's Advocate, Regret
+  Simulator, Threshold Engine, and Experiment Planner - each added as a
+  sequential stage of the same `/analyze` orchestration.
+- **Step 10** (done): the experiment result + re-evaluation loop -
+  submitting an observed experiment result deterministically re-evaluates
+  the target threshold, related assumptions, and related regret scenarios.
+- **Step 11** (done): optional external research (Research Agent) with
+  strict source grounding, budget limits, and prompt-injection defense -
+  entirely separate from user-uploaded evidence.
+- **Step 12** (this step): production hardening and AWS-integration
+  readiness - request ids, structured logging, standardized error
+  responses, analysis idempotency and a status-polling endpoint,
+  production configuration validation, concurrency protection, Docker
+  packaging, and AWS setup/IAM documentation. No new agents and no product
+  behavior changes - see [Current limitations](#14-current-limitations)
+  below for what's still out of scope.
 
 ## 2. Requirements
 
@@ -76,13 +89,21 @@ Copy-Item .env.example .env
 | `AWS_REGION`             | `ap-south-1`                                    | Region for DynamoDB requests.                                                        |
 | `DYNAMODB_TABLE_NAME`    | `regret-engine`                                 | Single application table name.                                                      |
 | `AWS_ENDPOINT_URL`       | *(unset)*                                       | Only set for local development against a DynamoDB-compatible endpoint. Leave unset for real AWS DynamoDB. |
-| `DEFAULT_USER_ID`        | `local-dev-user`                                | Placeholder identity used until real authentication exists. See [Current limitations](#11-current-limitations). |
+| `DEFAULT_USER_ID`        | `local-dev-user`                                | Placeholder identity used until real authentication exists. See [Current limitations](#14-current-limitations). |
 | `STORAGE_BACKEND`        | `local`                                         | Evidence file storage backend. Only `local` is implemented; `s3` is reserved for later. |
 | `LOCAL_STORAGE_DIR`      | `./data/evidence`                               | Where evidence files are written when using the `local` backend. Requires no AWS credentials. |
 | `MAX_UPLOAD_SIZE_BYTES`  | `10485760` (10 MB)                              | Maximum accepted evidence upload size.                                              |
 | `ALLOWED_EVIDENCE_EXTENSIONS` | `.pdf,.docx,.txt`                          | Comma-separated allow-list of accepted upload extensions.                           |
 | `BEDROCK_MODEL_ID`       | `global.anthropic.claude-sonnet-4-6`            | Bedrock model id the Decision Analyzer uses. Override per account/region if needed. |
 | `BEDROCK_INVOKE_TIMEOUT_SECONDS` | `60`                                     | Wall-clock budget for one agent model call before it's treated as a failure.        |
+| `S3_BUCKET_NAME`         | *(unset)*                                       | Reserved for the future S3-backed `StorageBackend`. Required in production only if/when `STORAGE_BACKEND=s3`. |
+| `RESEARCH_PROVIDER`      | `none`                                          | `none` disables external research entirely; `http` enables the built-in DuckDuckGo HTML-search provider (no API key). |
+| `RESEARCH_API_KEY`       | *(unset)*                                       | Only needed by a future provider that requires one. Never commit a real key.        |
+| `RESEARCH_MAX_QUERIES` / `RESEARCH_MAX_RESULTS_PER_QUERY` / `RESEARCH_MAX_TOTAL_SOURCES` | `3` / `5` / `10` | Bounds one analysis run's total research fan-out. |
+| `RESEARCH_TIMEOUT_SECONDS` / `RESEARCH_MAX_RETRIES` / `RESEARCH_MAX_SNIPPET_CHARS` | `15` / `2` / `1000` | Per-query timeout, bounded retry count, and max untrusted snippet length passed to a model. |
+| `ANALYSIS_MAX_DURATION_SECONDS` | `600`                                    | Expected wall-clock budget for one full analysis run (all ~9 sequential stages).     |
+| `ANALYSIS_LOCK_GRACE_SECONDS`   | `120`                                    | Extra grace period before a `running` run stuck past the duration above is treated as abandoned (e.g. a crashed process) rather than active, unblocking `/analyze` idempotency for that decision. |
+| `MAX_CONCURRENT_ANALYSES`| `5`                                              | Process-wide cap on how many analysis pipelines run at once (each makes several sequential Bedrock calls). Not a distributed rate limiter. |
 
 **No AWS access keys, secret keys, session tokens, or model credentials are
 ever set here or anywhere in source.** boto3 (and the Strands Agents SDK's
@@ -133,7 +154,15 @@ the orchestrator, so no test ever makes a real call to Amazon Bedrock either.
 | GET    | `/api/v1/decisions/{id}/evidence` | List evidence metadata for a decision.                                       |
 | GET    | `/api/v1/evidence/{evidence_id}`  | Fetch a single piece of evidence by id.                                      |
 | DELETE | `/api/v1/evidence/{evidence_id}`  | Delete a piece of evidence and its underlying stored file. Returns `204`.    |
-| POST   | `/api/v1/decisions/{id}/analyze`  | Run the Decision Analyzer for a decision. See [Agent foundation](#9-agent-foundation-decision-analyzer). |
+| POST   | `/api/v1/decisions/{id}/analyze`  | Run the full analysis pipeline for a decision. Idempotent - see [Agent foundation](#9-agent-foundation-decision-analyzer). |
+| GET    | `/api/v1/decisions/{id}/analysis/{analysis_run_id}` | Poll one analysis run's status and per-stage progress.       |
+| GET    | `/api/v1/decisions/{id}/experiments` | List the experiments recommended for a decision.                             |
+| GET    | `/api/v1/decisions/{id}/experiment-results` | List every experiment result submitted for a decision.                |
+| GET    | `/api/v1/experiments/{experiment_id}` | Fetch a single experiment by id.                                             |
+| POST   | `/api/v1/experiments/{experiment_id}/results` | Submit an experiment's observed outcome; triggers re-evaluation.      |
+| GET    | `/api/v1/experiments/{experiment_id}/results` | List results submitted for one experiment.                            |
+| GET    | `/api/v1/decisions/{id}/external-evidence` | List external research findings for a decision (if research is enabled). |
+| GET    | `/api/v1/ready`                | Readiness check - reports whether DynamoDB (required) and the research provider (optional) are reachable. |
 
 ### Listing and pagination
 
@@ -480,19 +509,219 @@ Table creation (`dynamodb:CreateTable`) is a separate, one-time
 administrative action and is intentionally not required by the running
 application — it's only exercised by `scripts/create_table.py` during setup.
 
-## 11. Current limitations
+## 11. Production hardening (Step 12)
 
-- **Only one agent exists.** The Decision Analyzer is implemented; the
-  Assumption Hunter, Blindspot Hunter, Evidence Agent, Devil's Advocate,
-  Regret Simulator, Threshold Engine, and Experiment Planner do not exist
-  yet. `AnalysisContext` and the `AnalysisOrchestrator` workflow are shaped
-  to add them as later steps in the same pipeline.
-- **Synchronous only.** `/analyze` blocks until the run finishes. There is
-  no background task queue and no polling endpoint - fine for one agent
-  and a hackathon-scale prototype, but will need revisiting once the
-  pipeline has multiple sequential agent calls.
+This section covers reliability/operability concerns added on top of the
+product logic above - none of it changes agent behavior or the pipeline's
+dependency order.
+
+### Idempotency
+
+`POST /decisions/{id}/analyze` is idempotent: if a decision already has an
+active (`queued`/`running`) analysis run, a second call returns that same
+run (same `analysis_run_id`) instead of starting a duplicate, expensive
+pipeline (`AnalysisOrchestrator.run_analysis` →
+`AnalysisRepository.get_active_run`). A run stuck `running` past
+`ANALYSIS_MAX_DURATION_SECONDS + ANALYSIS_LOCK_GRACE_SECONDS` (e.g. the
+process crashed mid-run) is treated as abandoned rather than active, so a
+decision is never permanently unable to be re-analyzed.
+
+A process-wide semaphore (`MAX_CONCURRENT_ANALYSES`) additionally bounds
+how many analysis pipelines (across *different* decisions) run at once in
+one process - a lightweight guard against exhausting Bedrock capacity, not
+a distributed rate limiter.
+
+Submitting a second result for an already-`completed` experiment
+(`POST /experiments/{id}/results`) is rejected with `409 Conflict` -
+enforced by a DynamoDB conditional write on the experiment's status
+transition (`DecisionRepository.update_experiment_status(...,
+require_not_completed=True)`), so two concurrent submissions for the same
+experiment can never both succeed.
+
+### Analysis status endpoint
+
+`GET /decisions/{id}/analysis/{analysis_run_id}` returns:
+
+```json
+{
+  "analysis_run_id": "…",
+  "decision_id": "…",
+  "status": "running",
+  "current_stage": "evidence_agent",
+  "stage_statuses": {
+    "decision_analyzer": "completed",
+    "assumption_hunter": "completed",
+    "blindspot_hunter": "completed",
+    "research_agent": "unavailable",
+    "evidence_agent": "running",
+    "devils_advocate": "pending",
+    "regret_simulator": "pending",
+    "threshold_engine": "pending",
+    "experiment_planner": "pending"
+  },
+  "created_at": "…",
+  "updated_at": "…",
+  "error_message": null
+}
+```
+
+Never includes chain-of-thought, raw prompts, or a stage's full structured
+output - only execution metadata. Use the decision's own child-entity
+endpoints (assumptions, thresholds, experiments, etc.) to read actual
+findings once a run completes.
+
+### Standardized error responses
+
+Every error response uses one shape:
+
+```json
+{
+  "error": { "code": "ANALYSIS_NOT_FOUND", "message": "…", "request_id": "…" },
+  "detail": "…"
+}
+```
+
+`code` is stable and machine-readable; `message`/`detail` carry the same
+human-readable text (`detail` kept only for backward compatibility);
+`request_id` matches the `X-Request-ID` response header, so a report can
+be correlated with server-side logs. Never includes stack traces, AWS
+internals, or a raw provider error message (see `app/core/errors.py`).
+
+### Request ids and logging
+
+Every request gets an `X-Request-ID` (echoed back on the response; a
+caller-supplied one is preserved if well-formed) via
+`app.core.request_context` and `app.main`'s request-id middleware. Every
+log line during that request automatically includes it
+(`app/core/logging.py`), so a single request's activity is correlatable
+end to end without threading an id through every function call manually.
+Logs never include AWS credentials, API keys, full uploaded documents,
+chain-of-thought, or prompts containing private user content.
+
+### Health vs. readiness
+
+`GET /api/v1/health` is a pure liveness check - it never fails because an
+optional dependency (the external research provider) is unavailable.
+`GET /api/v1/ready` additionally probes DynamoDB (required) and reports
+the research provider's configured status (optional, informational only);
+overall `status` is `"degraded"` only if a *required* dependency is
+unreachable.
+
+### Production configuration validation
+
+At startup, if `APP_ENV=production`, `Settings.validate_for_production()`
+requires `AWS_REGION`, `DYNAMODB_TABLE_NAME`, `BEDROCK_MODEL_ID`, and
+explicit (non-`*`) `CORS_ALLOWED_ORIGINS` to be set, and raises
+`RuntimeError` (crashing startup) if any are missing - an
+under-configured production process should never silently start serving
+traffic. Development mode never requires any of this; sensible defaults
+apply.
+
+### Upload handling
+
+Evidence uploads are now read in bounded 1 MB chunks
+(`app/api/routes/evidence.py::_read_bounded`), rejecting an oversized file
+as soon as it crosses `MAX_UPLOAD_SIZE_BYTES` rather than first buffering
+the entire body into memory - `EvidenceService.upload_evidence` still
+independently re-checks the final size as defense in depth.
+
+## 12. Docker
+
+A `Dockerfile`/`.dockerignore` package the API for containerized
+deployment:
+
+```powershell
+docker build -t regret-engine-backend .
+docker run -p 8000:8000 --env-file .env regret-engine-backend
+```
+
+- Base image: `python:3.12-slim`.
+- Runs as a non-root user (`regret`).
+- No secrets are baked into the image - all configuration is
+  environment-driven at runtime, exactly like running locally.
+- Includes a container `HEALTHCHECK` against `GET /api/v1/health`.
+- In AWS (ECS/Fargate, App Runner, EC2, etc.), prefer attaching an IAM
+  role to the running task/instance instead of passing
+  `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` - boto3 (and Strands'
+  `BedrockModel`) picks up the role automatically via the same credential
+  provider chain used everywhere else in this codebase.
+
+## 13. AWS setup
+
+Minimum AWS resources to run this backend against real AWS (as opposed to
+the moto-mocked test suite, which needs none of this):
+
+| Resource | Required? | Notes |
+| --- | --- | --- |
+| DynamoDB table | **Required** | See [DynamoDB architecture](#10-dynamodb-architecture) - create via `python scripts/create_table.py`, or point `AWS_ENDPOINT_URL` at a local DynamoDB-compatible endpoint for development instead. |
+| Amazon Bedrock model access | **Required** to actually call `/analyze` against a real model | Enable model access for `BEDROCK_MODEL_ID` in the target account/region. The rest of the API (decisions, evidence, experiments) works without this. |
+| S3 bucket | Optional (not implemented yet) | Reserved for a future S3-backed `StorageBackend`; `STORAGE_BACKEND=local` needs no AWS resources at all. |
+| External research provider | Optional | The built-in DuckDuckGo HTML provider (`RESEARCH_PROVIDER=http`) needs no AWS resource or API key - just outbound HTTPS access. |
+
+### IAM (least privilege)
+
+The running application's role/user needs only:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DynamoDBTableAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:<region>:<account-id>:table/regret-engine",
+        "arn:aws:dynamodb:<region>:<account-id>:table/regret-engine/index/GSI1",
+        "arn:aws:dynamodb:<region>:<account-id>:table/regret-engine/index/GSI2"
+      ]
+    },
+    {
+      "Sid": "BedrockInvoke",
+      "Effect": "Allow",
+      "Action": ["bedrock:InvokeModel"],
+      "Resource": "arn:aws:bedrock:<region>::foundation-model/<bedrock-model-id>"
+    }
+  ]
+}
+```
+
+- Never grant `AdministratorAccess` or a wildcard `dynamodb:*`/`bedrock:*`
+  to the running application.
+- `dynamodb:CreateTable` is intentionally **not** included - table
+  provisioning is a separate, deliberate one-time administrative action
+  (`scripts/create_table.py`), never something the running API does on its
+  own.
+- If/when an S3-backed `StorageBackend` is added, its role should be
+  scoped to `s3:GetObject`/`s3:PutObject`/`s3:DeleteObject` on the specific
+  bucket/prefix only - never account-wide S3 access.
+- If a future research provider requires an API key
+  (`RESEARCH_API_KEY`), treat it exactly like any other secret: environment
+  variable only, never committed, never logged.
+
+### AWS credential resolution (local vs. production)
+
+Never set `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` in `.env` or
+anywhere in source - boto3 (and Strands' `BedrockModel`) resolves
+credentials itself via the standard provider chain:
+
+- **Local development**: an AWS CLI profile (`aws configure`) or
+  environment variables in your own shell (never committed to `.env`).
+- **Production on AWS**: an IAM role attached to the compute environment
+  (ECS task role, EC2 instance profile, Lambda execution role, etc.) -
+  this is the preferred approach; no credentials ever touch disk or an
+  environment variable at all.
+
+## 14. Current limitations
+
 - **No vector search.** Extracted evidence text is stored as plain text,
-  not embeddings - there's no semantic search over evidence yet.
+  not embeddings - there's no semantic search over evidence.
 - **No S3-backed storage yet.** Evidence files live on local disk
   (`LocalStorageBackend`) behind an interface designed so an S3
   implementation can be added later without changing callers.
@@ -502,36 +731,34 @@ application — it's only exercised by `scripts/create_table.py` during setup.
 - **No real authentication.** Every request is currently attributed to a
   single fixed placeholder user id (`DEFAULT_USER_ID`,
   `app/dependencies/auth.py`). The data model and every access pattern are
-  already user-scoped so swapping in real auth later shouldn't require a
-  schema change — just replacing that one dependency.
-- **No AWS deployment.** This runs locally only for now.
+  already user-scoped, and every route/dependency is structured so real
+  auth can be inserted later without rewriting routes - just replacing
+  that one dependency.
+- **Synchronous analysis.** `/analyze` still blocks the HTTP request until
+  the entire pipeline (all ~9 sequential agent stages) reaches a terminal
+  status. There is no background task queue yet - `GET
+  /decisions/{id}/analysis/{run_id}` exists for status *inspection*, but
+  nothing currently lets a caller submit `/analyze` and disconnect before
+  it finishes. `ANALYSIS_MAX_DURATION_SECONDS`/`ANALYSIS_LOCK_GRACE_SECONDS`
+  and the idempotency guard exist specifically because of this constraint.
+- **No infrastructure-as-code.** The Dockerfile packages the app; nothing
+  yet provisions ECS/Fargate/App Runner/etc. automatically.
+- **No production deployment.** This has been hardened for readiness, not
+  actually deployed anywhere yet.
 
-## 12. Planned architecture
+## 15. Planned architecture
 
 Roughly, in upcoming steps:
 
-- Add the remaining agents (Assumption Hunter, Blindspot Hunter, Evidence
-  Agent, Devil's Advocate, Regret Simulator, Threshold Engine, Experiment
-  Planner) as additional steps inside `AnalysisOrchestrator.run_analysis`,
-  each populating its slice of `AnalysisContext` and its own repository
-  (`list_assumptions`, `list_blindspots`, etc. already exist on
-  `DecisionRepository` from Step 2, just waiting for something to write
-  into them).
-- Move decision status transitions (`draft` → `queued` → `analyzing` → ...)
-  to track the analysis run's actual progress once there are multiple
-  sequential agent steps to reflect.
-- Revisit the synchronous `/analyze` contract once the pipeline has enough
-  sequential agent calls that a single request blocking on all of them
-  stops being reasonable - likely a background task plus a polling/status
-  endpoint, without introducing a heavy queue system prematurely.
+- Move `/analyze` to a genuinely asynchronous background-execution model
+  (submit and disconnect, poll `GET /decisions/{id}/analysis/{run_id}` for
+  completion) now that the pipeline has ~9 sequential agent stages long
+  enough to matter.
 - Add an S3-backed `StorageBackend` implementation for evidence, behind the
   interface that already exists.
 - Add OCR/image support to `document_parser.py` for scanned documents.
-- Move decision status transitions (`draft` → `queued` → `analyzing` → ...)
-  into the analysis pipeline as real, observable state changes.
 - Replace the placeholder user id with real authentication/authorization.
-- Add deployment infrastructure (containerization, AWS hosting) once the
-  service is feature-complete enough to deploy.
+- Add infrastructure-as-code and an actual production deployment.
 
 None of the above is implemented yet — this README will be updated as each
 step lands.

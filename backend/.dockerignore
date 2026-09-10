@@ -1,0 +1,23 @@
+# Never bake local secrets, virtualenvs, caches, or runtime data into the image.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+.env
+*.log
+
+# Locally stored evidence uploads (runtime data, never image content).
+data/
+
+# Tests/docs aren't needed inside the running container.
+tests/
+README.md
+
+.git/
+.gitignore
+Dockerfile
+.dockerignore

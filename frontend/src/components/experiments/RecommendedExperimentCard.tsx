@@ -1,51 +1,41 @@
 import { ArrowUpRight, FlaskConical } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import type { ApiDecision, ApiExperiment } from '@/api/types';
 import { Badge } from '@/components/ui/Badge';
 import { decisionPath } from '@/data/navigation';
-import { cn } from '@/lib/cn';
 import { formatMoney } from '@/lib/format';
-import { riskLabel, riskTone, toneText } from '@/lib/tone';
-import type { Decision, Experiment, ExperimentDetail } from '@/types';
+import { experimentStatusLabel } from '@/lib/labels';
+import { experimentStatusTone } from '@/lib/reportModel';
 
 export interface RecommendedExperimentCardProps {
-  experiment: Experiment;
-  detail: ExperimentDetail;
-  decision: Decision | undefined;
+  experiment: ApiExperiment;
+  decision: ApiDecision | null;
 }
 
-function Fact({ label, value, tone }: { label: string; value: string; tone?: string }) {
+function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-hairline-strong bg-panel-inset px-4 py-3.5">
       <p className="eyebrow">{label}</p>
-      <p className={cn('numeric mt-2 text-card-title font-semibold', tone ?? 'text-ink')}>
-        {value}
-      </p>
+      <p className="numeric mt-2 text-card-title font-semibold text-ink">{value}</p>
     </div>
   );
 }
 
-/** The one experiment the engine is putting forward, given prominence. */
-export function RecommendedExperimentCard({
-  experiment,
-  detail,
-  decision,
-}: RecommendedExperimentCardProps) {
+export function RecommendedExperimentCard({ experiment, decision }: RecommendedExperimentCardProps) {
   return (
     <section className="overflow-hidden rounded-2xl border border-accent-line bg-panel-accent shadow-raised">
       <div className="p-6 md:p-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <FlaskConical className="size-4 shrink-0 text-accent-ink" aria-hidden />
-            <p className="eyebrow">Recommended experiment</p>
+            <p className="eyebrow">Experiment</p>
           </div>
-          <Badge tone="info" size="sm" dot>
-            Running
+          <Badge tone={experimentStatusTone(experiment.status)} size="sm" dot>
+            {experimentStatusLabel[experiment.status]}
           </Badge>
         </div>
 
-        <h2 className="mt-4 text-headline text-ink">
-          {experiment.title}
-        </h2>
+        <h2 className="mt-4 text-headline text-ink">{experiment.title}</h2>
 
         {decision ? (
           <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-ink-secondary">
@@ -60,23 +50,25 @@ export function RecommendedExperimentCard({
           </p>
         ) : null}
 
-        <div className="mt-6 rounded-xl border border-hairline-strong bg-panel-inset px-5 py-4">
-          <p className="eyebrow">The question</p>
-          <p className="mt-2 text-section-title text-ink">{detail.question}</p>
-        </div>
+        {experiment.objective ? (
+          <div className="mt-6 rounded-xl border border-hairline-strong bg-panel-inset px-5 py-4">
+            <p className="eyebrow">Objective</p>
+            <p className="mt-2 text-section-title text-ink">{experiment.objective}</p>
+          </div>
+        ) : null}
 
         <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Fact label="Success threshold" value={detail.successThreshold} />
-          <Fact
-            label="Estimated cost"
-            value={formatMoney(experiment.cost.amount, experiment.cost.currency)}
-          />
-          <Fact label="Duration" value={`${detail.durationDays} days`} />
-          <Fact
-            label="Expected learning"
-            value={riskLabel[detail.expectedLearning]}
-            tone={toneText[riskTone[detail.expectedLearning]]}
-          />
+          {experiment.estimated_cost !== null ? (
+            <Fact
+              label="Estimated cost"
+              value={formatMoney(experiment.estimated_cost, experiment.currency === 'USD' ? 'USD' : 'INR')}
+            />
+          ) : null}
+          {experiment.duration_days !== null ? <Fact label="Duration" value={`${experiment.duration_days} days`} /> : null}
+          {experiment.variable_to_test ? <Fact label="Variable tested" value={experiment.variable_to_test} /> : null}
+          {experiment.expected_information_gain ? (
+            <Fact label="Expected learning" value={experiment.expected_information_gain} />
+          ) : null}
         </dl>
       </div>
     </section>

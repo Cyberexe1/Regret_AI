@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { DecisionNotFound } from '@/components/DecisionNotFound';
 import { PageContainer } from '@/components/layout/PageContainer';
 import {
   AgentPipeline,
@@ -8,56 +8,92 @@ import {
   CompletionBanner,
   LiveFindings,
 } from '@/components/analysis';
-import { fallbackDecisionStatement } from '@/data/analysisAgents';
-import { useAnalysisSimulation } from '@/hooks/useAnalysisSimulation';
-import { readDecisionDraft } from '@/lib/decisionDraft';
-import type { DecisionDraft } from '@/types';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { useAnalysisRun } from '@/hooks/useAnalysisRun';
+import { useDecisionById } from '@/hooks/useDecisionById';
 
 /**
- * Live stress test. The pipeline is a local timed simulation: no engine is
- * called, and nothing beyond agent status and finished conclusions is shown.
+ * Live stress test, driven entirely by the real backend pipeline. On
+ * mount, ensures a decision has an analysis run (creating one if it
+ * doesn't), then polls `GET /decisions/{id}/analysis/latest` every ~1.5s
+ * until the run reaches a terminal status. No timing, progress, or
+ * findings are simulated - every value shown is what the backend
+ * actually reported.
  */
 export function AnalysisPage() {
-  const location = useLocation();
-  const { progress, isComplete, agentStatuses, activeAgentId, findings, metrics } =
-    useAnalysisSimulation();
+  const { id } = useParams<{ id: string }>();
+  const decisionState = useDecisionById(id);
+  const analysis = useAnalysisRun(id);
 
-  // Prefer the draft handed over by intake, then a stored one, then the sample.
-  // `isSampleDecision` is true only in that last case: no real input exists,
-  // so what's on screen is the seeded example rather than the user's own text.
-  const { decisionStatement, isSampleDecision } = useMemo(() => {
-    const handedOver = (location.state as { draft?: DecisionDraft } | null)?.draft?.decision?.trim();
-    if (handedOver) return { decisionStatement: handedOver, isSampleDecision: false };
+  if (!id) return <DecisionNotFound id={id} />;
 
-    const stored = readDecisionDraft()?.decision?.trim();
-    if (stored) return { decisionStatement: stored, isSampleDecision: false };
+  if (decisionState.status === 'error') {
+    return (
+      <PageContainer eyebrow="Stress test" title="Analysis Workspace">
+        <ErrorState
+          title="Unable to load this decision"
+          description={decisionState.error?.message}
+          detail={decisionState.error?.requestId ? `Request ID: ${decisionState.error.requestId}` : undefined}
+        />
+      </PageContainer>
+    );
+  }
 
-    return { decisionStatement: fallbackDecisionStatement, isSampleDecision: true };
-  }, [location.state]);
+  if (analysis.triggerState === 'trigger-failed') {
+    return (
+      <PageContainer eyebrow="Stress test" title="Analysis Workspace">
+        <ErrorState
+          title="Could not start the analysis"
+          description={analysis.triggerError?.message}
+          detail={analysis.triggerError?.requestId ? `Request ID: ${analysis.triggerError.requestId}` : undefined}
+        />
+      </PageContainer>
+    );
+  }
+
+  const decisionStatement =
+    decisionState.data?.description ?? decisionState.data?.title ?? 'Loading your decision\u2026';
 
   return (
     <PageContainer>
       <div className="mx-auto max-w-6xl space-y-8">
-        <AnalysisHeader decisionStatement={decisionStatement} isComplete={isComplete} />
+        <AnalysisHeader decisionStatement={decisionStatement} isComplete={analysis.isComplete} />
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
           <div className="space-y-5">
-            <AgentPipeline statuses={agentStatuses} activeAgentId={activeAgentId} />
-            <LiveFindings findings={findings} isComplete={isComplete} />
+            <AgentPipeline
+              statuses={analysis.run?.stage_statuses ?? {}}
+              activeAgentId={analysis.run?.current_stage ?? null}
+            />
+            <LiveFindings events={analysis.events} isComplete={analysis.isComplete} />
           </div>
 
-          <AnalysisMetricsPanel
-            progress={progress}
-            isComplete={isComplete}
-            metrics={metrics}
-          />
+          <AnalysisMetricsPanel run={analysis.run} isComplete={analysis.isComplete} />
         </div>
 
-        <CompletionBanner
-          isComplete={isComplete}
-          findingCount={findings.length}
-          isSampleDecision={isSampleDecision}
-        />
+        {analysis.isStalled ? (
+          <ErrorState
+            title="Lost connection to the backend"
+            description={analysis.error?.message ?? 'Could not reach the analysis backend.'}
+            detail={analysis.error?.requestId ? `Request ID: ${analysis.error.requestId}` : undefined}
+            action={
+              <button
+                type="button"
+                onClick={() => analysis.retry()}
+                className="text-small font-medium text-accent-ink underline-offset-4 hover:underline"
+              >
+                Retry
+              </button>
+            }
+          />
+        ) : (
+          <CompletionBanner
+            isComplete={analysis.isComplete}
+            hasFailed={analysis.hasFailed}
+            decisionId={id}
+            errorMessage={analysis.run?.error_message}
+          />
+        )}
       </div>
     </PageContainer>
   );

@@ -3,8 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
-import { confidenceLabel, confidenceTone, riskLabel, riskTone } from '@/lib/tone';
-import type { CriticalUncertainty } from '@/types';
+import type { CriticalUncertainty } from '@/types/report';
 import { DURATION, EASE_OUT } from '@/lib/motion';
 
 export interface UncertaintyCardProps {
@@ -13,79 +12,65 @@ export interface UncertaintyCardProps {
   defaultOpen?: boolean;
 }
 
-function ValuePair({ label, value, emphasis }: { label: string; value: string; emphasis?: boolean }) {
-  return (
-    <div>
-      <p className="eyebrow">{label}</p>
-      <p
-        className={cn(
-          'numeric mt-1.5 text-card-title',
-          emphasis ? 'text-accent-ink' : 'text-ink',
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
 export function UncertaintyCard({ uncertainty, defaultOpen = false }: UncertaintyCardProps) {
   const [open, setOpen] = useState(defaultOpen);
   const reduceMotion = useReducedMotion();
   const panelId = useId();
 
+  const hasDetail = Boolean(
+    uncertainty.whyItMatters || uncertainty.failureConsequence || uncertainty.evidenceGap || uncertainty.reason,
+  );
+
   return (
     <div className="overflow-hidden rounded-xl border border-hairline bg-surface">
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        aria-controls={panelId}
-        className="w-full px-5 py-5 text-left transition-colors duration-150 hover:bg-surface-raised md:px-6"
+        onClick={() => hasDetail && setOpen((value) => !value)}
+        aria-expanded={hasDetail ? open : undefined}
+        aria-controls={hasDetail ? panelId : undefined}
+        className={cn(
+          'w-full px-5 py-5 text-left transition-colors duration-150 md:px-6',
+          hasDetail && 'hover:bg-surface-raised',
+        )}
       >
         <div className="flex items-start gap-4">
-          <span className="numeric mt-0.5 shrink-0 text-micro text-ink-muted">
-            {uncertainty.rank}
-          </span>
+          <span className="numeric mt-0.5 shrink-0 text-micro text-ink-muted">{uncertainty.rank}</span>
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
               <p className="text-card-title text-ink">{uncertainty.title}</p>
-              <Badge tone={riskTone[uncertainty.impact]} size="sm">
-                {riskLabel[uncertainty.impact]} impact
+              <Badge tone="neutral" size="sm" variant="outline">
+                {uncertainty.kind === 'assumption' ? 'Assumption' : 'Blindspot'}
               </Badge>
-              <Badge tone={confidenceTone[uncertainty.confidence]} size="sm" variant="outline">
-                {confidenceLabel[uncertainty.confidence]} confidence
+              <Badge tone={uncertainty.importanceTone} size="sm">
+                {uncertainty.importanceLabel} importance
+              </Badge>
+              <Badge tone={uncertainty.confidenceTone} size="sm" variant="outline">
+                {uncertainty.confidenceLabel} confidence
               </Badge>
             </div>
 
-            <p className="mt-2 text-small text-ink-secondary">{uncertainty.summary}</p>
-
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:max-w-md">
-              <ValuePair
-                label={uncertainty.current.label}
-                value={uncertainty.current.value}
-              />
-              <ValuePair
-                label={uncertainty.threshold.label}
-                value={uncertainty.threshold.value}
-                emphasis
-              />
+            <div className="mt-3">
+              <Badge tone={uncertainty.evidenceStatusTone} size="sm" dot>
+                {uncertainty.evidenceStatusLabel}
+              </Badge>
             </div>
           </div>
 
-          <ChevronDown
-            className={cn(
-              'mt-0.5 size-4 shrink-0 text-ink-muted transition-transform duration-200',
-              open && 'rotate-180',
-            )}
-            aria-hidden
-          />
+          {hasDetail ? (
+            <ChevronDown
+              className={cn(
+                'mt-0.5 size-4 shrink-0 text-ink-muted transition-transform duration-200',
+                open && 'rotate-180',
+              )}
+              aria-hidden
+            />
+          ) : null}
         </div>
       </button>
 
       <AnimatePresence initial={false}>
-        {open ? (
+        {open && hasDetail ? (
           <motion.div
             id={panelId}
             initial={reduceMotion ? undefined : { height: 0, opacity: 0 }}
@@ -95,34 +80,33 @@ export function UncertaintyCard({ uncertainty, defaultOpen = false }: Uncertaint
             className="overflow-hidden"
           >
             <div className="space-y-5 border-t border-hairline bg-surface-inset px-5 py-5 md:px-6">
-              <div>
-                <p className="eyebrow">Why it matters</p>
-                <p className="mt-2 text-small text-ink-secondary">
-                  {uncertainty.detail.whyItMatters}
-                </p>
-              </div>
+              {uncertainty.whyItMatters ? (
+                <div>
+                  <p className="eyebrow">Why it matters</p>
+                  <p className="mt-2 text-small text-ink-secondary">{uncertainty.whyItMatters}</p>
+                </div>
+              ) : null}
 
-              <div>
-                <p className="eyebrow">Evidence on file</p>
-                <ul className="mt-2 space-y-2">
-                  {uncertainty.detail.evidence.map((line) => (
-                    <li key={line} className="flex gap-2.5 text-small text-ink-secondary">
-                      <span
-                        className="mt-1.5 size-1.5 shrink-0 rounded-full bg-ink-faint"
-                        aria-hidden
-                      />
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {uncertainty.failureConsequence ? (
+                <div>
+                  <p className="eyebrow">If this assumption is wrong</p>
+                  <p className="mt-2 text-small text-ink-secondary">{uncertainty.failureConsequence}</p>
+                </div>
+              ) : null}
 
-              <div className="rounded-lg border border-accent-line bg-panel-accent px-4 py-3">
-                <p className="eyebrow">How to resolve it</p>
-                <p className="mt-2 text-small text-ink-secondary">
-                  {uncertainty.detail.howToResolve}
-                </p>
-              </div>
+              {uncertainty.evidenceGap ? (
+                <div className="rounded-lg border border-warning-line bg-panel-warning px-4 py-3">
+                  <p className="eyebrow">Evidence gap</p>
+                  <p className="mt-2 text-small text-ink-secondary">{uncertainty.evidenceGap}</p>
+                </div>
+              ) : null}
+
+              {uncertainty.reason ? (
+                <div>
+                  <p className="eyebrow">Basis</p>
+                  <p className="mt-2 text-small text-ink-secondary">{uncertainty.reason}</p>
+                </div>
+              ) : null}
             </div>
           </motion.div>
         ) : null}

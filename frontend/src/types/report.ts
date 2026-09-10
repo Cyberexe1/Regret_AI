@@ -1,102 +1,79 @@
-import type { Confidence, RiskLevel, Tone } from './index';
+import type { Tone } from './index';
 
 /* -------------------------------------------------------------------------- *
- * Decision report
+ * Decision report - view types
  *
- * The shape of a finished stress test as it is presented to the user. Kept
- * separate from `DecisionAnalysis`, which is the engine-facing model: a report
- * is a curated, ranked view built for reading, not the full analysis payload.
+ * These are thin, presentational wrappers around the real backend entities
+ * (`ApiAssumption`, `ApiBlindspot`, `ApiRegretScenario`, `ApiThreshold`,
+ * `ApiChallenge`, `ApiExperiment` - see `@/api/types`), built by
+ * `@/lib/reportModel`. Nothing here is fabricated: every field either comes
+ * directly from a backend response or is a deterministic re-labelling of
+ * one (e.g. a 0.0-1.0 confidence float mapped to a Low/Medium/High badge).
  * -------------------------------------------------------------------------- */
-
-export type AssumptionSupport = 'supported' | 'uncertain' | 'unsupported';
 
 export interface SnapshotItem {
   label: string;
   value: string;
-  /** Rendered as a progress bar when present, e.g. decision confidence. */
-  percentage?: number;
   tone?: Tone;
 }
 
-/** A measurable quantity the decision turns on. */
+/** An assumption or blindspot, presented as one "thing that could break this
+ * decision" - ranked by importance for display, never re-scored. */
 export interface CriticalUncertainty {
   id: string;
+  kind: 'assumption' | 'blindspot';
   rank: string;
   title: string;
-  /** One line on why this is on the list. */
-  summary: string;
-  current: { label: string; value: string };
-  threshold: { label: string; value: string };
-  impact: RiskLevel;
-  confidence: Confidence;
-  /** Revealed when the card is expanded. */
-  detail: {
-    whyItMatters: string;
-    evidence: string[];
-    howToResolve: string;
-  };
+  importanceLabel: string;
+  importanceTone: Tone;
+  confidenceLabel: string;
+  confidenceTone: Tone;
+  confidencePercent?: number;
+  evidenceStatusLabel: string;
+  evidenceStatusTone: Tone;
+  reason?: string | null;
+  dependency?: string | null;
+  failureConsequence?: string | null;
+  whyItMatters?: string | null;
+  evidenceGap?: string | null;
 }
 
-export interface ThresholdPoint {
-  /** Repeat customer rate, in percent. */
-  rate: number;
-  /** Expected monthly contribution in rupees; negative below break-even. */
-  contribution: number;
-}
-
-export interface RegretThreshold {
-  metricLabel: string;
-  valueLabel: string;
-  narrative: string;
-  /** Inclusive band of the current estimate. */
-  currentRange: [number, number];
-  thresholdValue: number;
-  /** Upper bound of the plotted x-axis. */
-  domain: [number, number];
-  breakEvenRate: number;
-  curve: ThresholdPoint[];
-}
-
-export type ScenarioKind = 'base' | 'failure' | 'upside';
-
-export interface FutureScenario {
+export interface ReportScenario {
   id: string;
-  kind: ScenarioKind;
   title: string;
-  description: string;
-  /** Illustrative only, and labelled as such in the UI. */
-  probability: number;
-  impact: RiskLevel;
-  trigger: string;
-  tone: Tone;
+  failureCondition: string;
+  probabilityBand: string | null;
+  impact: string | null;
+  impactTone: Tone;
+  regretLevel: string | null;
+  regretLevelTone: Tone;
+  triggerVariable: string | null;
+  triggerDirection: string | null;
+  consequence: string | null;
+  evidenceBasis: string | null;
 }
 
-export interface ReportAssumption {
+export interface ReportThreshold {
+  id: string;
+  variable: string;
+  unit: string | null;
+  direction: string | null;
+  thresholdValue: string | null;
+  lowerBound: number | null;
+  upperBound: number | null;
+  hasNumericValue: boolean;
+  validationStatusLabel: string;
+  validationStatusTone: Tone;
+  confidencePercent?: number;
+  consequence: string | null;
+  derivation: string | null;
+  evidenceBasis: string | null;
+}
+
+export interface ReportAssumptionRow {
   id: string;
   statement: string;
-  support: AssumptionSupport;
-  note: string;
-}
-
-export interface ReportRecommendation {
-  verdict: string;
-  action: string;
-  costLabel: string;
-  expectedLearning: RiskLevel;
-  decisionImpact: RiskLevel;
-  ctaLabel: string;
-}
-
-export interface DecisionReport {
-  decisionId: string;
-  title: string;
-  statusLabel: string;
-  riskLevel: RiskLevel;
-  summary: string;
-  snapshot: SnapshotItem[];
-  uncertainties: CriticalUncertainty[];
-  threshold: RegretThreshold;
-  scenarios: FutureScenario[];
-  assumptions: ReportAssumption[];
-  recommendation: ReportRecommendation;
+  evidenceStatusLabel: string;
+  evidenceStatusTone: Tone;
+  note: string | null;
 }

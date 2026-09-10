@@ -9,10 +9,12 @@ import {
   ThemePicker,
 } from '@/components/settings';
 import { Avatar } from '@/components/ui/Avatar';
+import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Switch } from '@/components/ui/Switch';
 import { riskToleranceOptions } from '@/data/intake';
+import { useApiConnection } from '@/hooks/useApiConnection';
 import { useWorkspaceSettings, type BooleanSettingKey } from '@/hooks/useWorkspaceSettings';
 
 const CURRENCY_OPTIONS = [
@@ -23,6 +25,7 @@ const CURRENCY_OPTIONS = [
 export function SettingsPage() {
   const { settings, set, toggle } = useWorkspaceSettings();
   const [upgradeNotice, setUpgradeNotice] = useState(false);
+  const connection = useApiConnection();
 
   /** Every switch row shares this shape. */
   const switchRow = (key: BooleanSettingKey, label: string, description: string) => (
@@ -44,6 +47,50 @@ export function SettingsPage() {
       width="narrow"
     >
       <div className="space-y-5">
+        <SettingsSection title="Backend connection" description="Where this app is sending its requests.">
+          <SettingRow
+            label="API base URL"
+            control={<span className="numeric text-small text-ink-secondary">{connection.baseUrl}</span>}
+          />
+          <SettingRow
+            label="Status"
+            control={
+              connection.status === 'loading' ? (
+                <Badge tone="neutral" size="sm" dot>
+                  Checking…
+                </Badge>
+              ) : connection.status === 'error' ? (
+                <Badge tone="danger" size="sm" dot>
+                  Unreachable
+                </Badge>
+              ) : (
+                <Badge tone={connection.readiness?.status === 'ready' ? 'success' : 'warning'} size="sm" dot>
+                  {connection.readiness?.status === 'ready' ? 'Ready' : 'Degraded'}
+                </Badge>
+              )
+            }
+          />
+          {connection.readiness ? (
+            <SettingRow
+              label="Dependencies"
+              control={
+                <div className="flex flex-wrap justify-end gap-1.5">
+                  {connection.readiness.dependencies.map((dep) => (
+                    <Badge
+                      key={dep.name}
+                      tone={dep.status === 'ok' ? 'success' : dep.required ? 'danger' : 'neutral'}
+                      size="sm"
+                      variant="outline"
+                    >
+                      {dep.name}: {dep.status}
+                    </Badge>
+                  ))}
+                </div>
+              }
+            />
+          ) : null}
+        </SettingsSection>
+
         <SettingsSection title="Profile" description="How you appear inside the workspace.">
           <div className="flex items-center gap-4 px-5 py-5 md:px-6">
             <Avatar name={settings.name} size="lg" />

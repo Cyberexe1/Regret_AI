@@ -59,6 +59,54 @@ class Settings(BaseSettings):
     # Wall-clock budget for a single agent model call. Guards against a hung
     # Bedrock request blocking an API request indefinitely.
     bedrock_invoke_timeout_seconds: float = 60.0
+    # Wall-clock budget for one entire analysis run (all ~9 sequential
+    # agent stages combined). A second, independent safety net on top of
+    # each stage's own `bedrock_invoke_timeout_seconds` - guards against
+    # the run as a whole ever staying `running` indefinitely, even if a
+    # future stage were added without its own per-call timeout. Generous
+    # by default since stages run sequentially, never in parallel (see the
+    # pipeline's dependency-order requirement).
+    analysis_max_duration_seconds: float = 600.0
+    # How much older than `analysis_max_duration_seconds` an "active"
+    # analysis lock must be before a new `/analyze` call is allowed to
+    # treat it as abandoned (e.g. the process crashed mid-run) and
+    # re-acquire it, rather than treating the decision as still busy.
+    analysis_lock_grace_seconds: float = 120.0
+
+    # --- External research (optional) ------------------------------------------
+    # Research is OFF by default - `research_provider` must be explicitly set
+    # to a recognized value ("http" for the built-in httpx-based provider,
+    # "none"/unset to disable) before the Research Agent's stage ever runs.
+    # No API key lives here unencrypted in any committed file; like every
+    # other credential in this project, it's read from the environment only.
+    research_provider: str = "none"
+    research_api_key: str | None = None
+    # Conservative defaults, per the "prevent runaway research" requirement -
+    # a single analysis should never fan out into dozens of searches.
+    research_max_queries: int = 3
+    research_max_results_per_query: int = 5
+    research_max_total_sources: int = 10
+    research_timeout_seconds: float = 15.0
+    research_max_retries: int = 2
+    # Upper bound on how much raw snippet text from one external result is
+    # ever kept - mirrors `MAX_CONTENT_REFERENCE_CHARS` in
+    # app.services.evidence, applied here to untrusted external content.
+    research_max_snippet_chars: int = 1000
+
+    # --- Abuse protection ---------------------------------------------------
+    # Bounds how many analysis pipelines (each making up to ~10 sequential
+    # Bedrock calls) can run concurrently in this process - a cheap guard
+    # against one client's burst of `/analyze` calls (for different
+    # decisions - the same decision is already deduplicated via
+    # `AnalysisRepository.get_active_run`) exhausting Bedrock capacity or
+    # this process's own resources. Not a distributed rate limiter - see
+    # module-level "reasonable protection for a hackathon production demo,
+    # not a full API gateway" guidance.
+    max_concurrent_analyses: int = 5
+
+    @property
+    def research_enabled(self) -> bool:
+        return self.research_provider.strip().lower() not in {"", "none"}
 
     # --- Evidence storage -----------------------------------------------------
     # "local" is the only implemented backend. The interface
@@ -69,6 +117,12 @@ class Settings(BaseSettings):
     # Directory evidence files are written to. Relative paths are resolved
     # against the backend/ working directory. Never requires AWS credentials.
     local_storage_dir: str = "./data/evidence"
+    # Reserved for the future S3-backed StorageBackend implementation (see
+    # app.services.storage). Selecting `storage_backend=s3` today still
+    # raises NotImplementedError - this setting exists now so production
+    # config validation can require it once that backend lands, without
+    # a config schema change at that point.
+    s3_bucket_name: str = ""
     max_upload_size_bytes: int = 10 * 1024 * 1024  # 10 MB
     # Comma-separated list of allowed upload extensions, dot-prefixed.
     allowed_evidence_extensions: str = ".pdf,.docx,.txt"
@@ -89,6 +143,45 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env.lower() == "production"
+
+    def validate_for_production(self) -> None:
+        """Fail fast at startup if `APP_ENV=production` is missing configuration
+        it needs to run safely.
+
+        Deliberately does nothing when `app_env` isn't `production` -
+        local/development mode never requires any of these to be set
+        explicitly, since sensible defaults exist for that case. Raises
+        `RuntimeError` (crashing startup, which is the intended behavior -
+        an under-configured production process should never silently
+        start serving traffic) rather than logging a warning and
+        continuing.
+        """
+        if not self.is_production:
+            return
+
+        problems: list[str] = []
+
+        if not self.aws_region.strip():
+            problems.append("AWS_REGION must be set in production.")
+        if not self.dynamodb_table_name.strip():
+            problems.append("DYNAMODB_TABLE_NAME must be set in production.")
+        if not self.bedrock_model_id.strip():
+            problems.append("BEDROCK_MODEL_ID must be set in production.")
+        if not self.cors_origins:
+            problems.append("CORS_ALLOWED_ORIGINS must be set in production.")
+        if "*" in self.cors_origins:
+            problems.append(
+                "CORS_ALLOWED_ORIGINS must not be '*' in production; list explicit origins."
+            )
+        if self.storage_backend not in {"local", "s3"}:
+            problems.append(f"Unknown STORAGE_BACKEND '{self.storage_backend}' in production.")
+        if self.storage_backend == "s3" and not self.s3_bucket_name.strip():
+            problems.append("S3_BUCKET_NAME must be set in production when STORAGE_BACKEND=s3.")
+
+        if problems:
+            raise RuntimeError(
+                "Invalid production configuration:\n" + "\n".join(f"  - {p}" for p in problems)
+            )
 
 
 @lru_cache

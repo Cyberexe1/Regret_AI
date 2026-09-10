@@ -1,12 +1,6 @@
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import {
-  DECISION_FILTERS,
-  DECISION_SORTS,
-  type DecisionFilterId,
-  type DecisionSortId,
-} from '@/hooks/useDecisionHistory';
+import { DECISION_FILTERS, type DecisionFilterId } from '@/hooks/useDecisionHistory';
 import { cn } from '@/lib/cn';
 
 export interface DecisionFilterBarProps {
@@ -14,11 +8,9 @@ export interface DecisionFilterBarProps {
   onQueryChange: (value: string) => void;
   filter: DecisionFilterId;
   onFilterChange: (value: DecisionFilterId) => void;
-  sort: DecisionSortId;
-  onSortChange: (value: DecisionSortId) => void;
   /** Shown beside the filters so the current view is always accounted for. */
   resultCount: number;
-  totalCount: number;
+  loadedCount: number;
 }
 
 export function DecisionFilterBar({
@@ -26,31 +18,19 @@ export function DecisionFilterBar({
   onQueryChange,
   filter,
   onFilterChange,
-  sort,
-  onSortChange,
   resultCount,
-  totalCount,
+  loadedCount,
 }: DecisionFilterBarProps) {
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Input
-          type="search"
-          icon={Search}
-          placeholder="Search decisions"
-          aria-label="Search decisions"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          fieldClassName="flex-1"
-        />
-        <Select
-          aria-label="Sort decisions"
-          options={DECISION_SORTS.map((option) => ({ ...option }))}
-          value={sort}
-          onChange={(event) => onSortChange(event.target.value as DecisionSortId)}
-          fieldClassName="sm:w-52"
-        />
-      </div>
+      <Input
+        type="search"
+        icon={Search}
+        placeholder="Search decisions"
+        aria-label="Search decisions"
+        value={query}
+        onChange={(event) => onQueryChange(event.target.value)}
+      />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <div role="group" aria-label="Filter decisions" className="flex flex-wrap gap-2">
@@ -77,9 +57,7 @@ export function DecisionFilterBar({
         </div>
 
         <p className="numeric ml-auto text-small text-ink-muted">
-          {resultCount === totalCount
-            ? `${totalCount} decisions`
-            : `${resultCount} of ${totalCount} decisions`}
+          {resultCount === loadedCount ? `${loadedCount} decisions` : `${resultCount} of ${loadedCount} loaded`}
         </p>
       </div>
     </div>

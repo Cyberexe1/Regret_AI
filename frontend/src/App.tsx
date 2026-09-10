@@ -50,6 +50,7 @@ export function App() {
         <Route path={ROUTES.decisionDetail} element={<DecisionDetailPage />} />
         <Route path={ROUTES.decisionGraph} element={<DecisionGraphPage />} />
         <Route path={ROUTES.experiments} element={<ExperimentsPage />} />
+        <Route path={ROUTES.experimentDetail} element={<ExperimentsPage />} />
         <Route path={ROUTES.settings} element={<SettingsPage />} />
       </Route>
 

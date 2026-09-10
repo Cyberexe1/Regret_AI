@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
 
-export * from './experiment';
 export * from './graph';
 export * from './report';
 
@@ -26,46 +25,18 @@ export interface NavItem {
 }
 
 /* -------------------------------------------------------------------------- *
- * Decision domain
+ * Decision intake (pre-submission, browser-only form state)
  * -------------------------------------------------------------------------- */
 
-export const DECISION_STATUSES = [
-  'draft',
-  'analyzing',
-  'analyzed',
-  'testing',
-  'committed',
-  'abandoned',
-] as const;
-
-export type DecisionStatus = (typeof DECISION_STATUSES)[number];
-
-export const DECISION_DOMAINS = [
-  'career',
-  'product',
-  'financial',
-  'hiring',
-  'relocation',
-  'technology',
-  'business-model',
-] as const;
-
-export type DecisionDomain = (typeof DECISION_DOMAINS)[number];
-
-/** How hard it is to walk the decision back once committed. */
-export type Reversibility = 'reversible' | 'costly-to-reverse' | 'irreversible';
-
-export type Severity = 'low' | 'moderate' | 'high' | 'critical';
-
-/** Coarse risk band shown on decision summaries. */
-export type RiskLevel = 'low' | 'medium' | 'high';
-
-/** How much downside the user is willing to carry on this decision. */
+/** How much downside the user is willing to carry on this decision. Sent
+ * to the backend as `risk_tolerance` (a free-text string there). */
 export type RiskTolerance = 'conservative' | 'balanced' | 'aggressive';
 
 /**
- * A file the user attached during intake. Metadata only: the file itself never
- * leaves the browser, because there is nothing to upload to yet.
+ * A file the user attached during intake, before it has been uploaded.
+ * Metadata only for display; the underlying `File` blob lives alongside
+ * it in `DraftEvidenceFileWithBlob` (see `@/hooks/useEvidenceFiles`) so
+ * it can actually be uploaded once the decision has a real id.
  */
 export interface DraftEvidenceFile {
   id: string;
@@ -75,7 +46,9 @@ export interface DraftEvidenceFile {
   mimeType: string;
 }
 
-/** Everything captured on the intake page before an analysis is requested. */
+/** Everything captured on the intake page before a decision is created
+ * through the real API. Mapped to `ApiDecisionCreate` on submission - see
+ * `useDecisionSubmission`. */
 export interface DecisionDraft {
   decision: string;
   desiredOutcome: string;
@@ -90,121 +63,4 @@ export interface DecisionDraft {
   sourceUrl: string;
   /** ISO timestamp of the moment the draft was submitted. */
   submittedAt?: string;
-}
-
-export type Confidence = 'low' | 'medium' | 'high';
-
-export type RegretHorizon = '6-months' | '1-year' | '3-years' | '5-years';
-
-/**
- * An assumption the decision silently depends on. `origin` separates what the
- * user wrote down from what the engine inferred was being taken for granted.
- */
-export interface Assumption {
-  id: string;
-  statement: string;
-  origin: 'stated' | 'hidden';
-  confidence: Confidence;
-  /** 0-100. How easily this assumption breaks under real-world pressure. */
-  fragility: number;
-  evidence: 'none' | 'anecdotal' | 'partial' | 'documented';
-  impactIfWrong: Severity;
-}
-
-/** A category of consideration missing from the user's framing. */
-export interface BlindSpot {
-  id: string;
-  title: string;
-  description: string;
-  severity: Severity;
-  /** Question that forces the blind spot into the open. */
-  probingQuestion: string;
-}
-
-/** A specific, observable condition under which the decision fails. */
-export interface FailureCondition {
-  id: string;
-  trigger: string;
-  mechanism: string;
-  /** 0-1 estimated likelihood within the stated horizon. */
-  probability: number;
-  horizon: RegretHorizon;
-  severity: Severity;
-  earlyWarningSignal: string;
-}
-
-/** A narrated future in which the user looks back on this decision. */
-export interface RegretScenario {
-  id: string;
-  horizon: RegretHorizon;
-  title: string;
-  narrative: string;
-  /** 0-100 projected regret intensity. */
-  regretScore: number;
-  /** 0-1 estimated likelihood of this branch. */
-  likelihood: number;
-  recoveryCost: Reversibility;
-}
-
-export type ExperimentStatus = 'proposed' | 'running' | 'inconclusive' | 'validated' | 'invalidated';
-
-/** The cheapest test that could move belief before committing. */
-export interface Experiment {
-  id: string;
-  decisionId: string;
-  title: string;
-  hypothesis: string;
-  method: string;
-  status: ExperimentStatus;
-  cost: {
-    currency: Currency;
-    amount: number;
-    days: number;
-    effort: 'low' | 'medium' | 'high';
-  };
-  /** 0-100. How much uncertainty this experiment is expected to remove. */
-  informationGain: number;
-  /** Which assumption ids this experiment attacks. */
-  targets: string[];
-  successCriteria: string[];
-  createdAt: string;
-  finding?: string;
-}
-
-/** One point on the commit-now vs wait-and-test regret curve. */
-export interface RegretTrajectoryPoint {
-  horizonMonths: number;
-  commitNow: number;
-  runExperiment: number;
-}
-
-export interface DecisionAnalysis {
-  /** 0-100 composite of fragility, irreversibility and blind-spot severity. */
-  regretIndex: number;
-  /** 0-100 confidence the engine has in its own read of the decision. */
-  analysisConfidence: number;
-  reversibility: Reversibility;
-  verdictSummary: string;
-  assumptions: Assumption[];
-  blindSpots: BlindSpot[];
-  failureConditions: FailureCondition[];
-  regretScenarios: RegretScenario[];
-  trajectory: RegretTrajectoryPoint[];
-  /** Id of the recommended cheapest experiment. */
-  recommendedExperimentId: string | null;
-}
-
-export interface Decision {
-  id: string;
-  title: string;
-  /** The decision written in the user's own words. */
-  statement: string;
-  domain: DecisionDomain;
-  status: DecisionStatus;
-  stakes: 'low' | 'moderate' | 'high' | 'defining';
-  createdAt: string;
-  updatedAt: string;
-  /** ISO date by which the decision must be made, when one exists. */
-  commitBy?: string;
-  analysis?: DecisionAnalysis;
 }

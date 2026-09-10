@@ -68,7 +68,14 @@ def test_get_unknown_decision_returns_404(client: TestClient) -> None:
     response = client.get("/api/v1/decisions/00000000-0000-0000-0000-000000000000")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Decision 00000000-0000-0000-0000-000000000000 not found."}
+    body = response.json()
+    # Standardized error envelope (see app.core.errors): "detail" is kept
+    # for backward compatibility, "error" carries the machine-readable
+    # code + request id for correlating with server-side logs.
+    assert body["detail"] == "Decision 00000000-0000-0000-0000-000000000000 not found."
+    assert body["error"]["code"] == "NOT_FOUND"
+    assert body["error"]["message"] == "Decision 00000000-0000-0000-0000-000000000000 not found."
+    assert body["error"]["request_id"]
 
 
 def test_get_decision_with_invalid_id_returns_422(client: TestClient) -> None:

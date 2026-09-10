@@ -11,12 +11,9 @@ export { ReportSection } from './ReportSection';
 export type { ReportSectionProps } from './ReportSection';
 export { ScenarioCards } from './ScenarioCards';
 export type { ScenarioCardsProps } from './ScenarioCards';
-export { ThresholdJourney } from './ThresholdJourney';
-export type { ThresholdJourneyProps } from './ThresholdJourney';
+export { ThresholdCard } from './ThresholdCard';
+export type { ThresholdCardProps } from './ThresholdCard';
 export { ThresholdSection } from './ThresholdSection';
 export type { ThresholdSectionProps } from './ThresholdSection';
 export { UncertaintyCard } from './UncertaintyCard';
 export type { UncertaintyCardProps } from './UncertaintyCard';
-
-// ThresholdChart is intentionally absent: it is the only Recharts consumer here
-// and is imported lazily by ThresholdSection.

@@ -1,12 +1,4 @@
-import type {
-  AssumptionSupport,
-  Confidence,
-  ExperimentStatus,
-  GraphCategory,
-  Reversibility,
-  RiskLevel,
-  Tone,
-} from '@/types';
+import type { GraphCategory, Tone } from '@/types';
 
 /**
  * Single source of truth for how semantic tone maps onto tokens.
@@ -49,19 +41,11 @@ export const toneHex: Record<Tone, string> = {
   info: 'var(--color-info)',
 };
 
-/* --- Domain -> tone mappings ---------------------------------------------- */
-
-export const assumptionSupportTone: Record<AssumptionSupport, Tone> = {
-  supported: 'success',
-  uncertain: 'warning',
-  unsupported: 'danger',
-};
-
-export const assumptionSupportLabel: Record<AssumptionSupport, string> = {
-  supported: 'Supported',
-  uncertain: 'Uncertain',
-  unsupported: 'Unsupported',
-};
+/* --- Domain -> tone mappings ------------------------------------------------ *
+ * Real backend-derived mappings (assumption/blindspot/threshold/experiment
+ * status, confidence, importance) now live in `@/lib/reportModel` -
+ * everything below here is presentational only (the graph's fixed
+ * category set) and unrelated to any backend enum. */
 
 export const graphCategoryTone: Record<GraphCategory, Tone> = {
   decision: 'accent',
@@ -80,49 +64,3 @@ export const graphCategoryLabel: Record<GraphCategory, string> = {
   threshold: 'Threshold',
   outcome: 'Outcome',
 };
-
-export const riskTone: Record<RiskLevel, Tone> = {
-  low: 'success',
-  medium: 'warning',
-  high: 'danger',
-};
-
-export const riskLabel: Record<RiskLevel, string> = {
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-};
-
-export const confidenceTone: Record<Confidence, Tone> = {
-  low: 'danger',
-  medium: 'warning',
-  high: 'success',
-};
-
-export const confidenceLabel: Record<Confidence, string> = {
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-};
-
-export const reversibilityTone: Record<Reversibility, Tone> = {
-  reversible: 'success',
-  'costly-to-reverse': 'warning',
-  irreversible: 'danger',
-};
-
-export const experimentStatusTone: Record<ExperimentStatus, Tone> = {
-  proposed: 'neutral',
-  running: 'info',
-  inconclusive: 'warning',
-  validated: 'success',
-  invalidated: 'danger',
-};
-
-/** Regret index bands: low regret is good, high regret is a red flag. */
-export function regretIndexTone(regretIndex: number): Tone {
-  if (regretIndex >= 75) return 'danger';
-  if (regretIndex >= 50) return 'warning';
-  if (regretIndex >= 25) return 'info';
-  return 'success';
-}

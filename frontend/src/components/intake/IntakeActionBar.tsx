@@ -10,13 +10,15 @@ export interface IntakeActionBarProps {
   id: string;
   canSubmit: boolean;
   onSubmit: () => void;
+  /** True while the decision is being created / evidence is uploading. */
+  submitting?: boolean;
 }
 
 /**
  * Pinned to the bottom of the viewport while the form is in view, so the commit
  * action is always reachable without hunting for it.
  */
-export function IntakeActionBar({ id, canSubmit, onSubmit }: IntakeActionBarProps) {
+export function IntakeActionBar({ id, canSubmit, onSubmit, submitting = false }: IntakeActionBarProps) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -26,9 +28,11 @@ export function IntakeActionBar({ id, canSubmit, onSubmit }: IntakeActionBarProp
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="order-2 text-small text-ink-muted sm:order-1">
-          {canSubmit
-            ? 'Ready. Everything else can be added after the first pass.'
-            : 'Describe the decision to begin the stress test.'}
+          {submitting
+            ? 'Submitting your decision…'
+            : canSubmit
+              ? 'Ready. Everything else can be added after the first pass.'
+              : 'Describe the decision to begin the stress test.'}
         </p>
 
         <div className="order-1 flex items-center gap-3 sm:order-2">
@@ -48,7 +52,8 @@ export function IntakeActionBar({ id, canSubmit, onSubmit }: IntakeActionBarProp
               variant="primary"
               size="md"
               fullWidth
-              rightIcon={ArrowRight}
+              rightIcon={submitting ? undefined : ArrowRight}
+              loading={submitting}
               disabled={!canSubmit}
               onClick={onSubmit}
             >

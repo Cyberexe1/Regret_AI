@@ -15,8 +15,19 @@ function hasSupportedExtension(name: string): boolean {
   return supportedEvidenceExtensions.some((extension) => lower.endsWith(extension));
 }
 
+/**
+ * A locally-attached evidence file, still holding the real browser `File`
+ * so it can actually be uploaded (multipart/form-data) once the decision
+ * this draft belongs to has a real id - see `useDecisionSubmission`.
+ * `DraftEvidenceFile` (metadata only) is derived from this for display and
+ * for the parts of the UI that only need to show name/size.
+ */
+export interface DraftEvidenceFileWithBlob extends DraftEvidenceFile {
+  file: File;
+}
+
 export interface EvidenceFiles {
-  files: DraftEvidenceFile[];
+  files: DraftEvidenceFileWithBlob[];
   /** Rejection messages from the most recent attempt. */
   errors: string[];
   addFiles: (files: File[]) => void;
@@ -27,14 +38,20 @@ export interface EvidenceFiles {
  * Attachment list plus the client-side rules around it. Shared by decision
  * intake and the report's evidence dialog so validation lives in one place.
  *
- * Files never leave the browser; only metadata is retained.
+ * Files stay in the browser until the decision they belong to has a real
+ * id (submission is a two-step "create decision, then upload its
+ * evidence" flow - see `useDecisionSubmission`) - this hook only holds
+ * them locally and validates them client-side in the meantime. Client-side
+ * checks here are a UX convenience only; the backend independently
+ * re-validates extension/size/content on upload and is the source of
+ * truth for what's actually accepted.
  */
 export function useEvidenceFiles(): EvidenceFiles {
-  const [files, setFiles] = useState<DraftEvidenceFile[]>([]);
+  const [files, setFiles] = useState<DraftEvidenceFileWithBlob[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
 
   const addFiles = useCallback((incoming: File[]) => {
-    const accepted: DraftEvidenceFile[] = [];
+    const accepted: DraftEvidenceFileWithBlob[] = [];
     const rejected: string[] = [];
 
     for (const file of incoming) {
@@ -55,6 +72,7 @@ export function useEvidenceFiles(): EvidenceFiles {
         name: file.name,
         size: file.size,
         mimeType: file.type,
+        file,
       });
     }
 
