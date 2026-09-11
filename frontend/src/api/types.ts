@@ -874,6 +874,104 @@ export interface ApiPatternRefreshResponse {
 }
 
 /* -------------------------------------------------------------------------- *
+ * Decision Intelligence Quality & Calibration Engine (REGRET ENGINE 2.0,
+ * Step 24, backend/app/quality/schemas.py and backend/app/quality/calibration.py)
+ * -------------------------------------------------------------------------- */
+
+/** A category's (or the overall) grounding level - never a fabricated
+ * percentage. `insufficient` is distinct from `weak`: it means there
+ * wasn't even enough structured data to judge the category at all, not
+ * that what exists is weak. */
+export type QualityBand = 'strong' | 'moderate' | 'weak' | 'insufficient';
+
+export type QualityCheckStatus = 'passed' | 'warning' | 'failed' | 'not_applicable';
+
+export type QualityCheckSeverity = 'info' | 'low' | 'medium' | 'high' | 'critical';
+
+export type QualityCheckCategory =
+  | 'evidence'
+  | 'assumption'
+  | 'threshold'
+  | 'experiment'
+  | 'provenance'
+  | 'consistency'
+  | 'freshness'
+  | 'historical'
+  | 'completeness';
+
+export interface ApiQualityCheck {
+  check_id: string;
+  category: QualityCheckCategory;
+  name: string;
+  status: QualityCheckStatus;
+  severity: QualityCheckSeverity;
+  message: string;
+  related_entity_type: string | null;
+  related_entity_id: string | null;
+  evidence_ids: string[];
+  recommendation: string | null;
+  created_at: string;
+}
+
+export interface ApiQualityAssessment {
+  quality_id: string;
+  decision_id: string;
+  analysis_run_id: string | null;
+  user_id: string;
+  overall_quality: QualityBand;
+  evidence_quality: QualityBand;
+  assumption_quality: QualityBand;
+  threshold_quality: QualityBand;
+  experiment_quality: QualityBand;
+  provenance_quality: QualityBand;
+  consistency_quality: QualityBand;
+  freshness_quality: QualityBand;
+  historical_learning_quality: QualityBand;
+  blocking_issues: ApiQualityCheck[];
+  warnings: ApiQualityCheck[];
+  strengths: ApiQualityCheck[];
+  checks: ApiQualityCheck[];
+  generated_at: string;
+  methodology_version: string;
+}
+
+/** A descriptive label for the shape of a user's own expectation-vs-
+ * outcome history - never a claim of statistical significance. */
+export type RecurringBias =
+  | 'consistently_overoptimistic'
+  | 'consistently_underoptimistic'
+  | 'mixed'
+  | 'insufficient_history'
+  | 'no_detectable_bias';
+
+/** Descriptive band for how much history backs a calibration
+ * observation - never a fabricated confidence percentage. */
+export type CalibrationEvidenceStrength =
+  | 'limited_history'
+  | 'emerging_calibration'
+  | 'moderate_calibration_evidence'
+  | 'strong_calibration_evidence';
+
+export interface ApiCalibrationInsight {
+  calibration_id: string;
+  user_id: string;
+  variable: string;
+  expected_direction: string | null;
+  observation_count: number;
+  successful_count: number;
+  unsuccessful_count: number;
+  inconclusive_count: number;
+  recurring_bias: RecurringBias;
+  evidence_strength: CalibrationEvidenceStrength;
+  confidence: number;
+  supporting_decision_ids: string[];
+  supporting_learning_ids: string[];
+  explanation: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/* -------------------------------------------------------------------------- *
  * Health (app/schemas/health.py)
  * -------------------------------------------------------------------------- */
 

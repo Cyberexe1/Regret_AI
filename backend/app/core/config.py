@@ -148,6 +148,15 @@ class Settings(BaseSettings):
     # with a long decision history never triggers an unbounded scan.
     learning_max_decisions_scanned: int = 50
 
+    # --- Decision Intelligence Quality & Calibration Engine (REGRET ENGINE 2.0, Step 24) ---
+    # No LLM call, no vector DB - deterministic rule checks over a
+    # decision's own already-persisted records (see app.quality.rules)
+    # and deterministic calibration aggregation over a user's own
+    # completed experiments (see app.quality.calibration). Reuses
+    # `learning_max_decisions_scanned` above as the calibration bound
+    # rather than inventing a second, separate limit for the same kind
+    # of "how much of a user's history to scan" bounding concern.
+
     @property
     def research_enabled(self) -> bool:
         return self.research_provider.strip().lower() not in {"", "none"}

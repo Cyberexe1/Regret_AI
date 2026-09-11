@@ -69,27 +69,34 @@ class QualityCheck(BaseModel):
     """
 
     check_id: str = Field(
-        ..., description="Deterministic, derived from (quality_id, category, name, "
+        ...,
+        description="Deterministic, derived from (quality_id, category, name, "
         "related_entity_id) - re-running the same check against the same record always "
         "produces the same id.",
     )
     category: QualityCheckCategory
-    name: str = Field(..., description="A short, stable rule name, e.g. "
-        "'critical_assumption_has_evidence' - identifies WHICH deterministic rule ran.")
+    name: str = Field(
+        ...,
+        description="A short, stable rule name, e.g. "
+        "'critical_assumption_has_evidence' - identifies WHICH deterministic rule ran.",
+    )
     status: QualityCheckStatus
     severity: QualityCheckSeverity
     message: str = Field(
-        ..., description="Plain-language explanation, built only from the real fields the "
+        ...,
+        description="Plain-language explanation, built only from the real fields the "
         "check inspected - never free-form LLM prose.",
     )
     related_entity_type: str | None = Field(
-        default=None, description="The canonical record kind this check is about, e.g. "
+        default=None,
+        description="The canonical record kind this check is about, e.g. "
         "'assumption', 'threshold', 'experiment', 'evidence_finding'.",
     )
     related_entity_id: str | None = None
     evidence_ids: list[str] = Field(default_factory=list)
     recommendation: str | None = Field(
-        default=None, description="A concrete, actionable next step - only present when the "
+        default=None,
+        description="A concrete, actionable next step - only present when the "
         "check actually found something worth acting on (warning/failed).",
     )
     created_at: datetime
@@ -107,7 +114,8 @@ class QualityAssessment(BaseModel):
     """
 
     quality_id: str = Field(
-        ..., description="Deterministic, derived from (decision_id, analysis_run_id) when an "
+        ...,
+        description="Deterministic, derived from (decision_id, analysis_run_id) when an "
         "analysis run exists, else from (decision_id, generated_at) - re-running the check "
         "with no new evidence and against the same analysis run produces the SAME id.",
     )
@@ -135,7 +143,8 @@ class QualityAssessment(BaseModel):
         "Thresholds connected / ...' checklist (spec section 23).",
     )
     checks: list[QualityCheck] = Field(
-        default_factory=list, description="Every check that ran, regardless of outcome - the "
+        default_factory=list,
+        description="Every check that ran, regardless of outcome - the "
         "full, inspectable audit trail behind the summary fields above.",
     )
     generated_at: datetime

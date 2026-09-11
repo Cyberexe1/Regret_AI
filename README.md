@@ -14,6 +14,15 @@ REGRET ENGINE is decision *validation* infrastructure, not a chatbot and not a r
 Decision → Failure Conditions → Thresholds → Experiment → Re-evaluation
 ```
 
+**Live deployment:**
+
+| | |
+| --- | --- |
+| Frontend (App) | [https://d20l6vg17brb6a.cloudfront.net](https://d20l6vg17brb6a.cloudfront.net) |
+| Backend (API) | [https://usahfepdsw.ap-south-1.awsapprunner.com](https://usahfepdsw.ap-south-1.awsapprunner.com) — interactive docs at [`/docs`](https://usahfepdsw.ap-south-1.awsapprunner.com/docs) |
+
+See [Production deployment](#19-production-deployment) for the full architecture and deployed resource details.
+
 ---
 
 ## Table of contents
@@ -46,9 +55,10 @@ Decision → Failure Conditions → Thresholds → Experiment → Re-evaluation
 26. [REGRET ENGINE 2.0 — Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop)
 27. [REGRET ENGINE 2.0 — Decision Evolution](#27-regret-engine-20--decision-evolution)
 28. [REGRET ENGINE 2.0 — Cross-Decision Learning](#28-regret-engine-20--cross-decision-learning)
-29. [Limitations](#29-limitations)
-30. [Future improvements](#30-future-improvements)
-31. [License](#31-license)
+29. [REGRET ENGINE 2.0 — Decision Intelligence Quality & Calibration](#29-regret-engine-20--decision-intelligence-quality--calibration)
+30. [Limitations](#30-limitations)
+31. [Future improvements](#31-future-improvements)
+32. [License](#32-license)
 
 ---
 
@@ -323,7 +333,13 @@ Amazon CloudFront  →  private S3 bucket (React build)
 AWS App Runner  →  FastAPI  →  DynamoDB / S3 / Bedrock
 ```
 
-Full deployment details — the exact resource names, IAM policies, redeploy commands, and cache/SPA-routing configuration — are documented in [`backend/README.md`](backend/README.md#deployed-on-aws-app-runner) and [`backend/README.md`](backend/README.md#production-frontend-deployment). Live URLs are listed in [`SUBMISSION.md`](SUBMISSION.md) once finalized for this submission.
+| | URL |
+| --- | --- |
+| **Frontend** (CloudFront + private S3) | [https://d20l6vg17brb6a.cloudfront.net](https://d20l6vg17brb6a.cloudfront.net) |
+| **Backend API** (AWS App Runner) | [https://usahfepdsw.ap-south-1.awsapprunner.com](https://usahfepdsw.ap-south-1.awsapprunner.com) |
+| **Backend API docs** (Swagger UI) | [https://usahfepdsw.ap-south-1.awsapprunner.com/docs](https://usahfepdsw.ap-south-1.awsapprunner.com/docs) |
+
+Full deployment details — the exact resource names, IAM policies, redeploy commands, and cache/SPA-routing configuration — are documented in [`backend/README.md`](backend/README.md#deployed-on-aws-app-runner) and [`backend/README.md`](backend/README.md#production-frontend-deployment). Live URLs are also listed in [`SUBMISSION.md`](SUBMISSION.md).
 
 ## 20. Project structure
 
@@ -528,7 +544,7 @@ Three bounded settings (mirroring the existing `research_max_*` bounding pattern
 
 ### What this does not do (yet)
 
-No vector database, no embeddings, no semantic search — similarity is deterministic, lexical, and fully explainable. Value-of-Information prioritization now exists — see the next section. The Adaptive Experiment Loop that acts on a sequence of these rankings over time now exists too — see [Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop). Recurring patterns *across* a user's own decision history now exist too — see [Cross-Decision Learning](#28-regret-engine-20--cross-decision-learning). Learning shared *across* users remains out of scope. See [Future improvements](#30-future-improvements).
+No vector database, no embeddings, no semantic search — similarity is deterministic, lexical, and fully explainable. Value-of-Information prioritization now exists — see the next section. The Adaptive Experiment Loop that acts on a sequence of these rankings over time now exists too — see [Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop). Recurring patterns *across* a user's own decision history now exist too — see [Cross-Decision Learning](#28-regret-engine-20--cross-decision-learning). Learning shared *across* users remains out of scope. See [Future improvements](#31-future-improvements).
 
 ## 25. REGRET ENGINE 2.0 — Value of Information
 
@@ -779,7 +795,78 @@ On the frontend: a **"Patterns across your decisions"** card on the dashboard, a
 
 No vector database, no embeddings, no semantic search infrastructure, no global or cross-user learning, no platform-wide behavioral profiles, and no new agents. This system learns patterns only from the user's own historical decisions — never another user's, and never a shared statistic computed across users.
 
-## 29. Limitations
+## 29. REGRET ENGINE 2.0 — Decision Intelligence Quality & Calibration
+
+> "Analysis quality is not the same as decision quality." A decision can be high quality but poorly evidenced. A decision can be poorly supported even if the AI sounds confident.
+
+Every prior step (18-28) produces structured output — assumptions, thresholds, experiments, results, re-evaluations, memory, historical context, adaptive cycles, an evolution timeline, and cross-decision patterns. None of them ever asks: **how trustworthy is this analysis, right now?** This step ([`backend/app/quality/`](backend/app/quality/)) answers that question, and keeps it strictly separate from a second, different question it never answers:
+
+| Question | Answered by |
+|---|---|
+| "Is this conclusion sufficiently grounded in real, traceable evidence?" | **This step** — analysis quality |
+| "Is this a good decision to make?" | Nothing in REGRET ENGINE — that judgment call always stays with the user |
+
+### No LLM call anywhere in this feature
+
+Every check in [`backend/app/quality/rules.py`](backend/app/quality/rules.py) is deterministic Python over already-persisted, already-structured records built in Steps 1-23 — never a re-judgment by a model, never a fabricated confidence percentage. There is no new agent, no chain-of-thought, and nothing here is exposed as a "REGRET ENGINE is 91% confident" style score.
+
+### Nine quality dimensions, each independently inspectable
+
+| Category | What it checks |
+|---|---|
+| **Evidence** | Every critical assumption has real, resolvable evidence; findings reference a real `Evidence` id; evidence isn't stale or contradicted. |
+| **Assumptions** | Critical/high-importance assumptions aren't left `not_addressed`; confidence is consistent with `evidence_status`. |
+| **Thresholds** | A threshold's `derivation`/`validation_status` is consistent with whether it actually has supporting evidence; never auto-modifies a threshold, only flags it. |
+| **Experiments** | The recommended experiment targets a real, persisted threshold and the decision's actual primary uncertainty — not a mismatched or fabricated target. |
+| **Provenance** | Every id an experiment result, re-evaluation, or cross-decision pattern references actually exists and belongs to the right user — a dangling or cross-user reference is a critical failure, never silently ignored. |
+| **Consistency** | Contradictions across structured records (e.g. an assumption marked "supported" that a later re-evaluation marked "contradicted") — flags the conflict, never decides which record is "correct." |
+| **Freshness** | New evidence or results that arrived after the analysis run completed, with no re-evaluation yet reflecting them. |
+| **Historical learning** | A cross-decision pattern is never allowed to silently outrank the decision's own current evidence; warns when a recommendation's strongest signal is historical rather than current. |
+| **Completeness** | A missing required pipeline stage is a warning; a missing recommended stage is low-severity; a missing optional stage (e.g. Research Agent) is never flagged at all. |
+
+Each category gets its own deterministic `QualityBand` (`strong` / `moderate` / `weak` / `insufficient`) derived directly from that category's own `QualityCheck` results — never an independently-computed number. `insufficient` is deliberately distinct from `weak`: it means there wasn't even enough structured data to judge the category yet (e.g. no thresholds exist), not that what exists is weak. The `overall_quality` band is always the **weakest** category band with any real signal — it can never silently disagree with what a user can inspect right below it (see `overall_band_from_categories` in [`backend/app/quality/service.py`](backend/app/quality/service.py)).
+
+### Evidence hierarchy and provenance validation
+
+Every `QualityCheck` names exactly what it inspected — `related_entity_type`/`related_entity_id` always point at a real record, never a generic "something might be wrong." Provenance checks specifically re-verify that an `ExperimentResult` references a real `Experiment`, a `ReEvaluation` references a real result, and a cross-decision pattern attributed to this decision actually belongs to the same user — a cross-user attribution is treated as a **critical** severity failure, distinct from an ordinary data-quality warning.
+
+### Calibration — expected vs. observed, never a fabricated statistic
+
+[`backend/app/quality/calibration.py`](backend/app/quality/calibration.py) answers a narrower question: when this user expected a variable to cross some threshold, how often did the observed result actually agree? Aggregated strictly within **one user's own** completed experiments/re-evaluations — never across users.
+
+**NO FALSE STATISTICS** — this module never computes or displays a percentage-style calibration score ("REGRET is 94% calibrated") unless the underlying arithmetic is real and disclosed. Every claim is a plain count:
+
+> Do NOT say: "Your predictions are 73% inaccurate."
+> Prefer: "3 of 4 comparable experiments produced outcomes below the original expectation."
+
+A `recurring_bias` label (`consistently_overoptimistic` / `consistently_underoptimistic` / `mixed` / `no_detectable_bias` / `insufficient_history`) is only ever assigned when one direction is at least 70% of decisive (met + missed) observations — a bare 2-out-of-3 majority is labeled `mixed`, never dressed up as a consistent pattern. `evidence_strength` is one of four descriptive bands (`limited_history` / `emerging_calibration` / `moderate_calibration_evidence` / `strong_calibration_evidence`) tied to real observation-count thresholds (2/4/6+), never a fabricated confidence percentage.
+
+### Pipeline and re-evaluation integration — never blocking
+
+The quality engine runs automatically after the analysis pipeline completes (`AnalysisOrchestrator.run_analysis`, after the run is already marked `completed`) and after every experiment result submission (`POST /decisions/{id}/experiments/{experiment_id}/results`) — in both cases wrapped so a quality-check failure can never fail the analysis run or the result submission itself; it is purely additive. The Adaptive Experiment Loop and the Evolution timeline are deliberately **not** modified by this step — the quality engine reads their output, it never writes to or gates them.
+
+### Where it's exposed
+
+| Endpoint | Returns |
+|---|---|
+| `GET /decisions/{id}/quality` | The most recently computed assessment. `404` if none has ever been computed. |
+| `GET /decisions/{id}/quality/history` | Every assessment ever computed for this decision, oldest first — append-only. |
+| `POST /decisions/{id}/quality/check` | Explicitly (re)runs the checks against the decision's current records. |
+| `GET /learning/calibration` | Every calibration insight for the caller's own decision history. |
+| `GET /learning/calibration/{variable}` | One variable's calibration history. `404` if none computed yet. |
+| `POST /learning/calibration/refresh` | Rebuilds the caller's own calibration insights from their current records. |
+
+On the frontend: a **"How strong is this analysis?"** section on the decision report page (overall + 8 category bands, "what should you be careful about?" warnings, and a demo-ready checklist of what's well-grounded), and a **"What your past decisions reveal"** card on the dashboard (expectation-vs-reality per variable, framed as historical evidence, never a prediction).
+
+### DynamoDB records used — no new table
+
+`QualityAssessment` lives in the existing decision partition (`PK=DECISION#<id>`, `SK=QUALITY#<quality_id>`) — append-only, mirroring `ValueOfInformationAnalysis`/`ReEvaluation` exactly, so the full "how much did we trust this analysis, and when" history stays reconstructable. `CalibrationInsight` lives under `PK=USER#<id>`, the same user-scoped partition Step 23's Cross-Decision Learning introduced (`SK=CALIBRATION#<calibration_id>`) — upserted by a deterministic id, since it's a rolling aggregate rather than an append-only history of its own.
+
+### What this does not do
+
+No vector database, no embeddings, no semantic search infrastructure, no global or cross-user learning, no new AWS infrastructure, no autonomous actions, and no new agents. Analysis quality is never conflated with decision quality, and a historical pattern can never outrank a decision's own current evidence.
+
+## 30. Limitations
 
 - AI-generated analysis (assumptions, blindspots, challenges, regret scenarios, thresholds, experiments) can be wrong or incomplete — it reflects what the model inferred from what it was given, not ground truth.
 - A threshold can remain `provisional` or qualitative (no numeric value) when the available evidence doesn't support deriving a specific number — the system never fabricates one to look more concrete.
@@ -790,8 +877,9 @@ No vector database, no embeddings, no semantic search infrastructure, no global 
 - There is no authentication yet; every request is attributed to a single placeholder user id. The data model and every access pattern are already user-scoped so real auth can be added later without rewriting routes.
 - `/analyze` is currently synchronous — the HTTP request blocks until the full ~9-stage pipeline finishes (with generous timeouts and an idempotency guard against duplicate runs), rather than a submit-and-poll background job model.
 - Cross-Decision Learning's normalization (see [Cross-Decision Learning](#28-regret-engine-20--cross-decision-learning)) only groups two decisions' observations together when their structured fields genuinely match after cleanup — it will not recognize that "customer retention" and "repeat purchase behavior" describe a related concept unless a real structured link (e.g. a shared `Assumption.id`) already connects them. This is a deliberate, documented limitation, not a bug: the alternative (semantic/embedding-based clustering) was explicitly out of scope for this step.
+- The [Quality & Calibration Engine](#29-regret-engine-20--decision-intelligence-quality--calibration)'s experiment-alignment check is purely structural (it compares normalized text of the experiment's target variable against the decision's primary uncertainty) — it can flag a false mismatch when an experiment is genuinely well-targeted but described in sufficiently different wording, and it deliberately never falls back to a semantic/LLM judgment call to resolve that ambiguity. Calibration insights also require at least 2 comparable observations before describing any pattern at all — a variable tested only once always reports `insufficient_history`, never a guess.
 
-## 30. Future improvements
+## 31. Future improvements
 
 - An S3-backed `StorageBackend` implementation for evidence, behind the interface that already exists.
 - Move `/analyze` to a genuinely asynchronous, submit-and-poll execution model now that the pipeline has grown to ~9 sequential stages.
@@ -802,7 +890,8 @@ No vector database, no embeddings, no semantic search infrastructure, no global 
 - Cross-User Learning — deliberately out of scope. Value-of-Information prioritization (see [Value of Information](#25-regret-engine-20--value-of-information)), the Adaptive Experiment Loop that acts on it over time (see [Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop)), the Decision Evolution timeline that narrates the result (see [Decision Evolution](#27-regret-engine-20--decision-evolution)), and Cross-Decision Learning across a single user's own history (see [Cross-Decision Learning](#28-regret-engine-20--cross-decision-learning)) now exist; learning shared *across* users does not, and is not planned — every step above is explicitly, structurally scoped to one user's own decisions.
 - Semantic/embedding-based similarity for historical retrieval and pattern normalization, as a richer alternative to today's deterministic, lexical-overlap scoring, should a real need for it emerge.
 - Optional, strictly-bounded LLM-assisted normalization for Cross-Decision Learning (e.g. recognizing that two differently-worded variables describe the same underlying concept) — deliberately deferred; deterministic structured matching is the only method implemented today.
+- The [Quality & Calibration Engine](#29-regret-engine-20--decision-intelligence-quality--calibration) could optionally feed a `QUALITY_ISSUE_DETECTED` event into the Decision Evolution timeline, or let the Adaptive Experiment Loop weigh a low-quality category when selecting the next uncertainty to test — both are real, additive extension points the current design already supports, deliberately left unimplemented in this step to keep the Quality Engine's own responsibilities from ever gating either existing system's behavior.
 
-## 31. License
+## 32. License
 
 [MIT](LICENSE).

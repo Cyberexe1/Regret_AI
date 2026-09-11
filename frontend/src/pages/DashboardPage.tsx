@@ -3,6 +3,7 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { Reveal } from '@/components/Reveal';
 import {
   ActivityTimeline,
+  CalibrationInsightsCard,
   ChartCardFallback,
   CrossDecisionPatternsCard,
   DashboardHeader,
@@ -15,8 +16,10 @@ import {
 } from '@/components/dashboard';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { SkeletonText } from '@/components/ui/Skeleton';
+import { useCalibrationInsights } from '@/hooks/useCalibrationInsights';
 import { useCrossDecisionPatterns } from '@/hooks/useCrossDecisionPatterns';
 import { useDashboard } from '@/hooks/useDashboard';
+import { buildCalibrationInsightRows } from '@/lib/buildQualityAssessment';
 import { buildCrossDecisionPatternRows } from '@/lib/buildCrossDecisionPatterns';
 import {
   buildActivityEvents,
@@ -42,6 +45,7 @@ const PortfolioCard = lazy(async () => {
 export function DashboardPage() {
   const dashboard = useDashboard();
   const crossDecisionPatterns = useCrossDecisionPatterns();
+  const calibrationInsights = useCalibrationInsights();
 
   if (dashboard.status === 'error') {
     return (
@@ -127,12 +131,20 @@ export function DashboardPage() {
           </Reveal>
         </div>
 
-        <Reveal>
-          <CrossDecisionPatternsCard
-            rows={buildCrossDecisionPatternRows(crossDecisionPatterns.data ?? [])}
-            isLoading={crossDecisionPatterns.isLoading}
-          />
-        </Reveal>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Reveal>
+            <CrossDecisionPatternsCard
+              rows={buildCrossDecisionPatternRows(crossDecisionPatterns.data ?? [])}
+              isLoading={crossDecisionPatterns.isLoading}
+            />
+          </Reveal>
+          <Reveal delay={0.06}>
+            <CalibrationInsightsCard
+              rows={buildCalibrationInsightRows(calibrationInsights.data ?? [])}
+              isLoading={calibrationInsights.isLoading}
+            />
+          </Reveal>
+        </div>
 
         <Reveal>
           <RecentDecisionLearningsCard rows={recentLearnings} />

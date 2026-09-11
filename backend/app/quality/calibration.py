@@ -76,23 +76,31 @@ class CalibrationInsight(BaseModel):
     """
 
     calibration_id: str = Field(
-        ..., description="Deterministic, derived from (user_id, normalized variable key) - "
+        ...,
+        description="Deterministic, derived from (user_id, normalized variable key) - "
         "recomputing calibration for the same user/variable always upserts the SAME record.",
     )
     user_id: str
     variable: str
     expected_direction: str | None = Field(
-        default=None, description="The most common real threshold direction observed for "
+        default=None,
+        description="The most common real threshold direction observed for "
         "this variable ('above'/'below'/etc.) - null if inconsistent or unavailable.",
     )
     observation_count: int = Field(..., ge=0)
-    successful_count: int = Field(..., ge=0, description="Observations where the threshold was met.")
-    unsuccessful_count: int = Field(..., ge=0, description="Observations where the threshold was missed.")
+    successful_count: int = Field(
+        ..., ge=0, description="Observations where the threshold was met."
+    )
+    unsuccessful_count: int = Field(
+        ..., ge=0, description="Observations where the threshold was missed."
+    )
     inconclusive_count: int = Field(..., ge=0)
     recurring_bias: RecurringBias
     evidence_strength: CalibrationEvidenceStrength
     confidence: float = Field(
-        ..., ge=0.0, le=1.0,
+        ...,
+        ge=0.0,
+        le=1.0,
         description="How much of this insight rests on real, comparable observations (i.e. "
         "observation_count relative to the strong-evidence bound) - NEVER a probability that "
         "any future prediction will be right.",
@@ -100,7 +108,8 @@ class CalibrationInsight(BaseModel):
     supporting_decision_ids: list[str] = Field(default_factory=list)
     supporting_learning_ids: list[str] = Field(default_factory=list)
     explanation: str = Field(
-        ..., description="Plain-language, count-based summary - e.g. '3 of 4 comparable "
+        ...,
+        description="Plain-language, count-based summary - e.g. '3 of 4 comparable "
         "experiments produced outcomes below the original expectation.' Never a fabricated "
         "percentage.",
     )
@@ -144,7 +153,9 @@ def deterministic_calibration_id(user_id: str, normalized_key: str) -> str:
     return str(uuid5(_CALIBRATION_NAMESPACE, f"{user_id}:{normalized_key}"))
 
 
-def _extract_observations(signals: list[DecisionCalibrationSignals]) -> list[CalibrationObservation]:
+def _extract_observations(
+    signals: list[DecisionCalibrationSignals],
+) -> list[CalibrationObservation]:
     """Deterministically extracts one `CalibrationObservation` per real
     `ThresholdComparison` found across a user's own decisions - never
     fabricated, always traceable to a real `ReEvaluation`."""
@@ -254,9 +265,7 @@ def compute_calibration_insights(
         inconclusive = len(group) - successful - unsuccessful
 
         directions = [o.direction for o in group if o.direction]
-        expected_direction = (
-            max(set(directions), key=directions.count) if directions else None
-        )
+        expected_direction = max(set(directions), key=directions.count) if directions else None
 
         recurring_bias, explanation = _recurring_bias_and_explanation(
             variable, successful, unsuccessful, inconclusive

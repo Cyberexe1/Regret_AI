@@ -355,3 +355,72 @@ export interface ReportChallenge {
   failureMechanism: string | null;
   evidenceBasis: string | null;
 }
+
+/** REGRET ENGINE 2.0's Decision Intelligence Quality Engine (Step 24):
+ * one deterministic check's real result - every field is a real backend
+ * `QualityCheck` field or a deterministic re-labelling of one, see
+ * `buildQualityAssessment.ts`. `message` is always the backend's own
+ * plain-language explanation, copied through verbatim - never rewritten
+ * into a stronger or more definitive claim. */
+export interface QualityCheckRow {
+  checkId: string;
+  category: string;
+  categoryLabel: string;
+  name: string;
+  statusLabel: string;
+  statusTone: Tone;
+  severityLabel: string;
+  message: string;
+  relatedEntityType: string | null;
+  relatedEntityId: string | null;
+  recommendation: string | null;
+}
+
+/** One category's band, paired with a display label/tone - never an
+ * independently-judged number, always the backend's own deterministic
+ * per-category `QualityBand`. */
+export interface QualityCategoryBand {
+  category: string;
+  categoryLabel: string;
+  band: string;
+  bandLabel: string;
+  bandTone: Tone;
+}
+
+/** REGRET ENGINE 2.0's "HOW STRONG IS THIS ANALYSIS?" panel's view
+ * model, built from a real `ApiQualityAssessment` - see
+ * `buildQualityAssessment.ts`. Explicitly separate from decision
+ * quality: this describes how well-grounded the ANALYSIS is, never
+ * whether the decision itself is wise. */
+export interface QualityAssessmentSummary {
+  found: boolean;
+  qualityId: string;
+  overallBandLabel: string;
+  overallBandTone: Tone;
+  categoryBands: QualityCategoryBand[];
+  blockingIssues: QualityCheckRow[];
+  warnings: QualityCheckRow[];
+  strengths: QualityCheckRow[];
+  checks: QualityCheckRow[];
+  generatedAtLabel: string;
+}
+
+/** REGRET ENGINE 2.0's calibration engine (Step 24): one variable's
+ * expected-vs-observed history for the caller's OWN decisions - every
+ * field is a real backend `CalibrationInsight` field or a deterministic
+ * re-labelling of one, see `buildQualityAssessment.ts`. `explanation` is
+ * always the backend's own count-based wording, copied through
+ * verbatim - never a fabricated percentage. */
+export interface CalibrationInsightRow {
+  calibrationId: string;
+  variable: string;
+  biasLabel: string;
+  biasTone: Tone;
+  evidenceStrengthLabel: string;
+  observationCount: number;
+  successfulCount: number;
+  unsuccessfulCount: number;
+  inconclusiveCount: number;
+  explanation: string;
+  supportingDecisionCount: number;
+}

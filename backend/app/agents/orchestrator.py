@@ -98,6 +98,8 @@ from app.learning.service import CrossDecisionLearningService
 from app.memory.historical_context import HistoricalContextService
 from app.memory.memory_repository import MemoryRepository
 from app.memory.similarity_schemas import HistoricalContext
+from app.quality.repository import QualityRepository
+from app.quality.service import QualityService
 from app.repositories.analysis_repository import AnalysisRepository
 from app.repositories.decision_repository import DecisionRepository
 from app.repositories.evidence_repository import EvidenceRepository
@@ -129,6 +131,7 @@ def _get_analysis_semaphore() -> asyncio.Semaphore:
     if _analysis_semaphore is None:
         _analysis_semaphore = asyncio.Semaphore(get_settings().max_concurrent_analyses)
     return _analysis_semaphore
+
 
 _HISTORICAL_CONTEXT = "historical_context"
 _VALUE_OF_INFORMATION = "value_of_information"
@@ -192,6 +195,18 @@ class AnalysisOrchestrator:
         # `ValueOfInformationService._apply_cross_decision_signals`).
         self._cross_decision_learning = CrossDecisionLearningService(
             decision_repository, MemoryRepository(), CrossDecisionLearningRepository()
+        )
+        # REGRET ENGINE 2.0, Step 24: deterministic quality checking, run
+        # additively as the pipeline's final stage - never blocks or
+        # changes this run's own completion status (see
+        # `_run_quality_check`/Stage 9 below).
+        self._quality = QualityService(
+            decision_repository,
+            EvidenceRepository(),
+            analysis_repository,
+            MemoryRepository(),
+            CrossDecisionLearningRepository(),
+            QualityRepository(),
         )
         self._value_of_information = (
             value_of_information_service
@@ -713,7 +728,7 @@ class AnalysisOrchestrator:
                 decision_id, DecisionUpdate(status=DecisionStatus.NEEDS_VALIDATION)
             )
 
-        return self._analyses.update_status(
+        completed_run = self._analyses.update_status(
             decision_id=decision_id,
             run_id=run.id,
             status=AnalysisRunStatus.COMPLETED,
@@ -721,6 +736,29 @@ class AnalysisOrchestrator:
             agent_statuses=agent_statuses,
             result=result,
         )
+
+        # --- Stage 9: Quality Check (REGRET ENGINE 2.0, Step 24, additive) ---
+        # Deterministic - no LLM call, never blocks or fails the run. Runs
+        # AFTER the run is already marked completed (spec section 18: quality
+        # checking happens after the structured pipeline, on its way to the
+        # Decision Report) - a quality-check failure here can never change
+        # this run's own completion status. Mirrors
+        # `_compute_value_of_information`/`_gather_historical_context`'s own
+        # try/except-log-never-block pattern exactly.
+        try:
+            self._run_quality_check(decision_id, user_id)
+        except Exception:  # noqa: BLE001 - quality check is additive; never fail the run
+            logger.exception("Quality check failed decision_id=%s run_id=%s", decision_id, run.id)
+
+        return completed_run
+
+    def _run_quality_check(self, decision_id: UUID, user_id: str) -> None:
+        """Runs the deterministic Quality Engine (`app.quality`) against
+        this decision's just-completed analysis and persists a fresh
+        `QualityAssessment`. Never re-implemented here - this method only
+        delegates to `self._quality`; see `app.quality.service
+        .QualityService.run_quality_check` for the actual checks."""
+        self._quality.run_quality_check(decision_id, user_id)
 
     async def _run_decision_analyzer_step(
         self,
@@ -1227,9 +1265,7 @@ class AnalysisOrchestrator:
                 context.decision, user_id=user_id, historical_context=context.historical_context
             )
         except Exception:  # noqa: BLE001 - never let VOI computation block/fail an analysis run
-            logger.exception(
-                "Value-of-Information computation failed decision_id=%s", decision_id
-            )
+            logger.exception("Value-of-Information computation failed decision_id=%s", decision_id)
             return None
 
     @staticmethod

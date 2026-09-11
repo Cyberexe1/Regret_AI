@@ -95,5 +95,5 @@ End on that screen. Do not add additional feature callouts after this line — t
 
 - Use the live production URL (CloudFront), not localhost, so judges can independently verify the deployment.
 - The analysis stage takes roughly 45–90 seconds against real Bedrock calls. Either record it at real speed to demonstrate it's genuinely live, or speed up only that segment in post — never fake the stage-by-stage progress with a mocked animation.
-- If a run produces zero recommended experiments (the Experiment Planner is explicitly allowed to decline rather than fabricate one — see [`README.md` Limitations](../README.md#29-limitations)), re-run the analysis rather than improvising a fake experiment on screen. The demo data in `docs/DEMO_DATA.md` is chosen specifically because it reliably produces a rich threshold + experiment story.
+- If a run produces zero recommended experiments (the Experiment Planner is explicitly allowed to decline rather than fabricate one — see [`README.md` Limitations](../README.md#30-limitations)), re-run the analysis rather than improvising a fake experiment on screen. The demo data in `docs/DEMO_DATA.md` is chosen specifically because it reliably produces a rich threshold + experiment story.
 - Clean up the demo decision after recording (`DELETE /decisions/{id}`) so the production database doesn't accumulate test data.

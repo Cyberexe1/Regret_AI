@@ -13,6 +13,7 @@ import {
   DecisionMemoryPanel,
   DecisionSnapshot,
   HistoricalInsightsPanel,
+  QualityAssessmentPanel,
   RecommendationPanel,
   ReportActions,
   ReportHeader,
@@ -33,6 +34,7 @@ import { useAdaptiveState } from '@/hooks/useAdaptiveState';
 import { useDecisionById } from '@/hooks/useDecisionById';
 import { useDecisionEvolution } from '@/hooks/useDecisionEvolution';
 import { useDecisionMemory } from '@/hooks/useDecisionMemory';
+import { useDecisionQuality } from '@/hooks/useDecisionQuality';
 import { useDecisionReportData } from '@/hooks/useDecisionReportData';
 import { useHistoricalContext } from '@/hooks/useHistoricalContext';
 import { usePatternsForDecision } from '@/hooks/usePatternsForDecision';
@@ -42,6 +44,7 @@ import { buildCrossDecisionPatternRows } from '@/lib/buildCrossDecisionPatterns'
 import { buildDecisionEvolutionSummary } from '@/lib/buildDecisionEvolution';
 import { buildDecisionMemorySummary, buildMemoryTimeline } from '@/lib/buildDecisionMemory';
 import { buildHistoricalContext, EMPTY_HISTORICAL_SUMMARY } from '@/lib/buildHistoricalContext';
+import { buildQualityAssessmentSummary } from '@/lib/buildQualityAssessment';
 import { buildValueOfInformation } from '@/lib/buildValueOfInformation';
 import { cn } from '@/lib/cn';
 import {
@@ -64,6 +67,7 @@ export function DecisionDetailPage() {
   const adaptiveActions = useAdaptiveActions();
   const evolutionState = useDecisionEvolution(id);
   const patternsState = usePatternsForDecision(id);
+  const qualityState = useDecisionQuality(id);
 
   if (!id) return <DecisionNotFound id={id} />;
 
@@ -341,7 +345,18 @@ export function DecisionDetailPage() {
           />
         </ReportSection>
 
-        <ReportSection index="14" title="Actions" className={cn('print:hidden')}>
+        <ReportSection
+          index="14"
+          title="Analysis Quality"
+          description="How strong is this analysis? A deterministic, inspectable self-assessment of how well-grounded the current evidence, assumptions, and thresholds are - not a re-judgment of whether the decision itself is wise."
+        >
+          <QualityAssessmentPanel
+            summary={buildQualityAssessmentSummary(qualityState.data ?? null)}
+            isLoading={qualityState.isLoading}
+          />
+        </ReportSection>
+
+        <ReportSection index="15" title="Actions" className={cn('print:hidden')}>
           <ReportActions decisionId={decision.id} onEvidenceUploaded={reportState.refetch} />
         </ReportSection>
       </div>

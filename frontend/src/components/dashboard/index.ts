@@ -1,4 +1,6 @@
 export { ActivityTimeline } from './ActivityTimeline';
+export { CalibrationInsightsCard } from './CalibrationInsightsCard';
+export type { CalibrationInsightsCardProps } from './CalibrationInsightsCard';
 export { ChartCardFallback } from './ChartCardFallback';
 export { CrossDecisionPatternsCard } from './CrossDecisionPatternsCard';
 export type { CrossDecisionPatternsCardProps } from './CrossDecisionPatternsCard';

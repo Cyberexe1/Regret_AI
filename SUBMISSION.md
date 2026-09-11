@@ -50,7 +50,7 @@ The differentiation isn't "we use multiple agents." It's the specific artifacts 
 - **AI orchestration:** [Strands Agents SDK](https://strandsagents.com/) (`strands-agents` on PyPI) — every pipeline stage is a real `strands.Agent` with a `structured_output_model`.
 - **Model provider:** Amazon Bedrock, Amazon Nova Pro via the cross-region inference profile `apac.amazon.nova-pro-v1:0`.
 - **Persistence:** Amazon DynamoDB, single-table design.
-- **Storage:** Amazon S3 (a dedicated, private evidence bucket is provisioned and IAM-permissioned; the active storage backend today is local disk inside the container — see the main [README's Limitations section](README.md#29-limitations)).
+- **Storage:** Amazon S3 (a dedicated, private evidence bucket is provisioned and IAM-permissioned; the active storage backend today is local disk inside the container — see the main [README's Limitations section](README.md#30-limitations)).
 - **Compute:** AWS App Runner (containerized FastAPI, pulling from a private Amazon ECR repository, IAM instance role, no AWS access keys).
 - **Frontend hosting:** Amazon CloudFront in front of a private Amazon S3 bucket (Origin Access Control).
 - **External research (optional):** a built-in DuckDuckGo HTML-search provider, no API key required, disabled by default (`RESEARCH_PROVIDER=none`).
@@ -91,7 +91,9 @@ Anyone facing a real, uncertain, moderately costly decision — starting a small
 
 ## Demo
 
-**LIVE DEMO URL:** [https://d20l6vg17brb6a.cloudfront.net]
+**LIVE DEMO URL (frontend):** [https://d20l6vg17brb6a.cloudfront.net](https://d20l6vg17brb6a.cloudfront.net)
+
+**LIVE API URL (backend):** [https://usahfepdsw.ap-south-1.awsapprunner.com](https://usahfepdsw.ap-south-1.awsapprunner.com) — interactive docs at [`/docs`](https://usahfepdsw.ap-south-1.awsapprunner.com/docs)
 
 **SOURCE CODE:** [ADD PUBLIC REPOSITORY URL]
 

@@ -8,6 +8,8 @@ export { useAnalysisPolling } from './useAnalysisPolling';
 export { useAnalysisRun } from './useAnalysisRun';
 export { useDecisionEvolution } from './useDecisionEvolution';
 export { useEvolutionDelta } from './useEvolutionDelta';
+export { useDecisionQuality } from './useDecisionQuality';
+export { useCalibrationInsights } from './useCalibrationInsights';
 export { useDashboard } from './useDashboard';
 export { useDecisionById } from './useDecisionById';
 export { useDecisionHistory } from './useDecisionHistory';

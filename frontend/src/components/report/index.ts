@@ -33,6 +33,8 @@ export { ReportSection } from './ReportSection';
 export type { ReportSectionProps } from './ReportSection';
 export { MemoryTimeline } from './MemoryTimeline';
 export type { MemoryTimelineProps } from './MemoryTimeline';
+export { QualityAssessmentPanel } from './QualityAssessmentPanel';
+export type { QualityAssessmentPanelProps } from './QualityAssessmentPanel';
 export { ScenarioCards } from './ScenarioCards';
 export type { ScenarioCardsProps } from './ScenarioCards';
 export { ThresholdCard } from './ThresholdCard';

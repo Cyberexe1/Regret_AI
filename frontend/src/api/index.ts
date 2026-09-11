@@ -4,6 +4,7 @@ export * as adaptiveApi from './adaptive';
 export * as decisionsApi from './decisions';
 export * as evolutionApi from './evolution';
 export * as learningApi from './learning';
+export * as qualityApi from './quality';
 export * as evidenceApi from './evidence';
 export * as analysisApi from './analysis';
 export * as experimentsApi from './experiments';

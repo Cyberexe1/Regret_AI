@@ -27,6 +27,7 @@ from app.dependencies.adaptive import AdaptiveExperimentServiceDep
 from app.dependencies.decisions import CurrentUserIdDep, DecisionServiceDep
 from app.dependencies.experiments import ExperimentServiceDep, ReEvaluationServiceDep
 from app.dependencies.memory import MemoryServiceDep
+from app.dependencies.quality import QualityServiceDep
 from app.dependencies.value_of_information import ValueOfInformationServiceDep
 from app.schemas.decision_resources import AnalysisRunStatus, Experiment
 from app.schemas.decision_resources import ExperimentResult as StoredExperimentResult
@@ -101,6 +102,7 @@ async def submit_experiment_result(
     memory_service: MemoryServiceDep,
     voi_service: ValueOfInformationServiceDep,
     adaptive_service: AdaptiveExperimentServiceDep,
+    quality_service: QualityServiceDep,
     decision_service: DecisionServiceDep,
     user_id: CurrentUserIdDep,
 ) -> ExperimentResultResponse:
@@ -179,6 +181,21 @@ async def submit_experiment_result(
     except Exception:  # noqa: BLE001 - adaptive bookkeeping is additive; never fail the submission
         logger.exception(
             "Adaptive state update failed decision_id=%s experiment_id=%s result_id=%s",
+            experiment.decision_id,
+            experiment_id,
+            result.id,
+        )
+
+    try:
+        # REGRET ENGINE 2.0 (Step 24): re-runs the deterministic quality
+        # checks now that a new result/re-evaluation exists - e.g. a
+        # threshold that was merely "moderate" quality before may now be
+        # "strong" (a real comparison exists), or a new inconsistency may
+        # have appeared. Never blocks the submission itself.
+        quality_service.run_quality_check(experiment.decision_id, user_id)
+    except Exception:  # noqa: BLE001 - quality check is additive; never fail the submission
+        logger.exception(
+            "Quality check failed decision_id=%s experiment_id=%s result_id=%s",
             experiment.decision_id,
             experiment_id,
             result.id,
