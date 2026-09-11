@@ -131,6 +131,23 @@ class Settings(BaseSettings):
     # stopping reason rather than silently continuing forever.
     max_adaptive_cycles: int = 8
 
+    # --- Decision Evolution & Causal Timeline (REGRET ENGINE 2.0, Step 22) ----
+    # Upper bound on how many events one `GET /decisions/{id}/evolution`
+    # response ever returns. When a decision's real history exceeds this,
+    # the OLDEST events are dropped first (never the most recent ones), so
+    # "what changed most recently" always stays visible - see
+    # app.evolution.service.DecisionEvolutionService.get_evolution.
+    evolution_max_events: int = 200
+
+    # --- Cross-Decision Learning Engine (REGRET ENGINE 2.0, Step 23) ----------
+    # No LLM call, no vector DB, no embeddings - deterministic pattern
+    # detection over a user's own past decisions only (see
+    # app.learning.pattern_detector). Bounds how many of the user's own
+    # most recent decisions one `refresh_patterns()` call considers -
+    # mirrors `historical_search_limit`'s own bounding pattern so a user
+    # with a long decision history never triggers an unbounded scan.
+    learning_max_decisions_scanned: int = 50
+
     @property
     def research_enabled(self) -> bool:
         return self.research_provider.strip().lower() not in {"", "none"}

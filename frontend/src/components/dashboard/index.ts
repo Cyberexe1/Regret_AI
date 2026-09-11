@@ -1,5 +1,7 @@
 export { ActivityTimeline } from './ActivityTimeline';
 export { ChartCardFallback } from './ChartCardFallback';
+export { CrossDecisionPatternsCard } from './CrossDecisionPatternsCard';
+export type { CrossDecisionPatternsCardProps } from './CrossDecisionPatternsCard';
 export { DashboardHeader } from './DashboardHeader';
 export type { DashboardHeaderProps } from './DashboardHeader';
 export { HistoricalLessonsCard } from './HistoricalLessonsCard';

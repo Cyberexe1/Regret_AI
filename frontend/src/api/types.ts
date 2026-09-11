@@ -585,6 +585,9 @@ export type ValueBand = 'very_low' | 'low' | 'medium' | 'high' | 'very_high' | '
 
 export type ThresholdLinkStatus = 'linked' | 'not_established';
 
+/** REGRET ENGINE 2.0, Step 23 - see backend/app/learning/schemas.py. */
+export type HistoricalLearningSignal = 'none' | 'weak' | 'moderate' | 'strong';
+
 export interface ApiValueOfInformationItem {
   uncertainty_id: string;
   title: string;
@@ -605,6 +608,11 @@ export interface ApiValueOfInformationItem {
   reversibility: string | null;
   historical_relevance: HistoricalRelevance;
   prior_learning_count: number;
+  /** REGRET ENGINE 2.0, Step 23: how strongly a recurring Cross-Decision
+   * Pattern bears on this uncertainty's variable - a tiebreaker-strength
+   * signal only, never something that overrides current evidence. */
+  historical_learning_signal: HistoricalLearningSignal;
+  historical_learning_explanation: string | null;
   threshold_status: ThresholdLinkStatus;
   information_value: ValueBand;
   practical_value: ValueBand;
@@ -700,6 +708,169 @@ export type AdvanceOutcome =
 export interface ApiAdaptiveAdvanceResponse {
   state: ApiAdaptiveExperimentState;
   outcome: AdvanceOutcome;
+}
+
+/* -------------------------------------------------------------------------- *
+ * Decision Evolution & Causal Timeline (REGRET ENGINE 2.0, Step 22,
+ * backend/app/evolution/schemas.py)
+ * -------------------------------------------------------------------------- */
+
+export type EvolutionEventType =
+  | 'decision_created'
+  | 'analysis_completed'
+  | 'assumption_identified'
+  | 'blindspot_identified'
+  | 'regret_scenario_identified'
+  | 'threshold_identified'
+  | 'experiment_recommended'
+  | 'experiment_started'
+  | 'experiment_completed'
+  | 'experiment_result'
+  | 'threshold_validated'
+  | 'threshold_failed'
+  | 're_evaluation'
+  | 'assessment_changed'
+  | 'learning_recorded'
+  | 'next_experiment_selected'
+  | 'validation_state_changed'
+  | 'decision_completed'
+  | 'historical_insight_surfaced';
+
+/** How much this event mattered to the decision's overall evolution -
+ * used only to decide what counts as a "major change", never a severity
+ * score presented as a statistic. */
+export type EvolutionImpact = 'minor' | 'moderate' | 'major';
+
+export interface ApiDecisionEvolutionEvent {
+  event_id: string;
+  decision_id: string;
+  cycle_number: number | null;
+  event_type: EvolutionEventType;
+  timestamp: string;
+  title: string;
+  summary: string;
+  source_type: string;
+  source_id: string;
+  impact: EvolutionImpact;
+  previous_state: string | null;
+  new_state: string | null;
+  reason: string | null;
+  affected_assumption_ids: string[];
+  affected_threshold_ids: string[];
+  affected_experiment_ids: string[];
+  affected_regret_scenario_ids: string[];
+  evidence_ids: string[];
+  is_historical: boolean;
+}
+
+export interface ApiDecisionDelta {
+  changed: boolean;
+  assessment_changed: boolean;
+  assumptions_changed: string[];
+  thresholds_changed: string[];
+  uncertainties_changed: string[];
+  experiments_changed: string[];
+  learnings_added: string[];
+  explanation: string;
+}
+
+export interface ApiDecisionEvolution {
+  decision_id: string;
+  user_id: string;
+  current_assessment: string;
+  current_cycle: number | null;
+  total_cycles: number;
+  timeline: ApiDecisionEvolutionEvent[];
+  major_changes: ApiDecisionEvolutionEvent[];
+  current_uncertainties: string[];
+  validated_thresholds: string[];
+  failed_thresholds: string[];
+  current_primary_uncertainty: string | null;
+  truncated: boolean;
+  generated_at: string;
+}
+
+/* -------------------------------------------------------------------------- *
+ * Cross-Decision Learning Engine (REGRET ENGINE 2.0, Step 23,
+ * backend/app/learning/schemas.py)
+ * -------------------------------------------------------------------------- */
+
+export type PatternType =
+  | 'recurring_failed_assumption'
+  | 'recurring_validated_assumption'
+  | 'recurring_threshold_failure'
+  | 'recurring_threshold_validation'
+  | 'recurring_uncertainty'
+  | 'recurring_experiment_learning'
+  | 'recurring_experiment_success'
+  | 'recurring_experiment_failure'
+  | 'recurring_unresolved_question'
+  | 'recurring_unexpected_result';
+
+export type PatternStatus = 'emerging' | 'repeated' | 'established' | 'contradicted' | 'inactive';
+
+export type PatternConfidence = 'low' | 'medium' | 'high';
+
+export type OccurrenceRelation = 'supports' | 'contradicts' | 'partially_supports';
+
+export interface ApiCrossDecisionPattern {
+  pattern_id: string;
+  user_id: string;
+  pattern_type: PatternType;
+  title: string;
+  statement: string;
+  normalized_key: string;
+  variable: string | null;
+  domain: string | null;
+  decision_types: string[];
+  occurrence_count: number;
+  supporting_decision_ids: string[];
+  supporting_learning_ids: string[];
+  supporting_experiment_ids: string[];
+  supporting_threshold_ids: string[];
+  contradicting_decision_ids: string[];
+  evidence_count: number;
+  confidence: PatternConfidence;
+  confidence_basis: string;
+  first_seen_at: string;
+  last_seen_at: string;
+  status: PatternStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiPatternOccurrence {
+  occurrence_id: string;
+  pattern_id: string;
+  user_id: string;
+  decision_id: string;
+  learning_id: string | null;
+  source_type: string;
+  source_id: string;
+  observation: string;
+  observed_at: string;
+  relation: OccurrenceRelation;
+  confidence: number;
+}
+
+export interface ApiCrossDecisionPatternDetail {
+  pattern: ApiCrossDecisionPattern;
+  occurrences: ApiPatternOccurrence[];
+  supporting_occurrences: ApiPatternOccurrence[];
+  contradicting_occurrences: ApiPatternOccurrence[];
+}
+
+export interface ApiCrossDecisionPatternListResponse {
+  patterns: ApiCrossDecisionPattern[];
+}
+
+export interface ApiPatternRefreshResponse {
+  user_id: string;
+  patterns_created: number;
+  patterns_updated: number;
+  patterns_unchanged: number;
+  total_patterns: number;
+  refreshed_at: string;
 }
 
 /* -------------------------------------------------------------------------- *

@@ -44,9 +44,11 @@ Decision → Failure Conditions → Thresholds → Experiment → Re-evaluation
 24. [REGRET ENGINE 2.0 — Historical Decision Intelligence](#24-regret-engine-20--historical-decision-intelligence)
 25. [REGRET ENGINE 2.0 — Value of Information](#25-regret-engine-20--value-of-information)
 26. [REGRET ENGINE 2.0 — Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop)
-27. [Limitations](#27-limitations)
-28. [Future improvements](#28-future-improvements)
-29. [License](#29-license)
+27. [REGRET ENGINE 2.0 — Decision Evolution](#27-regret-engine-20--decision-evolution)
+28. [REGRET ENGINE 2.0 — Cross-Decision Learning](#28-regret-engine-20--cross-decision-learning)
+29. [Limitations](#29-limitations)
+30. [Future improvements](#30-future-improvements)
+31. [License](#31-license)
 
 ---
 
@@ -526,7 +528,7 @@ Three bounded settings (mirroring the existing `research_max_*` bounding pattern
 
 ### What this does not do (yet)
 
-No vector database, no embeddings, no semantic search — similarity is deterministic, lexical, and fully explainable. Value-of-Information prioritization now exists — see the next section. The Adaptive Experiment Loop that acts on a sequence of these rankings over time now exists too — see [Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop). Cross-Decision Learning beyond one user's own history (i.e. learning shared *across* users) remains out of scope. See [Future improvements](#28-future-improvements).
+No vector database, no embeddings, no semantic search — similarity is deterministic, lexical, and fully explainable. Value-of-Information prioritization now exists — see the next section. The Adaptive Experiment Loop that acts on a sequence of these rankings over time now exists too — see [Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop). Recurring patterns *across* a user's own decision history now exist too — see [Cross-Decision Learning](#28-regret-engine-20--cross-decision-learning). Learning shared *across* users remains out of scope. See [Future improvements](#30-future-improvements).
 
 ## 25. REGRET ENGINE 2.0 — Value of Information
 
@@ -654,7 +656,130 @@ On the frontend, a decision's report page has a **"Decision validation"** sectio
 
 The adaptive loop sequences experiments *within* one decision, one cycle at a time, and never on its own initiative: it never starts, runs, or submits results for an experiment automatically — a human always runs the real-world test and reports what happened. It does not learn across different users' decisions (see [Historical Decision Intelligence](#24-regret-engine-20--historical-decision-intelligence) for same-user history, which is as far as learning currently reaches), and it does not introduce any new infrastructure — `AdaptiveExperimentState` lives in the exact same single-table DynamoDB design as every other entity (`PK=DECISION#<id>`, `SK=ADAPTIVE_STATE#<state_id>`).
 
-## 27. Limitations
+## 27. REGRET ENGINE 2.0 — Decision Evolution
+
+> "REGRET ENGINE doesn't only show the final assessment. It preserves the journey — what we believed, what we tested, what we observed, what changed, what we learned, and what we test next."
+
+Steps 18-21 each produce their own piece of a decision's history: memory (18), historical comparisons (19), a value-of-information ranking (20), and a sequence of adaptive cycles (21). None of them answer, in one place, the question a user actually asks after several rounds of testing: **"What changed my mind? Why did the system change its assessment? What evidence caused that change?"** This step ([`backend/app/evolution/service.py`](backend/app/evolution/service.py), [`backend/app/evolution/schemas.py`](backend/app/evolution/schemas.py), [`backend/app/evolution/repository.py`](backend/app/evolution/repository.py)) answers exactly that, by assembling the full causal chain:
+
+```
+WHAT WE BELIEVED → WHAT WE TESTED → WHAT WE OBSERVED →
+WHAT CHANGED → WHAT WE LEARNED → WHAT WE TEST NEXT
+```
+
+### A view, never a second event database
+
+The evolution timeline is not a new persisted entity. `backend/app/evolution/repository.py` holds no `create_*` method at all — it only reads from the repositories every prior step already built (`DecisionRepository`, `AnalysisRepository`, `EvidenceRepository`, `MemoryRepository`, `ValueOfInformationRepository`, `AdaptiveStateRepository`), and `DecisionEvolutionService` recomputes the ordered timeline from those real records on every request. There is nothing to keep in sync and nothing that can drift from the canonical data, because there is no copy of it — the timeline is a deterministic *view*, not a log a separate write path could get out of step with.
+
+### Provenance, not a generic activity log
+
+Every `DecisionEvolutionEvent` traces back to one specific canonical record via `source_type`/`source_id` (a real `Threshold`, `ExperimentResult`, `ReEvaluation`, `MemoryLearning`, or `AdaptiveExperimentState` id) — never a fabricated summary. `previous_state`/`new_state` are populated only when the source record itself carries a real before/after pair: a `ReEvaluation`'s own `previous_assessment`/`new_assessment`, or a threshold comparison's own met/missed outcome. An event like "Retention assumption weakened" is only ever emitted alongside its real trigger ("Experiment Result #X: observed repeat-order rate below threshold") and its real reason (the threshold comparison's own explanation) — REGRET ENGINE never states a causal claim ("the experiment proved customers disliked the product") that the underlying data doesn't itself support. Not every database write becomes an event, either: a re-evaluation that changed nothing produces no `assessment_changed`/`threshold_validated`/`threshold_failed` event, mirroring the same "only emit what actually changed" discipline the Adaptive Experiment Loop already applies to its own threshold-state bookkeeping.
+
+### Decision Delta — "what changed?" as a structured comparison
+
+`DecisionDelta` turns one event into a deterministic before/after comparison — which assumptions, thresholds, uncertainties, and experiments were affected, whether the overall assessment changed, and a plain-language explanation built only from those fields, never free-form prose. This is exposed both inline in the timeline (every state-changing event already carries its own previous/new state) and as its own endpoint for a specific event.
+
+### Where it's exposed
+
+| Endpoint | Returns |
+|---|---|
+| `GET /decisions/{decision_id}/evolution` | The complete picture in one bounded call: current assessment, current cycle, the full (bounded) timeline oldest-first, a compact "major changes" list, current unresolved uncertainties, and validated/failed thresholds. Never one call per event — see the performance note below. |
+| `GET /decisions/{decision_id}/evolution/{event_id}` | Full detail for one specific event. |
+| `GET /decisions/{decision_id}/evolution/{event_id}/delta` | The structured `DecisionDelta` for that event. |
+
+Bounded by `EVOLUTION_MAX_EVENTS` (default 200): a decision with a very long history keeps only its most recent events rather than loading an ever-growing, unbounded list — the response's own `truncated` flag says so explicitly rather than silently dropping history without telling the caller.
+
+On the frontend, a decision's report page has a **"Decision Evolution"** section — deliberately not styled like a generic activity feed: a summary stats block (current assessment, cycles completed, uncertainties resolved/remaining, experiments completed), a vertical timeline with larger markers and an explicit "→" on every state-changing event, a compact **"Major Changes"** list (only events with real, meaningful impact — never every threshold/assumption record), and a closing **"Current State"** block that connects back to Step 21's adaptive loop. Clicking any timeline event opens a detail panel showing the reusable **`DecisionDeltaCard`** ("What changed?" — before/after/trigger/evidence) and, when the event references a real tested assumption, a **"What we believed" vs "What we learned"** block. Any historical insight surfaced from a *different* past decision (Step 19) is always labeled **HISTORICAL** and is never rendered as current evidence for this decision.
+
+### Performance
+
+The whole section renders from the single `GET .../evolution` call above — the frontend never issues one request per timeline event. Event-detail and decision-delta lookups only fire when a user actually opens a specific event's panel.
+
+### What this does not do
+
+Decision Evolution narrates what Steps 18-21 already decided and persisted — it contains no scoring, no ranking, and no cycle-selection logic of its own, and it never claims a causal relationship the source data doesn't establish. It is strictly per-decision; it does not compare or learn across a user's other decisions (that remains [Cross-Decision Learning](#28-regret-engine-20--cross-decision-learning)'s job, below), and it introduces no new infrastructure or database — the timeline is computed, never stored.
+
+## 28. REGRET ENGINE 2.0 — Cross-Decision Learning
+
+> "This system learns patterns only from the user's own historical decisions. It does not perform cross-user learning."
+
+Step 19 ([Historical Decision Intelligence](#24-regret-engine-20--historical-decision-intelligence)) answers "which past decisions are relevant to *this* decision?" This step ([`backend/app/learning/`](backend/app/learning/)) answers a different question: **what keeps happening across *all* of a user's decisions?** A repeatedly-underperforming retention assumption, a threshold that keeps failing, an uncertainty that never gets tested, an experiment type that keeps paying off — patterns visible only when looking across a whole decision history, never from one decision alone.
+
+```
+Step 19:  Current Decision → "Which past decisions are similar?"
+Step 28:  All Past Decisions → "What keeps recurring across them?"
+```
+
+### No generic AI-generated "insight" — every pattern is traceable
+
+There is no LLM call anywhere in this feature. A `CrossDecisionPattern` is only ever created from real, already-persisted records — `DecisionMemory`, `MemoryLearning`, `ExperimentResult`, `ReEvaluation`, `Threshold` — via a `PatternOccurrence` provenance chain:
+
+```
+Pattern → Supporting decisions → Supporting learnings → Original experiment/re-evaluation evidence
+```
+
+Every pattern can always answer "why did REGRET learn this?" with real record ids (`GET /learning/patterns/{id}` returns every occurrence, its source type, and its source id) — never a fabricated citation.
+
+### Deterministic normalization, never uncontrolled semantic clustering
+
+Two decisions' observations are only ever grouped into the same pattern when their structured fields genuinely match after cleanup (lowercase, strip punctuation, drop a short stopword list, sort remaining tokens — see [`backend/app/learning/normalization.py`](backend/app/learning/normalization.py)) — never a semantic/embedding-based guess about what two differently-worded variables "probably mean." "Customer retention rate" and "repeat purchase behavior" are deliberately **not** merged unless a real, already-persisted link (e.g. both point at the same `Assumption.id`) says they should be — recognizing that kind of relationship without one is an explicit, documented limitation of this step, not a silent gap.
+
+### Minimum evidence and pattern lifecycle
+
+No pattern is ever created from a single decision. The deterministic policy:
+
+| Independent supporting decisions | Result |
+|---|---|
+| 1 | No pattern at all |
+| 2 | `emerging` / `repeated` |
+| 3+, consistent | `established` |
+| Contradicting evidence outweighs support | `confidence` lowered, status moves toward `contradicted` |
+
+These are heuristics, never a statistical significance test — nothing in this feature computes or displays a p-value, a confidence interval, or a fabricated percentage ("87% likely"). `confidence` is one of three qualitative bands (`low`/`medium`/`high`), weighted toward **observed** evidence (real experiment results, re-evaluations) over speculative analysis-time assumptions alone — see the evidence hierarchy below. A pattern that becomes `inactive` (no supporting evidence remains after a refresh) is never deleted; its full history stays queryable, per the "preserve provenance" principle carried through every REGRET ENGINE 2.0 step.
+
+### Conflict handling — mixed evidence is shown as mixed
+
+Three decisions where an assumption was validated twice and failed once never collapse into "this assumption always holds." The dominant direction (2 vs 1) becomes the pattern, but the contradicting decision is recorded and surfaced alongside it (`contradicting_decision_ids`, plus a `contradicted` status and lowered confidence when contradictions are strong enough) — see spec's own example: "Retention outcomes have been mixed across your past decisions," never "Retention assumptions fail."
+
+### Evidence hierarchy — cross-decision learning is context, never authority
+
+1. Observed experiment results
+2. Re-evaluation outcomes
+3. Validated/failed thresholds
+4. Explicit memory learnings
+5. Historical analysis
+6. Similarity/inference
+
+A recurring pattern from a user's history can **never** override the current decision's own evidence, a real threshold, or a deterministic calculation. This is enforced structurally, not by convention: `historical_learning_signal` (see below) is applied to a Value-of-Information ranking strictly as a tiebreaker-strength enrichment *after* the deterministic VOI formula has already ranked every uncertainty — it can never change `practical_value` or reorder the ranking itself.
+
+### User isolation — absolute, structural, and tested
+
+Every pattern lives under `PK=USER#<user_id>` in the existing single-table DynamoDB design (no new table, no vector DB, no Redis, no PostgreSQL) — the partition key itself *is* the user id, so a query for one user's patterns cannot structurally return another's. `PatternOccurrence` rows live in the same user partition. Every repository method requires `user_id`; there is no method anywhere in [`backend/app/learning/repository.py`](backend/app/learning/repository.py) that lists patterns without one. Dedicated tests (`test_learning_repository.py`, `test_learning_service.py`) confirm User A can never retrieve, or even accidentally collide with, User B's patterns or occurrences — including the case where both users' deterministic pattern ids happen to be identical.
+
+### Integration with Value of Information and the Experiment Planner
+
+When a recurring pattern names the same variable as an uncertainty in a fresh VOI ranking, that item's `historical_learning_signal` (`none`/`weak`/`moderate`/`strong`) and a plain-language `historical_learning_explanation` are attached — a failed/underperforming or recurring-unresolved pattern raises the signal (worth testing early); a validated/successful pattern lowers it (already well understood). The Experiment Planner receives this the same way it already receives the Step 20 VOI hint — as rule 14 in its own system prompt, a strong preference it may still override, and it is explicitly instructed never to recommend an experiment *solely* because a pattern was common historically; it must still target a real, current threshold.
+
+### Refresh is explicit, never automatic on every read
+
+`GET /learning/patterns`, `GET /learning/patterns/{id}`, and `GET /decisions/{id}/patterns` only ever return whatever the last refresh computed — they never trigger detection themselves. `POST /learning/patterns/refresh` is the one operation that (re)computes patterns, idempotently (a deterministic `pattern_id`/`occurrence_id` means re-running with no new evidence reports `patterns_unchanged`, never a duplicate), and bounded to the user's own most recent `LEARNING_MAX_DECISIONS_SCANNED` decisions (default 50) so it never scans an unbounded history.
+
+### Where it's exposed
+
+| Endpoint | Returns |
+|---|---|
+| `GET /learning/patterns` | Every pattern for the caller's own decisions, with optional `pattern_type`/`status`/`domain`/`variable` filters. |
+| `GET /learning/patterns/{pattern_id}` | One pattern's full detail: every occurrence, and the supporting/contradicting split. |
+| `GET /decisions/{decision_id}/patterns` | Patterns that name this specific decision as supporting or contradicting evidence. |
+| `POST /learning/patterns/refresh` | Rebuilds the caller's own patterns from their current canonical records. Idempotent. |
+
+On the frontend: a **"Patterns across your decisions"** card on the dashboard, a **"What your past decisions teach"** section on the decision report page (only shown once a real pattern names that decision), and a **"Relevant learnings from your history"** section during new-decision intake — all deliberately kept visually behind whatever current evidence the page is already showing.
+
+### What this does not do
+
+No vector database, no embeddings, no semantic search infrastructure, no global or cross-user learning, no platform-wide behavioral profiles, and no new agents. This system learns patterns only from the user's own historical decisions — never another user's, and never a shared statistic computed across users.
+
+## 29. Limitations
 
 - AI-generated analysis (assumptions, blindspots, challenges, regret scenarios, thresholds, experiments) can be wrong or incomplete — it reflects what the model inferred from what it was given, not ground truth.
 - A threshold can remain `provisional` or qualitative (no numeric value) when the available evidence doesn't support deriving a specific number — the system never fabricates one to look more concrete.
@@ -664,8 +789,9 @@ The adaptive loop sequences experiments *within* one decision, one cycle at a ti
 - Evidence storage currently uses the container's local disk, not Amazon S3, even though an S3 bucket is provisioned for it — the `StorageBackend` interface supports adding an S3 implementation later without changing any calling code, but that implementation doesn't exist yet.
 - There is no authentication yet; every request is attributed to a single placeholder user id. The data model and every access pattern are already user-scoped so real auth can be added later without rewriting routes.
 - `/analyze` is currently synchronous — the HTTP request blocks until the full ~9-stage pipeline finishes (with generous timeouts and an idempotency guard against duplicate runs), rather than a submit-and-poll background job model.
+- Cross-Decision Learning's normalization (see [Cross-Decision Learning](#28-regret-engine-20--cross-decision-learning)) only groups two decisions' observations together when their structured fields genuinely match after cleanup — it will not recognize that "customer retention" and "repeat purchase behavior" describe a related concept unless a real structured link (e.g. a shared `Assumption.id`) already connects them. This is a deliberate, documented limitation, not a bug: the alternative (semantic/embedding-based clustering) was explicitly out of scope for this step.
 
-## 28. Future improvements
+## 30. Future improvements
 
 - An S3-backed `StorageBackend` implementation for evidence, behind the interface that already exists.
 - Move `/analyze` to a genuinely asynchronous, submit-and-poll execution model now that the pipeline has grown to ~9 sequential stages.
@@ -673,9 +799,10 @@ The adaptive loop sequences experiments *within* one decision, one cycle at a ti
 - OCR/image support for scanned documents in the evidence pipeline.
 - Infrastructure-as-code (CDK/Terraform/CloudFormation) for the AWS resources currently provisioned via one-off CLI commands, plus CI/CD for both deployments.
 - A custom domain, ACM certificate, and Route 53 record for the CloudFront distribution.
-- Cross-User Learning — deliberately out of scope. Value-of-Information prioritization (see [Value of Information](#25-regret-engine-20--value-of-information)) and the Adaptive Experiment Loop that acts on it over time (see [Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop)) now exist; cross-decision learning within a single user's own history now exists (see [Historical Decision Intelligence](#24-regret-engine-20--historical-decision-intelligence)); learning shared *across* users does not.
-- Semantic/embedding-based similarity for historical retrieval, as a richer alternative to today's deterministic, lexical-overlap scoring, should a real need for it emerge.
+- Cross-User Learning — deliberately out of scope. Value-of-Information prioritization (see [Value of Information](#25-regret-engine-20--value-of-information)), the Adaptive Experiment Loop that acts on it over time (see [Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop)), the Decision Evolution timeline that narrates the result (see [Decision Evolution](#27-regret-engine-20--decision-evolution)), and Cross-Decision Learning across a single user's own history (see [Cross-Decision Learning](#28-regret-engine-20--cross-decision-learning)) now exist; learning shared *across* users does not, and is not planned — every step above is explicitly, structurally scoped to one user's own decisions.
+- Semantic/embedding-based similarity for historical retrieval and pattern normalization, as a richer alternative to today's deterministic, lexical-overlap scoring, should a real need for it emerge.
+- Optional, strictly-bounded LLM-assisted normalization for Cross-Decision Learning (e.g. recognizing that two differently-worded variables describe the same underlying concept) — deliberately deferred; deterministic structured matching is the only method implemented today.
 
-## 29. License
+## 31. License
 
 [MIT](LICENSE).

@@ -9,14 +9,16 @@ import {
   IntakeProgress,
   IntakeSection,
 } from '@/components/intake';
-import { HistoricalInsightsPanel } from '@/components/report';
+import { CrossDecisionPatternsPanel, HistoricalInsightsPanel } from '@/components/report';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { INTAKE_SECTION_IDS } from '@/data/intake';
 import { analysisPath } from '@/data/navigation';
+import { useCrossDecisionPatterns } from '@/hooks/useCrossDecisionPatterns';
 import { useDecisionIntake } from '@/hooks/useDecisionIntake';
 import { useDecisionSubmission } from '@/hooks/useDecisionSubmission';
 import { useHistoricalContextPreview } from '@/hooks/useHistoricalContextPreview';
+import { buildCrossDecisionPatternRows } from '@/lib/buildCrossDecisionPatterns';
 import { EMPTY_HISTORICAL_SUMMARY } from '@/lib/buildHistoricalContext';
 
 export function NewDecisionPage() {
@@ -34,6 +36,8 @@ export function NewDecisionPage() {
   const submission = useDecisionSubmission();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const historicalPreview = useHistoricalContextPreview(draft.decision);
+  const crossDecisionPatterns = useCrossDecisionPatterns();
+  const patternRows = buildCrossDecisionPatternRows(crossDecisionPatterns.data ?? []);
 
   const isSubmitting = submission.stage === 'creating-decision' || submission.stage === 'uploading-evidence';
 
@@ -143,6 +147,17 @@ export function NewDecisionPage() {
               isLoading={historicalPreview.isLoading}
               compact
             />
+          </IntakeSection>
+        ) : null}
+
+        {patternRows.length > 0 ? (
+          <IntakeSection
+            id="relevant-learnings"
+            phase="02 · Context"
+            title="Relevant learnings from your history"
+            description="Recurring patterns across your OWN past decisions - background awareness, never a verdict on this specific decision. Current evidence you provide above always matters more."
+          >
+            <CrossDecisionPatternsPanel rows={patternRows} isLoading={crossDecisionPatterns.isLoading} />
           </IntakeSection>
         ) : null}
 

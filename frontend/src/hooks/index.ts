@@ -1,9 +1,13 @@
 export { useAsync } from './useAsync';
 export { useAdaptiveActions } from './useAdaptiveActions';
+export { useCrossDecisionPatterns } from './useCrossDecisionPatterns';
+export { usePatternsForDecision } from './usePatternsForDecision';
 export { useAdaptiveHistory } from './useAdaptiveHistory';
 export { useAdaptiveState } from './useAdaptiveState';
 export { useAnalysisPolling } from './useAnalysisPolling';
 export { useAnalysisRun } from './useAnalysisRun';
+export { useDecisionEvolution } from './useDecisionEvolution';
+export { useEvolutionDelta } from './useEvolutionDelta';
 export { useDashboard } from './useDashboard';
 export { useDecisionById } from './useDecisionById';
 export { useDecisionHistory } from './useDecisionHistory';

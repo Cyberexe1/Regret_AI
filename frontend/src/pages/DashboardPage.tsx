@@ -4,6 +4,7 @@ import { Reveal } from '@/components/Reveal';
 import {
   ActivityTimeline,
   ChartCardFallback,
+  CrossDecisionPatternsCard,
   DashboardHeader,
   HistoricalLessonsCard,
   MetricRow,
@@ -14,7 +15,9 @@ import {
 } from '@/components/dashboard';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { SkeletonText } from '@/components/ui/Skeleton';
+import { useCrossDecisionPatterns } from '@/hooks/useCrossDecisionPatterns';
 import { useDashboard } from '@/hooks/useDashboard';
+import { buildCrossDecisionPatternRows } from '@/lib/buildCrossDecisionPatterns';
 import {
   buildActivityEvents,
   buildDashboardMetrics,
@@ -38,6 +41,7 @@ const PortfolioCard = lazy(async () => {
  */
 export function DashboardPage() {
   const dashboard = useDashboard();
+  const crossDecisionPatterns = useCrossDecisionPatterns();
 
   if (dashboard.status === 'error') {
     return (
@@ -122,6 +126,13 @@ export function DashboardPage() {
             <HistoricalLessonsCard summary={historicalLessons} />
           </Reveal>
         </div>
+
+        <Reveal>
+          <CrossDecisionPatternsCard
+            rows={buildCrossDecisionPatternRows(crossDecisionPatterns.data ?? [])}
+            isLoading={crossDecisionPatterns.isLoading}
+          />
+        </Reveal>
 
         <Reveal>
           <RecentDecisionLearningsCard rows={recentLearnings} />

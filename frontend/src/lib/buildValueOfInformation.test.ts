@@ -24,6 +24,8 @@ function item(overrides: Partial<ApiValueOfInformationItem> = {}): ApiValueOfInf
     historical_relevance: 'none',
     prior_learning_count: 0,
     threshold_status: 'linked',
+    historical_learning_signal: 'none',
+    historical_learning_explanation: null,
     information_value: 'very_high',
     practical_value: 'very_high',
     priority: 1,

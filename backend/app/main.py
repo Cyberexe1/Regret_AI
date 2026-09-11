@@ -19,9 +19,11 @@ from app.api.routes import (
     decision_analysis_resources,
     decisions,
     evidence,
+    evolution,
     experiments,
     health,
     historical_context,
+    learning,
     memory,
     research,
     value_of_information,
@@ -132,3 +134,5 @@ app.include_router(memory.memory_router, prefix=settings.api_v1_prefix)
 app.include_router(historical_context.router, prefix=settings.api_v1_prefix)
 app.include_router(value_of_information.router, prefix=settings.api_v1_prefix)
 app.include_router(adaptive.router, prefix=settings.api_v1_prefix)
+app.include_router(evolution.router, prefix=settings.api_v1_prefix)
+app.include_router(learning.router, prefix=settings.api_v1_prefix)

@@ -34,6 +34,7 @@ step needing to implement that loop itself.
 from uuid import UUID
 
 from app.core.logging import get_logger
+from app.learning.service import CrossDecisionLearningService
 from app.memory.historical_context import HistoricalContextService
 from app.memory.similarity_schemas import HistoricalContext
 from app.repositories.decision_repository import DecisionRepository
@@ -52,6 +53,7 @@ class ValueOfInformationService:
         decision_repository: DecisionRepository,
         voi_repository: ValueOfInformationRepository,
         historical_context_service: HistoricalContextService | None = None,
+        cross_decision_learning_service: CrossDecisionLearningService | None = None,
     ) -> None:
         self._decisions = decision_repository
         self._voi = voi_repository
@@ -62,6 +64,14 @@ class ValueOfInformationService:
         # decision's own orchestrator run already computed historical
         # context and can pass it in directly instead of recomputing it).
         self._historical_context = historical_context_service
+        # Optional: REGRET ENGINE 2.0, Step 23. Read-only enrichment
+        # applied AFTER the deterministic `compute_analysis` call below -
+        # never threaded into the scoring formula itself, so the core
+        # methodology stays exactly as documented and independently
+        # testable without this dependency. A missing/failed lookup here
+        # never blocks or changes the underlying ranking - see
+        # `_apply_cross_decision_signals`.
+        self._cross_decision_learning = cross_decision_learning_service
 
     def compute_and_persist(
         self,
@@ -106,6 +116,9 @@ class ValueOfInformationService:
             historical_context,
         )
 
+        if user_id:
+            self._apply_cross_decision_signals(analysis, user_id)
+
         previous = self._voi.get_latest(decision_id)
         self._voi.create(analysis)
         if previous is not None:
@@ -120,6 +133,38 @@ class ValueOfInformationService:
             analysis.primary_uncertainty_id,
         )
         return analysis
+
+    def _apply_cross_decision_signals(self, analysis, user_id: str) -> None:
+        """Enriches each ranked item's `historical_learning_signal`/
+        `historical_learning_explanation` from the user's OWN
+        already-computed Cross-Decision Patterns (Step 23) - mutates the
+        items in place, AFTER ranking, so this can never change
+        `priority`/`practical_value`/the ranking order itself. Never
+        raises: a missing service, an unrefreshed pattern set, or a
+        lookup failure simply leaves every item at its default
+        `HistoricalLearningSignal.NONE` - cross-decision learning is
+        context, never authority (spec section 7/14).
+        """
+        if self._cross_decision_learning is None:
+            return
+        for item in analysis.ranked_uncertainties:
+            variable = item.title
+            try:
+                signal, explanation = (
+                    self._cross_decision_learning.historical_learning_signal_for_variable(
+                        user_id, variable
+                    )
+                )
+            except Exception:  # noqa: BLE001 - cross-decision signal is additive, never required
+                logger.exception(
+                    "Cross-decision learning signal lookup failed decision_id=%s "
+                    "uncertainty_id=%s",
+                    analysis.decision_id,
+                    item.uncertainty_id,
+                )
+                continue
+            item.historical_learning_signal = signal
+            item.historical_learning_explanation = explanation or None
 
     def get_latest(self, decision_id: UUID):
         """The most recently computed analysis for a decision, or `None`

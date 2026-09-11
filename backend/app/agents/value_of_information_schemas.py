@@ -32,6 +32,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.agents.schemas import Feasibility, ImpactLevel, Reversibility, SeverityLevel
+from app.learning.schemas import HistoricalLearningSignal
 
 # Version tag for the deterministic methodology itself - bumped only if the
 # scoring formula in `app.services.value_of_information` changes in a way
@@ -220,6 +221,20 @@ class ValueOfInformationItem(BaseModel):
         default=0, ge=0,
         description="How many of the same user's own past-decision learnings (Step 19) "
         "relate to this specific uncertainty.",
+    )
+    historical_learning_signal: HistoricalLearningSignal = Field(
+        default=HistoricalLearningSignal.NONE,
+        description="REGRET ENGINE 2.0, Step 23: how strongly a recurring Cross-Decision "
+        "Pattern (app.learning) bears on this specific uncertainty's variable - e.g. this "
+        "variable has repeatedly underperformed in past decisions. A tiebreaker-strength "
+        "signal only, exactly like historical_relevance above - it never overrides the "
+        "deterministic practical_value ranking, current evidence, or a real threshold.",
+    )
+    historical_learning_explanation: str | None = Field(
+        default=None,
+        description="Plain-language reason behind historical_learning_signal, copied from the "
+        "underlying CrossDecisionPattern's own title/occurrence count - null when "
+        "historical_learning_signal is NONE.",
     )
 
     # --- Threshold linkage --------------------------------------------------------

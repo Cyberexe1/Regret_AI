@@ -8,6 +8,8 @@ import {
   AdaptiveLoopPanel,
   AssumptionsSection,
   ChallengeCards,
+  CrossDecisionPatternsPanel,
+  DecisionEvolutionPanel,
   DecisionMemoryPanel,
   DecisionSnapshot,
   HistoricalInsightsPanel,
@@ -29,11 +31,15 @@ import { useAdaptiveActions } from '@/hooks/useAdaptiveActions';
 import { useAdaptiveHistory } from '@/hooks/useAdaptiveHistory';
 import { useAdaptiveState } from '@/hooks/useAdaptiveState';
 import { useDecisionById } from '@/hooks/useDecisionById';
+import { useDecisionEvolution } from '@/hooks/useDecisionEvolution';
 import { useDecisionMemory } from '@/hooks/useDecisionMemory';
 import { useDecisionReportData } from '@/hooks/useDecisionReportData';
 import { useHistoricalContext } from '@/hooks/useHistoricalContext';
+import { usePatternsForDecision } from '@/hooks/usePatternsForDecision';
 import { useValueOfInformation } from '@/hooks/useValueOfInformation';
 import { buildAdaptiveCycleRows, buildAdaptiveLoopSummary } from '@/lib/buildAdaptiveLoop';
+import { buildCrossDecisionPatternRows } from '@/lib/buildCrossDecisionPatterns';
+import { buildDecisionEvolutionSummary } from '@/lib/buildDecisionEvolution';
 import { buildDecisionMemorySummary, buildMemoryTimeline } from '@/lib/buildDecisionMemory';
 import { buildHistoricalContext, EMPTY_HISTORICAL_SUMMARY } from '@/lib/buildHistoricalContext';
 import { buildValueOfInformation } from '@/lib/buildValueOfInformation';
@@ -56,6 +62,8 @@ export function DecisionDetailPage() {
   const adaptiveState = useAdaptiveState(id);
   const adaptiveHistoryState = useAdaptiveHistory(id);
   const adaptiveActions = useAdaptiveActions();
+  const evolutionState = useDecisionEvolution(id);
+  const patternsState = usePatternsForDecision(id);
 
   if (!id) return <DecisionNotFound id={id} />;
 
@@ -162,6 +170,13 @@ export function DecisionDetailPage() {
   const recommendedExperiment =
     report.experiments.find((experiment) => experiment.status === 'recommended') ?? report.experiments[0] ?? null;
 
+  const assumptionStatementsById = Object.fromEntries(
+    report.assumptions.map((assumption) => [assumption.id, assumption.statement]),
+  );
+  const experimentTitlesById = Object.fromEntries(
+    report.experiments.map((experiment) => [experiment.id, experiment.title]),
+  );
+
   const snapshot = [
     { label: 'Assumptions', value: String(report.assumptions.length) },
     { label: 'Blindspots', value: String(report.blindspots.length) },
@@ -223,8 +238,21 @@ export function DecisionDetailPage() {
           />
         </ReportSection>
 
+        {patternsState.data && patternsState.data.length > 0 ? (
+          <ReportSection
+            index="05"
+            title="What your past decisions teach"
+            description="Recurring patterns from your OWN decision history - context for this decision, never a prediction about it."
+          >
+            <CrossDecisionPatternsPanel
+              rows={buildCrossDecisionPatternRows(patternsState.data)}
+              isLoading={patternsState.isLoading}
+            />
+          </ReportSection>
+        ) : null}
+
         <ReportSection
-          index="05"
+          index="06"
           title="Decision validation"
           description="The closed loop: after a real experiment result comes in, REGRET ENGINE re-evaluates the decision and picks the next uncertainty worth testing - never repeating one that's already been conclusively resolved."
         >
@@ -241,7 +269,7 @@ export function DecisionDetailPage() {
 
         {adaptiveHistoryState.data && adaptiveHistoryState.data.length > 0 ? (
           <ReportSection
-            index="06"
+            index="07"
             title="Validation history"
             description="Every testing cycle this decision has gone through so far, in order."
           >
@@ -250,7 +278,7 @@ export function DecisionDetailPage() {
         ) : null}
 
         <ReportSection
-          index="07"
+          index="08"
           title="Regret scenarios"
           description="Conditions under which this decision would be regretted."
         >
@@ -258,7 +286,7 @@ export function DecisionDetailPage() {
         </ReportSection>
 
         <ReportSection
-          index="08"
+          index="09"
           title="Thresholds"
           description="The tipping points that decide whether this decision holds."
         >
@@ -266,7 +294,7 @@ export function DecisionDetailPage() {
         </ReportSection>
 
         <ReportSection
-          index="09"
+          index="10"
           title="Assumptions"
           description="What the decision quietly depends on, and how well each one is backed by evidence."
         >
@@ -274,7 +302,7 @@ export function DecisionDetailPage() {
         </ReportSection>
 
         <ReportSection
-          index="10"
+          index="11"
           title="Challenges"
           description="The Devil's Advocate's strongest counter-arguments against this decision."
         >
@@ -286,7 +314,7 @@ export function DecisionDetailPage() {
         </Reveal>
 
         <ReportSection
-          index="11"
+          index="12"
           title="Decision Memory"
           description="What we believed, what we tested, what actually happened, and what changed as a result."
         >
@@ -300,7 +328,20 @@ export function DecisionDetailPage() {
           )}
         </ReportSection>
 
-        <ReportSection index="12" title="Actions" className={cn('print:hidden')}>
+        <ReportSection
+          index="13"
+          title="Decision Evolution"
+          description="Not a generic activity log - the causal chain from what we believed, through what we tested, to what actually changed and why."
+        >
+          <DecisionEvolutionPanel
+            summary={buildDecisionEvolutionSummary(evolutionState.data ?? null)}
+            isLoading={evolutionState.isLoading}
+            assumptionStatementsById={assumptionStatementsById}
+            experimentTitlesById={experimentTitlesById}
+          />
+        </ReportSection>
+
+        <ReportSection index="14" title="Actions" className={cn('print:hidden')}>
           <ReportActions decisionId={decision.id} onEvidenceUploaded={reportState.refetch} />
         </ReportSection>
       </div>

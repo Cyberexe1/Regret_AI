@@ -122,6 +122,13 @@ credible test, prefer targeting it with your recommended experiment; if it isn't
 (no real threshold exists yet, or a cheaper/more reversible test targets a different real \
 threshold better), you may target a different one instead - explain your choice either way. \
 Never invent a threshold id just to match the hint.
+14. You may also be given a "Cross-decision learning" hint describing a pattern REGRET has \
+observed in this SAME user's own past decisions (e.g. a variable that has repeatedly \
+underperformed). Treat it exactly like the Value-of-Information hint above: a strong \
+preference for what to prioritize, never a rule that overrides the current decision's own \
+evidence or thresholds. Never recommend an experiment solely because a pattern was common \
+historically, and never claim the current decision will repeat a past outcome - it must \
+still target a real, current threshold that is well-suited to a cheap, credible test.
 """
 
 
@@ -284,12 +291,33 @@ def _render_voi_hint(
             "with your recommended experiment if a cheap, credible test can do so - but you "
             "may choose differently if justified."
         )
-    return (
+    hint = (
         f"\nValue-of-Information priority: a deterministic prioritization pass identified "
         f"'{primary_item.title}' as the highest-priority uncertainty to resolve before "
         f"commitment (practical value: {primary_item.practical_value.value}), but no threshold "
         "has been established for it yet - do not invent one. Consider whether any threshold "
         "given above is still the best target."
+    )
+    return hint + _render_cross_decision_hint(primary_item)
+
+
+def _render_cross_decision_hint(primary_item) -> str:
+    """Render the primary uncertainty's Cross-Decision Learning signal
+    (REGRET ENGINE 2.0, Step 23), if any - see `SYSTEM_PROMPT` rule 14.
+    Only ever describes a signal REGRET already computed
+    (`historical_learning_signal`/`historical_learning_explanation` on
+    the real `ValueOfInformationItem` given to this call) - never
+    invents a historical pattern that wasn't actually detected.
+    """
+    signal = getattr(primary_item, "historical_learning_signal", "none")
+    explanation = getattr(primary_item, "historical_learning_explanation", None)
+    if signal == "none" or not explanation:
+        return ""
+    return (
+        f"\nCross-decision learning: in your own past decisions, {explanation} "
+        "This is context about what has recurred in this user's own history, not a "
+        "prediction about this decision - never recommend an experiment solely because a "
+        "pattern was common historically; it must still target a real, current threshold."
     )
 
 

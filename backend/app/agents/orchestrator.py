@@ -93,6 +93,8 @@ from app.agents.value_of_information_schemas import ValueOfInformationAnalysis
 from app.core.config import get_settings
 from app.core.errors import NotFoundError
 from app.core.logging import get_logger
+from app.learning.repository import CrossDecisionLearningRepository
+from app.learning.service import CrossDecisionLearningService
 from app.memory.historical_context import HistoricalContextService
 from app.memory.memory_repository import MemoryRepository
 from app.memory.similarity_schemas import HistoricalContext
@@ -184,11 +186,21 @@ class AnalysisOrchestrator:
         # LLM call (see app.services.value_of_information_service).
         # Defaults to a fresh service sharing this orchestrator's own
         # decision_repository, exactly like `_historical_context` above.
+        # REGRET ENGINE 2.0, Step 23: enriches VOI's ranked items with a
+        # read-only cross-decision-pattern signal - never re-scores or
+        # reorders anything VOI already decided (see
+        # `ValueOfInformationService._apply_cross_decision_signals`).
+        self._cross_decision_learning = CrossDecisionLearningService(
+            decision_repository, MemoryRepository(), CrossDecisionLearningRepository()
+        )
         self._value_of_information = (
             value_of_information_service
             if value_of_information_service is not None
             else ValueOfInformationService(
-                decision_repository, ValueOfInformationRepository(), self._historical_context
+                decision_repository,
+                ValueOfInformationRepository(),
+                self._historical_context,
+                self._cross_decision_learning,
             )
         )
 
@@ -633,7 +645,9 @@ class AnalysisOrchestrator:
         # app.agents.experiment_planner's SYSTEM_PROMPT rule 13). A failure
         # here is logged and the run proceeds with voi_analysis=None,
         # exactly like the optional historical-context gathering step.
-        context.value_of_information = self._compute_value_of_information(decision_id, context)
+        context.value_of_information = self._compute_value_of_information(
+            decision_id, user_id, context
+        )
         if context.value_of_information is not None:
             result[_VALUE_OF_INFORMATION] = context.value_of_information.model_dump(mode="json")
 
@@ -1185,7 +1199,7 @@ class AnalysisOrchestrator:
             return None
 
     def _compute_value_of_information(
-        self, decision_id: UUID, context: AnalysisContext
+        self, decision_id: UUID, user_id: str, context: AnalysisContext
     ) -> ValueOfInformationAnalysis | None:
         """Compute and persist this run's Value-of-Information analysis
         (REGRET ENGINE 2.0, Step 20) - additive, never blocking. Returns
@@ -1201,10 +1215,16 @@ class AnalysisOrchestrator:
         none yet at this point, which is correct: no uncertainty can have
         related_experiment_id set on the very first computation for a
         decision).
+
+        `user_id` is passed through so `compute_and_persist` can enrich
+        each ranked item with this same user's own Cross-Decision
+        Learning signal (Step 23) - a read-only, additive lookup that
+        never affects VOI's own ranking; see
+        `ValueOfInformationService._apply_cross_decision_signals`.
         """
         try:
             return self._value_of_information.compute_and_persist(
-                context.decision, historical_context=context.historical_context
+                context.decision, user_id=user_id, historical_context=context.historical_context
             )
         except Exception:  # noqa: BLE001 - never let VOI computation block/fail an analysis run
             logger.exception(

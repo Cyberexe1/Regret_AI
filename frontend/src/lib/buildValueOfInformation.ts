@@ -75,6 +75,17 @@ function historicalRelevanceLabel(value: ApiValueOfInformationItem['historical_r
   return `${capitalize(value)} - seen in your past decisions`;
 }
 
+/** REGRET ENGINE 2.0, Step 23: surfaces the real Cross-Decision Pattern
+ * signal/explanation, when one exists - never fabricated, and never
+ * shown when the signal is 'none' (no real pattern was detected for
+ * this variable). */
+function crossDecisionSignalLabel(item: ApiValueOfInformationItem): string | null {
+  if (item.historical_learning_signal === 'none' || !item.historical_learning_explanation) {
+    return null;
+  }
+  return item.historical_learning_explanation;
+}
+
 function buildRow(item: ApiValueOfInformationItem, index: number): ValueOfInformationRow {
   return {
     uncertaintyId: item.uncertainty_id,
@@ -94,6 +105,7 @@ function buildRow(item: ApiValueOfInformationItem, index: number): ValueOfInform
     thresholdStatusLabel:
       item.threshold_status === 'linked' ? 'Connected to a recorded threshold' : 'No threshold established yet',
     historicalRelevanceLabel: historicalRelevanceLabel(item.historical_relevance),
+    crossDecisionSignalLabel: crossDecisionSignalLabel(item),
     confidencePercent: Math.round(item.confidence * 100),
     barPercent: VALUE_BAND_BAR_PERCENT[item.practical_value],
   };

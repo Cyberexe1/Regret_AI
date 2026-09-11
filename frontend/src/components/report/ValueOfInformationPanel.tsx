@@ -205,6 +205,12 @@ function ValueOfInformationRowCard({
                 </p>
               ) : null}
 
+              {row.crossDecisionSignalLabel ? (
+                <p className="border-t border-hairline pt-3 text-micro text-ink-muted">
+                  Recurring pattern: {row.crossDecisionSignalLabel}
+                </p>
+              ) : null}
+
               <p className="text-micro text-ink-muted">
                 Confidence in this score: {row.confidencePercent}% (how much of it rests on real,
                 recorded inputs - not a probability of a favorable outcome)

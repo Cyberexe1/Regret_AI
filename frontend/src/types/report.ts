@@ -1,3 +1,4 @@
+import type { EvolutionEventType } from '@/api/types';
 import type { Tone } from './index';
 
 /* -------------------------------------------------------------------------- *
@@ -188,6 +189,10 @@ export interface ValueOfInformationRow {
   thresholdId: string | null;
   thresholdStatusLabel: string;
   historicalRelevanceLabel: string | null;
+  /** REGRET ENGINE 2.0, Step 23: real Cross-Decision Pattern signal for
+   * this uncertainty's variable, when one exists - null when
+   * `historical_learning_signal` is 'none'. */
+  crossDecisionSignalLabel: string | null;
   confidencePercent: number;
   /** 0-100, derived only from the item's own qualitative band (never a
    * fabricated precise score) - purely for the ranked bar-chart visual. */
@@ -254,6 +259,88 @@ export interface AdaptiveCycleRow {
   nextAction: string;
   createdAtLabel: string;
   sortKey: string;
+}
+
+/** REGRET ENGINE 2.0's Decision Evolution & Causal Timeline (Step 22):
+ * "what changed my mind, and why?" Every field is a real backend
+ * `DecisionEvolutionEvent` field or a deterministic re-labelling of one
+ * - see `buildDecisionEvolution.ts`. `previousStateLabel`/`newStateLabel`
+ * are populated only when the source event itself carries a real
+ * before/after pair - never fabricated for an event with no transition. */
+export interface EvolutionEventRow {
+  eventId: string;
+  cycleNumber: number | null;
+  eventType: EvolutionEventType;
+  typeLabel: string;
+  timestampLabel: string;
+  sortKey: string;
+  title: string;
+  summary: string;
+  sourceTypeLabel: string;
+  sourceId: string;
+  impact: 'minor' | 'moderate' | 'major';
+  previousStateLabel: string | null;
+  newStateLabel: string | null;
+  reason: string | null;
+  isHistorical: boolean;
+  affectedAssumptionIds: string[];
+  affectedThresholdIds: string[];
+  affectedExperimentIds: string[];
+  affectedRegretScenarioIds: string[];
+  evidenceIds: string[];
+}
+
+export interface DecisionEvolutionSummary {
+  found: boolean;
+  currentAssessmentLabel: string;
+  currentAssessmentTone: Tone;
+  currentCycle: number | null;
+  totalCycles: number;
+  cyclesCompleted: number;
+  uncertaintiesResolvedCount: number;
+  uncertaintiesRemainingCount: number;
+  experimentsCompletedCount: number;
+  timeline: EvolutionEventRow[];
+  majorChanges: EvolutionEventRow[];
+  currentUncertaintyIds: string[];
+  validatedThresholdIds: string[];
+  failedThresholdIds: string[];
+  currentPrimaryUncertaintyId: string | null;
+  truncated: boolean;
+}
+
+/** REGRET ENGINE 2.0's Cross-Decision Learning Engine (Step 23): a
+ * recurring observation across the user's OWN past decisions - every
+ * field is a real backend `CrossDecisionPattern` field or a
+ * deterministic re-labelling of one, see `buildCrossDecisionPatterns.ts`.
+ * `statement` is always the backend's own hedged wording - never
+ * rewritten into a stronger claim on the frontend. */
+export interface CrossDecisionPatternRow {
+  patternId: string;
+  title: string;
+  statement: string;
+  statusLabel: string;
+  statusTone: Tone;
+  confidenceLabel: string;
+  confidenceTone: Tone;
+  confidenceBasis: string;
+  occurrenceCount: number;
+  supportingDecisionCount: number;
+  contradictingDecisionCount: number;
+  variable: string | null;
+  lastSeenLabel: string;
+}
+
+/** The reusable "What changed?" delta card's view model - a real backend
+ * `DecisionDelta` mapped to display labels, never a fabricated narrative. */
+export interface DecisionDeltaSummary {
+  changed: boolean;
+  assessmentChanged: boolean;
+  assumptionsChangedCount: number;
+  thresholdsChangedCount: number;
+  experimentsChangedCount: number;
+  learningsAddedCount: number;
+  explanation: string;
 }
 
 /** One concrete attack on the decision, as identified by the Devil's
