@@ -1,6 +1,7 @@
 import { FileText, FlaskConical, ScanSearch, ShieldQuestion, SquarePen, TriangleAlert } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ApiDecision } from '@/api/types';
+import { learningTypeTone } from '@/lib/buildDecisionMemory';
 import { formatRelative } from '@/lib/format';
 import { statusLabel } from '@/lib/labels';
 import type { Tone } from '@/types';
@@ -50,6 +51,17 @@ export interface ActivityEvent {
   detail: string;
   timestamp: string;
   tone: Tone;
+}
+
+/** One recent Decision Memory learning, for the dashboard's "Recent
+ * Decision Learnings" card - REGRET ENGINE 2.0. */
+export interface RecentLearningRow {
+  id: string;
+  decisionId: string;
+  decisionTitle: string;
+  statement: string;
+  tone: Tone;
+  timestamp: string;
 }
 
 const STATUS_TONE: Record<ApiDecision['status'], Tone> = {
@@ -196,6 +208,69 @@ export function buildActivityEvents(data: DashboardData, limit = 5): ActivityEve
     .sort((a, b) => b.at.localeCompare(a.at))
     .slice(0, limit)
     .map(({ at: _at, ...event }) => event);
+}
+
+/** Summary shown on the dashboard's "Historical Lessons" card - a single,
+ * bounded count, never the full historical-context detail (that lives on
+ * AnalysisPage/DecisionDetailPage). REGRET ENGINE 2.0. */
+export interface HistoricalLessonsSummary {
+  /** Count of VALIDATED learnings (assumption_validated/threshold_validated)
+   * surfaced across the decisions checked - "could apply to your recent
+   * decisions" language, never "will apply" or a probability claim. */
+  validatedLearningCount: number;
+  /** How many of the checked decisions actually had relevant history. */
+  decisionsWithHistoryCount: number;
+}
+
+/**
+ * Deterministic, bounded summary for the dashboard's "Historical Lessons"
+ * card - counts real `HistoricalInsight`s already fetched by
+ * `useDashboard` (bounded to a handful of decisions, see
+ * `HISTORICAL_CONTEXT_DECISIONS_LIMIT`), never a separate computation.
+ */
+export function buildHistoricalLessonsSummary(data: DashboardData): HistoricalLessonsSummary {
+  let validatedLearningCount = 0;
+  let decisionsWithHistoryCount = 0;
+
+  for (const context of data.historicalContextByDecisionId.values()) {
+    if (context.found) decisionsWithHistoryCount += 1;
+    for (const insight of context.relevant_learnings) {
+      if (insight.learning_type === 'assumption_validated' || insight.learning_type === 'threshold_validated') {
+        validatedLearningCount += 1;
+      }
+    }
+  }
+
+  return { validatedLearningCount, decisionsWithHistoryCount };
+}
+
+/**
+ * Recent, real Decision Memory learnings across the workspace's decisions
+ * - REGRET ENGINE 2.0. Every row is a real, persisted `MemoryLearning`;
+ * nothing here is a placeholder or a re-scored summary.
+ */
+export function buildRecentLearnings(data: DashboardData, limit = 5): RecentLearningRow[] {
+  const decisionTitleById = new Map(data.decisions.map((d) => [d.id, d.title]));
+  const rows: (RecentLearningRow & { at: string })[] = [];
+
+  for (const [decisionId, learnings] of data.learningsByDecisionId.entries()) {
+    for (const learning of learnings) {
+      rows.push({
+        id: learning.learning_id,
+        decisionId,
+        decisionTitle: decisionTitleById.get(decisionId) ?? 'Untitled decision',
+        statement: learning.statement,
+        tone: learningTypeTone(learning.learning_type),
+        timestamp: formatRelative(learning.created_at),
+        at: learning.created_at,
+      });
+    }
+  }
+
+  return rows
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, limit)
+    .map(({ at: _at, ...row }) => row);
 }
 
 

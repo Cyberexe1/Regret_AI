@@ -41,6 +41,8 @@ from app.agents.schemas import (
     ResearchAnalysis,
     ThresholdAnalysis,
 )
+from app.agents.value_of_information_schemas import ValueOfInformationAnalysis
+from app.memory.similarity_schemas import HistoricalContext
 from app.schemas.decision import DecisionResponse
 from app.schemas.decision_resources import (
     Assumption,
@@ -61,6 +63,27 @@ class AnalysisContext:
 
     decision: DecisionResponse
     evidence: list[Evidence] = field(default_factory=list)
+
+    # REGRET ENGINE 2.0: additive historical context (Decision Similarity +
+    # Historical Insight Engine), gathered BEFORE Stage 1 runs - see
+    # `AnalysisOrchestrator._run_analysis_pipeline`. `None` only in the
+    # narrow window before that gathering step runs; once populated, it is
+    # always a valid `HistoricalContext` (possibly `found=False`), never
+    # re-computed mid-run. Passed into the Decision Analyzer's prompt as
+    # clearly-labeled, lower-priority context - it never overrides current
+    # evidence, deterministic calculations, or user constraints; see
+    # `app.memory.historical_context`'s module docstring for the full
+    # evidence-hierarchy rationale.
+    historical_context: HistoricalContext | None = None
+
+    # REGRET ENGINE 2.0, Step 20: which uncertainty is most worth
+    # resolving before commitment - deterministic, computed after
+    # thresholds are persisted (Stage 7a) and before the Experiment
+    # Planner runs (Stage 8), which reads `primary_uncertainty_id`/
+    # `primary_threshold_id` as a preference hint. `None` before that
+    # stage runs, or if it failed - never blocks/fails the run either
+    # way; see `AnalysisOrchestrator._compute_value_of_information`.
+    value_of_information: ValueOfInformationAnalysis | None = None
 
     # Persisted entities, populated by the orchestrator once each stage's
     # findings have been written to DynamoDB - see module docstring.

@@ -1,8 +1,12 @@
 export * from './client';
 export * from './types';
+export * as adaptiveApi from './adaptive';
 export * as decisionsApi from './decisions';
 export * as evidenceApi from './evidence';
 export * as analysisApi from './analysis';
 export * as experimentsApi from './experiments';
+export * as historicalContextApi from './historicalContext';
+export * as memoryApi from './memory';
 export * as researchApi from './research';
 export * as healthApi from './health';
+export * as valueOfInformationApi from './valueOfInformation';

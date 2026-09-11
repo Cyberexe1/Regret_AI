@@ -1,4 +1,7 @@
 export { useAsync } from './useAsync';
+export { useAdaptiveActions } from './useAdaptiveActions';
+export { useAdaptiveHistory } from './useAdaptiveHistory';
+export { useAdaptiveState } from './useAdaptiveState';
 export { useAnalysisPolling } from './useAnalysisPolling';
 export { useAnalysisRun } from './useAnalysisRun';
 export { useDashboard } from './useDashboard';

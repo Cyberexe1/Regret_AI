@@ -178,7 +178,7 @@ def _sample_threshold_analysis() -> ThresholdAnalysis:
 
 async def _experiment_plan_side_effect(
     decision_analysis, assumptions, blindspots, evidence_findings, challenges, regret_scenarios,
-    thresholds,
+    thresholds, voi_analysis=None,
 ):
     target_id = str(thresholds[0].id) if thresholds else "threshold-1"
     return ExperimentPlan(

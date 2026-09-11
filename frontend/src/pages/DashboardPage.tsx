@@ -5,8 +5,10 @@ import {
   ActivityTimeline,
   ChartCardFallback,
   DashboardHeader,
+  HistoricalLessonsCard,
   MetricRow,
   OpenExperimentsCard,
+  RecentDecisionLearningsCard,
   RecentDecisionsCard,
   UncertaintyCard,
 } from '@/components/dashboard';
@@ -16,9 +18,11 @@ import { useDashboard } from '@/hooks/useDashboard';
 import {
   buildActivityEvents,
   buildDashboardMetrics,
+  buildHistoricalLessonsSummary,
   buildOpenExperimentRows,
   buildPortfolioBands,
   buildRecentDecisionRows,
+  buildRecentLearnings,
 } from '@/lib/buildDashboard';
 
 const PortfolioCard = lazy(async () => {
@@ -79,6 +83,8 @@ export function DashboardPage() {
     .flat()
     .filter((e) => e.status === 'recommended' || e.status === 'active' || e.status === 'planned').length;
   const activityEvents = buildActivityEvents(data);
+  const recentLearnings = buildRecentLearnings(data);
+  const historicalLessons = buildHistoricalLessonsSummary(data);
   const needsValidationCount = data.decisions.filter((d) => d.status === 'needs_validation').length;
 
   return (
@@ -108,8 +114,17 @@ export function DashboardPage() {
           </Reveal>
         </div>
 
+        <div className="grid gap-5 lg:grid-cols-3">
+          <Reveal className="lg:col-span-2">
+            <ActivityTimeline events={activityEvents} />
+          </Reveal>
+          <Reveal delay={0.06}>
+            <HistoricalLessonsCard summary={historicalLessons} />
+          </Reveal>
+        </div>
+
         <Reveal>
-          <ActivityTimeline events={activityEvents} />
+          <RecentDecisionLearningsCard rows={recentLearnings} />
         </Reveal>
       </div>
     </PageContainer>

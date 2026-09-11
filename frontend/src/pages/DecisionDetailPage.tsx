@@ -4,9 +4,13 @@ import { DecisionNotFound } from '@/components/DecisionNotFound';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Reveal } from '@/components/Reveal';
 import {
+  AdaptiveDecisionTimeline,
+  AdaptiveLoopPanel,
   AssumptionsSection,
   ChallengeCards,
+  DecisionMemoryPanel,
   DecisionSnapshot,
+  HistoricalInsightsPanel,
   RecommendationPanel,
   ReportActions,
   ReportHeader,
@@ -14,14 +18,25 @@ import {
   ScenarioCards,
   ThresholdSection,
   UncertaintyCard,
+  ValueOfInformationPanel,
 } from '@/components/report';
 import { buttonClasses } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { SkeletonText } from '@/components/ui/Skeleton';
 import { analysisPath, decisionGraphPath } from '@/data/navigation';
+import { useAdaptiveActions } from '@/hooks/useAdaptiveActions';
+import { useAdaptiveHistory } from '@/hooks/useAdaptiveHistory';
+import { useAdaptiveState } from '@/hooks/useAdaptiveState';
 import { useDecisionById } from '@/hooks/useDecisionById';
+import { useDecisionMemory } from '@/hooks/useDecisionMemory';
 import { useDecisionReportData } from '@/hooks/useDecisionReportData';
+import { useHistoricalContext } from '@/hooks/useHistoricalContext';
+import { useValueOfInformation } from '@/hooks/useValueOfInformation';
+import { buildAdaptiveCycleRows, buildAdaptiveLoopSummary } from '@/lib/buildAdaptiveLoop';
+import { buildDecisionMemorySummary, buildMemoryTimeline } from '@/lib/buildDecisionMemory';
+import { buildHistoricalContext, EMPTY_HISTORICAL_SUMMARY } from '@/lib/buildHistoricalContext';
+import { buildValueOfInformation } from '@/lib/buildValueOfInformation';
 import { cn } from '@/lib/cn';
 import {
   buildCriticalUncertainties,
@@ -35,6 +50,12 @@ export function DecisionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const decisionState = useDecisionById(id);
   const reportState = useDecisionReportData(id);
+  const memoryState = useDecisionMemory(id);
+  const historicalContextState = useHistoricalContext(id);
+  const voiState = useValueOfInformation(id);
+  const adaptiveState = useAdaptiveState(id);
+  const adaptiveHistoryState = useAdaptiveHistory(id);
+  const adaptiveActions = useAdaptiveActions();
 
   if (!id) return <DecisionNotFound id={id} />;
 
@@ -117,6 +138,22 @@ export function DecisionDetailPage() {
     );
   }
 
+  const handleAdvanceAdaptive = async () => {
+    const response = await adaptiveActions.advance(decision.id);
+    if (response) {
+      adaptiveState.refetch();
+      adaptiveHistoryState.refetch();
+    }
+  };
+
+  const handleStopAdaptive = async () => {
+    const response = await adaptiveActions.stop(decision.id);
+    if (response) {
+      adaptiveState.refetch();
+      adaptiveHistoryState.refetch();
+    }
+  };
+
   const uncertainties = buildCriticalUncertainties(report.assumptions, report.blindspots);
   const scenarios = buildReportScenarios(report.regretScenarios);
   const thresholds = buildReportThresholds(report.thresholds);
@@ -144,6 +181,21 @@ export function DecisionDetailPage() {
 
         <ReportSection
           index="02"
+          title="Historical insights"
+          description="Why REGRET connected these decisions: a deterministic similarity comparison against your own decision history - never another user's data, and never something that overrides this decision's own evidence or thresholds."
+        >
+          <HistoricalInsightsPanel
+            summary={
+              historicalContextState.data
+                ? buildHistoricalContext(historicalContextState.data)
+                : EMPTY_HISTORICAL_SUMMARY
+            }
+            isLoading={historicalContextState.isLoading}
+          />
+        </ReportSection>
+
+        <ReportSection
+          index="03"
           title="What could break this decision?"
           description="Assumptions and blindspots, ranked by importance. Expand a card for detail."
           action={
@@ -161,15 +213,44 @@ export function DecisionDetailPage() {
         </ReportSection>
 
         <ReportSection
-          index="03"
-          title="Thresholds"
-          description="The tipping points that decide whether this decision holds."
+          index="04"
+          title="What should you test first?"
+          description="Not simply the scariest risk - the uncertainty most worth resolving relative to the effort it takes to learn about it."
         >
-          <ThresholdSection thresholds={thresholds} />
+          <ValueOfInformationPanel
+            summary={buildValueOfInformation(voiState.data ?? null)}
+            isLoading={voiState.isLoading}
+          />
         </ReportSection>
 
         <ReportSection
-          index="04"
+          index="05"
+          title="Decision validation"
+          description="The closed loop: after a real experiment result comes in, REGRET ENGINE re-evaluates the decision and picks the next uncertainty worth testing - never repeating one that's already been conclusively resolved."
+        >
+          <AdaptiveLoopPanel
+            summary={buildAdaptiveLoopSummary(adaptiveState.data ?? null)}
+            isLoading={adaptiveState.isLoading}
+            isAdvancing={adaptiveActions.isAdvancing}
+            isStopping={adaptiveActions.isStopping}
+            onAdvance={() => void handleAdvanceAdaptive()}
+            onStop={adaptiveState.data ? () => void handleStopAdaptive() : undefined}
+            errorMessage={adaptiveActions.error?.message ?? null}
+          />
+        </ReportSection>
+
+        {adaptiveHistoryState.data && adaptiveHistoryState.data.length > 0 ? (
+          <ReportSection
+            index="06"
+            title="Validation history"
+            description="Every testing cycle this decision has gone through so far, in order."
+          >
+            <AdaptiveDecisionTimeline cycles={buildAdaptiveCycleRows(adaptiveHistoryState.data)} />
+          </ReportSection>
+        ) : null}
+
+        <ReportSection
+          index="07"
           title="Regret scenarios"
           description="Conditions under which this decision would be regretted."
         >
@@ -177,7 +258,15 @@ export function DecisionDetailPage() {
         </ReportSection>
 
         <ReportSection
-          index="05"
+          index="08"
+          title="Thresholds"
+          description="The tipping points that decide whether this decision holds."
+        >
+          <ThresholdSection thresholds={thresholds} />
+        </ReportSection>
+
+        <ReportSection
+          index="09"
           title="Assumptions"
           description="What the decision quietly depends on, and how well each one is backed by evidence."
         >
@@ -185,7 +274,7 @@ export function DecisionDetailPage() {
         </ReportSection>
 
         <ReportSection
-          index="06"
+          index="10"
           title="Challenges"
           description="The Devil's Advocate's strongest counter-arguments against this decision."
         >
@@ -196,7 +285,22 @@ export function DecisionDetailPage() {
           <RecommendationPanel experiment={recommendedExperiment} />
         </Reveal>
 
-        <ReportSection index="07" title="Actions" className={cn('print:hidden')}>
+        <ReportSection
+          index="11"
+          title="Decision Memory"
+          description="What we believed, what we tested, what actually happened, and what changed as a result."
+        >
+          {memoryState.isLoading || !memoryState.data ? (
+            <SkeletonText lines={4} />
+          ) : (
+            <DecisionMemoryPanel
+              summary={buildDecisionMemorySummary(memoryState.data)}
+              timeline={buildMemoryTimeline(decision.created_at, memoryState.data)}
+            />
+          )}
+        </ReportSection>
+
+        <ReportSection index="12" title="Actions" className={cn('print:hidden')}>
           <ReportActions decisionId={decision.id} onEvidenceUploaded={reportState.refetch} />
         </ReportSection>
       </div>

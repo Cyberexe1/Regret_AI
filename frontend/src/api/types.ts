@@ -441,6 +441,268 @@ export interface ApiReEvaluation {
 }
 
 /* -------------------------------------------------------------------------- *
+ * Decision Memory (REGRET ENGINE 2.0, backend/app/memory/memory_schemas.py)
+ * -------------------------------------------------------------------------- */
+
+export type MemoryStage = 'preliminary' | 'validated';
+
+export type LearningType =
+  | 'assumption_validated'
+  | 'assumption_weakened'
+  | 'assumption_failed'
+  | 'threshold_validated'
+  | 'threshold_failed'
+  | 'threshold_inconclusive'
+  | 'unexpected_result'
+  | 'experiment_learning'
+  | 'decision_outcome'
+  | 'unresolved_uncertainty';
+
+export type LearningSourceType =
+  | 'experiment_result'
+  | 're_evaluation'
+  | 'evidence'
+  | 'decision'
+  | 'analysis';
+
+export interface ApiMemoryLearning {
+  learning_id: string;
+  memory_id: string;
+  decision_id: string;
+  statement: string;
+  learning_type: LearningType;
+  source_type: LearningSourceType;
+  source_id: string;
+  confidence: number | null;
+  evidence_basis: string[];
+  observed_value: string | null;
+  expected_value: string | null;
+  variance_description: string | null;
+  related_assumption_ids: string[];
+  related_threshold_ids: string[];
+  related_regret_scenario_ids: string[];
+  created_at: string;
+}
+
+export interface ApiDecisionMemory {
+  memory_id: string;
+  decision_id: string;
+  user_id: string;
+  decision_type: string | null;
+  decision_summary: string;
+  created_at: string;
+  completed_at: string | null;
+  stage: MemoryStage;
+  original_assessment: string | null;
+  critical_assumption_ids: string[];
+  critical_threshold_ids: string[];
+  critical_regret_scenario_ids: string[];
+  experiment_ids: string[];
+  outcome_summary: string | null;
+  validated_learnings: string[];
+  unresolved_uncertainties: string[];
+  final_assessment: string | null;
+  confidence: number | null;
+  tags: string[];
+  source_analysis_run_id: string | null;
+  updated_at: string;
+}
+
+export interface ApiDecisionMemoryResponse {
+  memory: ApiDecisionMemory | null;
+  learnings: ApiMemoryLearning[];
+  experiments: ApiExperiment[];
+  assessments: ApiReEvaluation[];
+  unresolved_uncertainties: string[];
+}
+
+/* -------------------------------------------------------------------------- *
+ * Decision Similarity & Historical Insight Engine (REGRET ENGINE 2.0,
+ * backend/app/memory/similarity_schemas.py)
+ * -------------------------------------------------------------------------- */
+
+export interface ApiSimilarityScore {
+  decision_id: string;
+  /** Deterministic, explainable similarity score in [0, 1] - NOT a
+   * probability or a statistically calibrated measure of anything. */
+  score: number;
+  matched_features: string[];
+  explanation: string;
+  confidence: number;
+}
+
+export interface ApiHistoricalInsight {
+  insight_id: string;
+  source_decision_id: string;
+  source_memory_id: string;
+  learning_id: string;
+  /** Copied verbatim from the source MemoryLearning. */
+  statement: string;
+  /** Historical relevance score - how similar the source decision was.
+   * NOT a probability that this insight applies to the current decision. */
+  relevance_score: number;
+  relevance_reason: string;
+  learning_type: LearningType;
+  source_type: LearningSourceType;
+  observed_value: string | null;
+  expected_value: string | null;
+  related_variable: string | null;
+  confidence: number | null;
+  created_at: string;
+}
+
+export interface ApiHistoricalContext {
+  found: boolean;
+  relevant_decisions: ApiSimilarityScore[];
+  relevant_decisions_count: number;
+  relevant_learnings: ApiHistoricalInsight[];
+  recurring_variables: string[];
+  previously_failed_assumptions: string[];
+  previously_validated_thresholds: string[];
+  unresolved_patterns: string[];
+  warnings: string[];
+}
+
+/* -------------------------------------------------------------------------- *
+ * Value of Information (REGRET ENGINE 2.0, Step 20,
+ * backend/app/agents/value_of_information_schemas.py)
+ * -------------------------------------------------------------------------- */
+
+export type DecisionSensitivity = 'negligible' | 'low' | 'moderate' | 'high' | 'critical' | 'unknown';
+
+export type UncertaintyLevel = 'low' | 'medium' | 'high' | 'very_high' | 'unknown';
+
+export type EvidenceStrength = 'none' | 'weak' | 'moderate' | 'strong' | 'unknown';
+
+export type CostBand = 'low' | 'medium' | 'high' | 'unknown';
+
+export type HistoricalRelevance = 'none' | 'low' | 'medium' | 'high';
+
+/** Deliberately five qualitative levels (plus 'unknown') - never a raw
+ * float presented as a calibrated probability. See the backend's own
+ * `ValueBand` docstring. */
+export type ValueBand = 'very_low' | 'low' | 'medium' | 'high' | 'very_high' | 'unknown';
+
+export type ThresholdLinkStatus = 'linked' | 'not_established';
+
+export interface ApiValueOfInformationItem {
+  uncertainty_id: string;
+  title: string;
+  description: string;
+  related_assumption_ids: string[];
+  related_blindspot_ids: string[];
+  related_threshold_ids: string[];
+  related_regret_scenario_ids: string[];
+  related_experiment_id: string | null;
+  potential_decision_impact: string | null;
+  decision_sensitivity: DecisionSensitivity;
+  regret_severity: string | null;
+  current_evidence_strength: EvidenceStrength;
+  uncertainty_level: UncertaintyLevel;
+  estimated_test_cost: CostBand;
+  estimated_test_duration_days: number | null;
+  feasibility: string | null;
+  reversibility: string | null;
+  historical_relevance: HistoricalRelevance;
+  prior_learning_count: number;
+  threshold_status: ThresholdLinkStatus;
+  information_value: ValueBand;
+  practical_value: ValueBand;
+  priority: number;
+  rationale: string;
+  /** How much of this score rests on real, comparable inputs - NEVER a
+   * probability that the uncertainty will resolve favorably. */
+  confidence: number;
+}
+
+export interface ApiValueOfInformationAnalysis {
+  analysis_id: string;
+  decision_id: string;
+  ranked_uncertainties: ApiValueOfInformationItem[];
+  primary_uncertainty_id: string | null;
+  primary_threshold_id: string | null;
+  why_this_is_primary: string | null;
+  summary: string;
+  methodology_version: string;
+  created_at: string;
+  superseded_by_analysis_id: string | null;
+}
+
+/* -------------------------------------------------------------------------- *
+ * Adaptive Experiment Loop (REGRET ENGINE 2.0, Step 21,
+ * backend/app/adaptive/schemas.py)
+ * -------------------------------------------------------------------------- */
+
+export type AdaptiveCycleStatus =
+  | 'awaiting_experiment'
+  | 'experiment_active'
+  | 'awaiting_result'
+  | 're_evaluating'
+  | 'selecting_next_test'
+  | 'ready_for_next_experiment'
+  | 'sufficiently_validated'
+  | 'inconclusive'
+  | 'user_stopped'
+  | 'blocked';
+
+/** The decision's current evidence-supported state - NEVER a probability
+ * and NEVER a verdict on whether the decision is "correct." See the
+ * backend's own `DecisionValidationState` docstring. */
+export type DecisionValidationState =
+  | 'strongly_supported'
+  | 'supported'
+  | 'partially_supported'
+  | 'insufficient_evidence'
+  | 'weakened'
+  | 'strongly_weakened'
+  | 'inconclusive'
+  | 'requires_more_testing';
+
+export type ThresholdState = 'unknown' | 'provisional' | 'under_test' | 'validated' | 'failed' | 'inconclusive';
+
+export interface ApiThresholdCycleRecord {
+  threshold_id: string;
+  previous_status: ThresholdState;
+  current_status: ThresholdState;
+  observed_value: string | null;
+  required_value: string | null;
+  confidence: number | null;
+  validation_status: string | null;
+}
+
+export interface ApiAdaptiveExperimentState {
+  state_id: string;
+  decision_id: string;
+  user_id: string;
+  cycle_number: number;
+  current_status: AdaptiveCycleStatus;
+  current_primary_uncertainty_id: string | null;
+  current_primary_threshold_id: string | null;
+  current_experiment_id: string | null;
+  previous_experiment_id: string | null;
+  previous_result_id: string | null;
+  previous_assessment: DecisionValidationState | null;
+  current_assessment: DecisionValidationState;
+  uncertainty_status: ApiThresholdCycleRecord[];
+  stopping_reason: string | null;
+  next_action: string;
+  why_this_is_next: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type AdvanceOutcome =
+  | 'started_first_cycle'
+  | 'advanced_to_next_experiment'
+  | 'concluded'
+  | 'no_change';
+
+export interface ApiAdaptiveAdvanceResponse {
+  state: ApiAdaptiveExperimentState;
+  outcome: AdvanceOutcome;
+}
+
+/* -------------------------------------------------------------------------- *
  * Health (app/schemas/health.py)
  * -------------------------------------------------------------------------- */
 

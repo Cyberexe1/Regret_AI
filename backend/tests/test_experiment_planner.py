@@ -207,6 +207,7 @@ def test_prompt_is_built_from_all_upstream_structured_output() -> None:
         "challenges",
         "regret_scenarios",
         "thresholds",
+        "voi_analysis",  # REGRET ENGINE 2.0 (Step 20): optional VOI priority hint
     ]
     assert "decision" not in signature.parameters
 

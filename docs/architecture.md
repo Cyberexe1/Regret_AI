@@ -50,7 +50,7 @@ flowchart TD
 1. **Client**: CloudFront serves the React SPA. The browser talks to nothing else in AWS — ever.
 2. **Application backend**: App Runner hosts FastAPI in a container. This is the *only* thing with an AWS identity (an IAM instance role, no access keys).
 3. **AI orchestration**: FastAPI calls the Strands Agents SDK, which runs 9 sequential agents on Amazon Bedrock.
-4. **Persistent storage**: DynamoDB holds every decision and every agent's structured output. An S3 bucket exists for evidence, provisioned and IAM-permissioned, but not yet the active storage backend (see [Limitations](../README.md#23-limitations)).
+4. **Persistent storage**: DynamoDB holds every decision and every agent's structured output. An S3 bucket exists for evidence, provisioned and IAM-permissioned, but not yet the active storage backend (see [Limitations](../README.md#26-limitations)).
 5. **External services**: an optional Research Agent can search the open web (DuckDuckGo) for additional context — off by default, and never merged into user-uploaded evidence.
 
 ## Boundary notes

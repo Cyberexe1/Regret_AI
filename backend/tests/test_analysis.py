@@ -327,7 +327,7 @@ def mock_threshold_engine():
 
 async def _experiment_plan_side_effect(
     decision_analysis, assumptions, blindspots, evidence_findings, challenges, regret_scenarios,
-    thresholds,
+    thresholds, voi_analysis=None,
 ):
     """Build an ExperimentPlan whose target_threshold_id is the REAL,
     persisted threshold id the orchestrator actually passed in - mirroring
@@ -1422,6 +1422,7 @@ def test_experiment_planner_receives_persisted_upstream_records_including_thresh
         called_challenges,
         called_regret_scenarios,
         called_thresholds,
+        called_voi_analysis,
     ) = mock_experiment_planner.await_args.args
     assert called_decision_analysis == _sample_analysis()
     assert len(called_assumptions) == 1

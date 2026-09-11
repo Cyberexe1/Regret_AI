@@ -2,8 +2,11 @@ export { ActivityTimeline } from './ActivityTimeline';
 export { ChartCardFallback } from './ChartCardFallback';
 export { DashboardHeader } from './DashboardHeader';
 export type { DashboardHeaderProps } from './DashboardHeader';
+export { HistoricalLessonsCard } from './HistoricalLessonsCard';
+export type { HistoricalLessonsCardProps } from './HistoricalLessonsCard';
 export { MetricRow } from './MetricRow';
 export { OpenExperimentsCard } from './OpenExperimentsCard';
+export { RecentDecisionLearningsCard } from './RecentDecisionLearningsCard';
 export { RecentDecisionsCard } from './RecentDecisionsCard';
 export { UncertaintyCard } from './UncertaintyCard';
 

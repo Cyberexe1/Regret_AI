@@ -88,12 +88,18 @@ from app.agents.schemas import (
     ThresholdAnalysis,
 )
 from app.agents.threshold_engine import run_threshold_engine
+from app.agents.value_of_information import ValueOfInformationService
+from app.agents.value_of_information_schemas import ValueOfInformationAnalysis
 from app.core.config import get_settings
 from app.core.errors import NotFoundError
 from app.core.logging import get_logger
+from app.memory.historical_context import HistoricalContextService
+from app.memory.memory_repository import MemoryRepository
+from app.memory.similarity_schemas import HistoricalContext
 from app.repositories.analysis_repository import AnalysisRepository
 from app.repositories.decision_repository import DecisionRepository
 from app.repositories.evidence_repository import EvidenceRepository
+from app.repositories.value_of_information_repository import ValueOfInformationRepository
 from app.research.service import ResearchService, ResearchUnavailable
 from app.schemas.decision import DecisionResponse, DecisionStatus, DecisionUpdate
 from app.schemas.decision_resources import AgentRunStatus, AnalysisRun, AnalysisRunStatus, Evidence
@@ -122,6 +128,8 @@ def _get_analysis_semaphore() -> asyncio.Semaphore:
         _analysis_semaphore = asyncio.Semaphore(get_settings().max_concurrent_analyses)
     return _analysis_semaphore
 
+_HISTORICAL_CONTEXT = "historical_context"
+_VALUE_OF_INFORMATION = "value_of_information"
 _DECISION_ANALYZER = "decision_analyzer"
 _ASSUMPTION_HUNTER = "assumption_hunter"
 _BLINDSPOT_HUNTER = "blindspot_hunter"
@@ -148,6 +156,8 @@ class AnalysisOrchestrator:
         evidence_repository: EvidenceRepository,
         analysis_repository: AnalysisRepository,
         research_service: ResearchService | None = None,
+        historical_context_service: HistoricalContextService | None = None,
+        value_of_information_service: ValueOfInformationService | None = None,
     ) -> None:
         self._decisions = decision_repository
         self._evidence = evidence_repository
@@ -157,6 +167,30 @@ class AnalysisOrchestrator:
         # unless a provider has actually been configured - research is
         # opt-in, never on by default. Injectable for tests.
         self._research = research_service if research_service is not None else ResearchService()
+        # REGRET ENGINE 2.0: gathers Decision Similarity + Historical
+        # Insight context from the SAME user's own past decisions - see
+        # `app.memory.historical_context`'s module docstring for the
+        # user-scoping guarantee. Defaults to a fresh service built from
+        # this orchestrator's own `decision_repository` (never a different
+        # repository instance), so historical retrieval always shares the
+        # exact same DynamoDB access this orchestrator already uses.
+        self._historical_context = (
+            historical_context_service
+            if historical_context_service is not None
+            else HistoricalContextService(decision_repository, MemoryRepository())
+        )
+        # REGRET ENGINE 2.0, Step 20: ranks which uncertainty is most
+        # worth resolving before commitment - purely deterministic, no
+        # LLM call (see app.services.value_of_information_service).
+        # Defaults to a fresh service sharing this orchestrator's own
+        # decision_repository, exactly like `_historical_context` above.
+        self._value_of_information = (
+            value_of_information_service
+            if value_of_information_service is not None
+            else ValueOfInformationService(
+                decision_repository, ValueOfInformationRepository(), self._historical_context
+            )
+        )
 
     async def run_analysis(self, user_id: str, decision_id: UUID) -> AnalysisRun:
         """Run the full analysis pipeline (Decision Analyzer -> Assumption
@@ -208,10 +242,10 @@ class AnalysisOrchestrator:
         # rather than starting an unbounded number of simultaneous Bedrock
         # call chains.
         async with _get_analysis_semaphore():
-            return await self._run_analysis_pipeline(decision, evidence)
+            return await self._run_analysis_pipeline(user_id, decision, evidence)
 
     async def _run_analysis_pipeline(
-        self, decision: DecisionResponse, evidence: list[Evidence]
+        self, user_id: str, decision: DecisionResponse, evidence: list[Evidence]
     ) -> AnalysisRun:
         """The actual pipeline body, run while holding a concurrency slot -
         split out from `run_analysis` purely so the semaphore-acquisition
@@ -219,6 +253,19 @@ class AnalysisOrchestrator:
         decision_id = decision.id
         run = self._analyses.create(decision_id)
         context = AnalysisContext(decision=decision, evidence=evidence)
+
+        # --- Stage 0: Historical Context (REGRET ENGINE 2.0, additive) -----
+        # Gathered BEFORE Stage 1 so the Decision Analyzer can reference it
+        # as clearly-labeled context - see `AnalysisContext.historical_context`'s
+        # docstring and `app.memory.historical_context`'s module docstring
+        # for the user-scoping guarantee and evidence-hierarchy rationale.
+        # A failure here is logged and NEVER fails the run, and NEVER
+        # blocks/skips any other stage - it only means this run proceeds
+        # with `historical_context=None` (rendered as "no historical
+        # context available" in the prompt), exactly like the optional
+        # Research Agent stage's own failure handling.
+        context.historical_context = self._gather_historical_context(user_id, decision)
+
         agent_statuses: dict[str, AgentRunStatus] = {
             _DECISION_ANALYZER: AgentRunStatus.PENDING,
             _ASSUMPTION_HUNTER: AgentRunStatus.PENDING,
@@ -268,6 +315,13 @@ class AnalysisOrchestrator:
         agent_statuses[_DECISION_ANALYZER] = AgentRunStatus.COMPLETED
         context.agent_results[_DECISION_ANALYZER] = decision_analysis
         result[_DECISION_ANALYZER] = decision_analysis.model_dump(mode="json")
+        # REGRET ENGINE 2.0: recorded in the run's own result alongside
+        # every stage's output - additive metadata about what historical
+        # context was available, never something that changes any other
+        # stage's persisted result. See `GET /decisions/{id}/historical-context`
+        # for the equivalent standalone endpoint.
+        if context.historical_context is not None:
+            result[_HISTORICAL_CONTEXT] = context.historical_context.model_dump(mode="json")
 
         # --- Stage 2: Assumption Hunter --------------------------------------
         agent_statuses[_ASSUMPTION_HUNTER] = AgentRunStatus.RUNNING
@@ -569,6 +623,20 @@ class AnalysisOrchestrator:
             thresholds_to_persist.append(dumped)
         context.thresholds = self._decisions.create_thresholds(decision_id, thresholds_to_persist)
 
+        # --- Stage 7a: Value-of-Information (REGRET ENGINE 2.0, Step 20, additive) ---
+        # Deterministic - no LLM call, never blocks or fails the run. Ranks
+        # which uncertainty is most worth resolving before commitment, from
+        # everything persisted so far (assumptions/blindspots/thresholds/
+        # regret scenarios) - the Experiment Planner below reads its
+        # primary_uncertainty_id/primary_threshold_id as a preference hint,
+        # never a rule that overrides its own judgment (see
+        # app.agents.experiment_planner's SYSTEM_PROMPT rule 13). A failure
+        # here is logged and the run proceeds with voi_analysis=None,
+        # exactly like the optional historical-context gathering step.
+        context.value_of_information = self._compute_value_of_information(decision_id, context)
+        if context.value_of_information is not None:
+            result[_VALUE_OF_INFORMATION] = context.value_of_information.model_dump(mode="json")
+
         # --- Stage 8: Experiment Planner ----------------------------------------
         agent_statuses[_EXPERIMENT_PLANNER] = AgentRunStatus.RUNNING
         experiment_plan = await self._run_experiment_planner_step(
@@ -654,7 +722,9 @@ class AnalysisOrchestrator:
         to know the run has already been finalized.
         """
         try:
-            raw_result = await run_decision_analyzer(context.decision, context.evidence)
+            raw_result = await run_decision_analyzer(
+                context.decision, context.evidence, context.historical_context
+            )
         except Exception as exc:  # noqa: BLE001 - deliberately broad: any agent/model failure lands here
             logger.error(
                 "Decision analyzer failed decision_id=%s run_id=%s error=%s",
@@ -1067,6 +1137,7 @@ class AnalysisOrchestrator:
                 context.challenges,
                 context.regret_scenarios,
                 context.thresholds,
+                context.value_of_information,
             )
         except Exception as exc:  # noqa: BLE001 - deliberately broad: any agent/model failure lands here
             logger.error(
@@ -1089,6 +1160,57 @@ class AnalysisOrchestrator:
             return None
 
         return validated
+
+    def _gather_historical_context(
+        self, user_id: str, decision: DecisionResponse
+    ) -> HistoricalContext | None:
+        """Gather Decision Similarity + Historical Insight context for this
+        run - additive, never blocking. Returns `None` (never raises) if
+        gathering fails for any reason; the pipeline proceeds exactly as
+        it would have with no history at all. Mirrors the Research
+        Agent's own "optional stage, failure never fails the run"
+        handling, but is not itself a pipeline "stage" with its own
+        agent_status - it has no LLM call and nothing about it can be
+        "skipped" downstream, since nothing downstream depends on it
+        succeeding.
+        """
+        try:
+            return self._historical_context.get_historical_context(user_id, decision)
+        except Exception:  # noqa: BLE001 - never let historical lookup block/fail an analysis run
+            logger.exception(
+                "Historical context gathering failed decision_id=%s user_id=%s",
+                decision.id,
+                user_id,
+            )
+            return None
+
+    def _compute_value_of_information(
+        self, decision_id: UUID, context: AnalysisContext
+    ) -> ValueOfInformationAnalysis | None:
+        """Compute and persist this run's Value-of-Information analysis
+        (REGRET ENGINE 2.0, Step 20) - additive, never blocking. Returns
+        `None` (never raises) if computation fails for any reason; the
+        pipeline proceeds exactly as it would have with no VOI ranking at
+        all. Mirrors `_gather_historical_context`'s own failure handling.
+
+        Reads directly from `context` (already-persisted assumptions/
+        blindspots/thresholds/regret scenarios for THIS run) rather than
+        re-querying the repository, since this runs mid-pipeline before
+        experiments exist yet - `ValueOfInformationService
+        .compute_and_persist` still re-lists experiments itself (there are
+        none yet at this point, which is correct: no uncertainty can have
+        related_experiment_id set on the very first computation for a
+        decision).
+        """
+        try:
+            return self._value_of_information.compute_and_persist(
+                context.decision, historical_context=context.historical_context
+            )
+        except Exception:  # noqa: BLE001 - never let VOI computation block/fail an analysis run
+            logger.exception(
+                "Value-of-Information computation failed decision_id=%s", decision_id
+            )
+            return None
 
     @staticmethod
     def _is_abandoned(run: AnalysisRun) -> bool:

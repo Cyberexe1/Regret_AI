@@ -31,6 +31,7 @@ from strands import Agent
 
 from app.agents.config import get_bedrock_model, invoke_with_retry
 from app.agents.schemas import DecisionAnalysis, ExperimentPlan
+from app.agents.value_of_information_schemas import ValueOfInformationAnalysis
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.schemas.decision_resources import Assumption, Blindspot, Challenge, Threshold
@@ -113,6 +114,14 @@ step-by-step transcript. Return only the final structured findings \
 requested.
 12. It is better to recommend fewer experiments, or leave a field null \
 (cost, duration), than to fabricate false concreteness anywhere.
+13. You may be given a "Value-of-Information priority" hint naming the uncertainty and, if \
+one exists, the threshold that a deterministic prioritization pass identified as most worth \
+resolving before commitment. Treat it as a strong preference, not a rule that overrides \
+everything else you were given: if that threshold is real and well-suited to a cheap, \
+credible test, prefer targeting it with your recommended experiment; if it isn't well-suited \
+(no real threshold exists yet, or a cheaper/more reversible test targets a different real \
+threshold better), you may target a different one instead - explain your choice either way. \
+Never invent a threshold id just to match the hint.
 """
 
 
@@ -146,6 +155,7 @@ def build_experiment_planner_prompt(
     challenges: list[Challenge],
     regret_scenarios: list[StoredRegretScenario],
     thresholds: list[Threshold],
+    voi_analysis: ValueOfInformationAnalysis | None = None,
 ) -> str:
     """Render the Decision Analyzer's output and the recorded upstream
     records into the Experiment Planner's prompt.
@@ -227,7 +237,60 @@ def build_experiment_planner_prompt(
     else:
         lines.append("\nNo regret scenarios have been recorded for this decision.")
 
+    lines.append(_render_voi_hint(voi_analysis, thresholds))
+
     return "\n".join(lines)
+
+
+def _render_voi_hint(
+    voi_analysis: ValueOfInformationAnalysis | None, thresholds: list[Threshold]
+) -> str:
+    """Render the Value-of-Information priority (REGRET ENGINE 2.0, Step
+    20) as a clearly-labeled hint - a preference, never a rule that
+    overrides the rest of the prompt. See `SYSTEM_PROMPT` rule 13.
+
+    Only ever names a threshold that is actually present in `thresholds`
+    (i.e. really given to this agent this run) - if the primary
+    uncertainty has no real threshold yet, says so explicitly rather than
+    inventing one.
+    """
+    if voi_analysis is None or not voi_analysis.ranked_uncertainties:
+        return (
+            "\nValue-of-Information priority: none available. Use your own judgment across "
+            "the thresholds given above."
+        )
+
+    primary_id = voi_analysis.primary_uncertainty_id
+    primary_item = next(
+        (item for item in voi_analysis.ranked_uncertainties if item.uncertainty_id == primary_id),
+        None,
+    )
+    if primary_item is None:
+        return (
+            "\nValue-of-Information priority: none available. Use your own judgment across "
+            "the thresholds given above."
+        )
+
+    threshold_ids_given = {t.id for t in thresholds}
+    linked_threshold_id = (
+        primary_item.related_threshold_ids[0] if primary_item.related_threshold_ids else None
+    )
+    if linked_threshold_id and linked_threshold_id in threshold_ids_given:
+        return (
+            f"\nValue-of-Information priority: a deterministic prioritization pass identified "
+            f"'{primary_item.title}' as the highest-priority uncertainty to resolve before "
+            f"commitment (practical value: {primary_item.practical_value.value}). It already "
+            f"connects to threshold id={linked_threshold_id}. Prefer targeting this threshold "
+            "with your recommended experiment if a cheap, credible test can do so - but you "
+            "may choose differently if justified."
+        )
+    return (
+        f"\nValue-of-Information priority: a deterministic prioritization pass identified "
+        f"'{primary_item.title}' as the highest-priority uncertainty to resolve before "
+        f"commitment (practical value: {primary_item.practical_value.value}), but no threshold "
+        "has been established for it yet - do not invent one. Consider whether any threshold "
+        "given above is still the best target."
+    )
 
 
 async def run_experiment_planner(
@@ -238,6 +301,7 @@ async def run_experiment_planner(
     challenges: list[Challenge],
     regret_scenarios: list[StoredRegretScenario],
     thresholds: list[Threshold],
+    voi_analysis: ValueOfInformationAnalysis | None = None,
 ) -> ExperimentPlan:
     """Invoke the Experiment Planner and return its validated structured output.
 
@@ -247,6 +311,12 @@ async def run_experiment_planner(
     all. The caller (the orchestrator) is responsible for translating
     either into a failed AnalysisRun; the agent itself never touches
     persistence.
+
+    `voi_analysis` (REGRET ENGINE 2.0, Step 20) is optional: when
+    provided, it is rendered as a clearly-labeled priority hint - a
+    preference for the planner to weigh, never a rule that overrides the
+    rest of its own judgment. See `SYSTEM_PROMPT` rule 13 and
+    `_render_voi_hint`.
     """
     settings = get_settings()
     agent = build_experiment_planner()
@@ -258,6 +328,7 @@ async def run_experiment_planner(
         challenges,
         regret_scenarios,
         thresholds,
+        voi_analysis,
     )
 
     logger.info(

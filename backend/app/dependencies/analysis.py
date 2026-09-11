@@ -5,8 +5,12 @@ from typing import Annotated
 from fastapi import Depends
 
 from app.agents.orchestrator import AnalysisOrchestrator
+from app.agents.value_of_information import ValueOfInformationService
 from app.dependencies.decisions import get_decision_repository
 from app.dependencies.evidence import get_evidence_repository
+from app.dependencies.historical_context import get_historical_context_service
+from app.dependencies.value_of_information import get_value_of_information_service
+from app.memory.historical_context import HistoricalContextService
 from app.repositories.analysis_repository import AnalysisRepository
 from app.repositories.decision_repository import DecisionRepository
 from app.repositories.evidence_repository import EvidenceRepository
@@ -31,9 +35,20 @@ def get_analysis_orchestrator(
     evidence_repository: Annotated[EvidenceRepository, Depends(get_evidence_repository)],
     analysis_repository: Annotated[AnalysisRepository, Depends(get_analysis_repository)],
     research_service: Annotated[ResearchService, Depends(get_research_service)],
+    historical_context_service: Annotated[
+        HistoricalContextService, Depends(get_historical_context_service)
+    ],
+    value_of_information_service: Annotated[
+        ValueOfInformationService, Depends(get_value_of_information_service)
+    ],
 ) -> AnalysisOrchestrator:
     return AnalysisOrchestrator(
-        decision_repository, evidence_repository, analysis_repository, research_service
+        decision_repository,
+        evidence_repository,
+        analysis_repository,
+        research_service,
+        historical_context_service,
+        value_of_information_service,
     )
 
 

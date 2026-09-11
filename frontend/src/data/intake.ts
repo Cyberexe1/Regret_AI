@@ -12,6 +12,10 @@ export const INTAKE_SECTION_IDS = {
   outcome: 'intake-outcome',
   constraints: 'intake-constraints',
   beliefs: 'intake-beliefs',
+  // REGRET ENGINE 2.0: "Relevant from your past decisions" - a live,
+  // debounced preview, never part of the step-completion tracking above
+  // (it has no bearing on whether the intake form itself is "done").
+  historicalContext: 'intake-historical-context',
   evidence: 'intake-evidence',
   submit: 'intake-submit',
 } as const;

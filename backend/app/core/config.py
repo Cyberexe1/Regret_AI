@@ -104,6 +104,33 @@ class Settings(BaseSettings):
     # not a full API gateway" guidance.
     max_concurrent_analyses: int = 5
 
+    # --- Decision Similarity & Historical Insight Engine (REGRET ENGINE 2.0) ---
+    # No vector DB, no embeddings - similarity is deterministic, multi-feature
+    # scoring over a user's own past decisions (see app.memory.similarity).
+    # These three bounds keep it a cheap, in-process computation even for a
+    # user with a long decision history, mirroring the "prevent runaway
+    # research" bounding pattern used for `research_max_*` above.
+    #
+    # How many of the user's own most recent past decisions are even
+    # considered as similarity candidates (via the existing GSI1 user
+    # index) before scoring - never a full, unbounded scan of history.
+    historical_search_limit: int = 20
+    # Of those candidates, how many of the highest-scoring ones are kept
+    # as "relevant decisions" after scoring.
+    historical_top_k: int = 5
+    # Upper bound on how many individual `HistoricalInsight` records are
+    # ever surfaced in one `HistoricalContext`, across all relevant
+    # decisions combined.
+    historical_insight_limit: int = 10
+
+    # --- Adaptive Experiment Loop (REGRET ENGINE 2.0, Step 21) -----------------
+    # Hard ceiling on how many adaptive cycles (experiment -> result ->
+    # re-evaluation -> next experiment) a single decision can go through.
+    # Guards against an infinite loop - see app.adaptive.service. A cycle
+    # that would exceed this limit is marked `blocked` with an explicit
+    # stopping reason rather than silently continuing forever.
+    max_adaptive_cycles: int = 8
+
     @property
     def research_enabled(self) -> bool:
         return self.research_provider.strip().lower() not in {"", "none"}

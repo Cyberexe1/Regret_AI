@@ -40,9 +40,13 @@ Decision → Failure Conditions → Thresholds → Experiment → Re-evaluation
 20. [Project structure](#20-project-structure)
 21. [Demo walkthrough](#21-demo-walkthrough)
 22. [From AI opinion to evidence loop](#22-from-ai-opinion-to-evidence-loop)
-23. [Limitations](#23-limitations)
-24. [Future improvements](#24-future-improvements)
-25. [License](#25-license)
+23. [REGRET ENGINE 2.0 — Decision Memory](#23-regret-engine-20--decision-memory)
+24. [REGRET ENGINE 2.0 — Historical Decision Intelligence](#24-regret-engine-20--historical-decision-intelligence)
+25. [REGRET ENGINE 2.0 — Value of Information](#25-regret-engine-20--value-of-information)
+26. [REGRET ENGINE 2.0 — Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop)
+27. [Limitations](#27-limitations)
+28. [Future improvements](#28-future-improvements)
+29. [License](#29-license)
 
 ---
 
@@ -372,7 +376,285 @@ Decision → Failure Condition → Threshold → Experiment → Evidence → Re-
 
 The difference isn't that REGRET ENGINE uses more agents. It's that the product doesn't stop at an opinion — it produces a specific, falsifiable claim about reality (the threshold), a way to test that claim cheaply (the experiment), and a deterministic mechanism for updating the assessment once real evidence exists (the re-evaluation). This is designed to help someone validate an uncertain assumption *before* a costly commitment — it does not guarantee a better outcome, and it does not make the decision for them.
 
-## 23. Limitations
+## 23. REGRET ENGINE 2.0 — Decision Memory
+
+> "REGRET ENGINE doesn't just remember decisions. It remembers what was believed, what was tested, what actually happened, and what changed as a result."
+
+**REGRET ENGINE 1.0:**
+
+```
+Decision → Analysis → Threshold → Experiment → Re-evaluation
+```
+
+**REGRET ENGINE 2.0:**
+
+```
+Decision → Analysis → Threshold → Experiment → Re-evaluation → Memory → Future Decisions
+```
+
+The 1.0 loop already produces a real, deterministic re-evaluation after every experiment result. 2.0 adds one capability on top of it: **Decision Memory** — a durable, structured record of what REGRET ENGINE has learned about a decision, distinct from the raw analysis records it's built from.
+
+### What Decision Memory actually stores
+
+- `DecisionMemory` (`backend/app/memory/memory_schemas.py`): a per-decision summary that *references* its critical assumptions/thresholds/regret scenarios/experiments by id — it never duplicates their content, which stays the single source of truth in `DecisionRepository`. Explicitly staged as `preliminary` (only the analysis exists — nothing is presented as an observed outcome) or `validated` (a real experiment result has been observed and re-evaluated).
+- `MemoryLearning`: one durable, individually provenance-tracked fact per threshold comparison, assumption re-evaluation, or regret-scenario re-evaluation that a real re-evaluation actually produced — plus one for the experiment result's own submitted summary. Every learning's `source_type`/`source_id` points at the exact `ReEvaluation`/`ExperimentResult` record it came from.
+
+### How memory is built — deterministically, never re-analyzed
+
+Memory is a *consequence* of observed evidence, not a fourth agent call. Submitting an experiment result already triggers `ReEvaluationService`'s deterministic threshold comparison (see [Experiment + re-evaluation loop](#8-experiment--re-evaluation-loop)); `MemoryService` reads that already-computed result and turns it into learnings — no LLM call, no re-running the analysis pipeline:
+
+```
+POST /experiments/{experiment_id}/results
+        ↓
+persist result  →  deterministic re-evaluation  →  DecisionAssessment
+        ↓
+MemoryService.update_memory_from_reevaluation()
+        ↓
+MemoryLearning records (threshold_validated / threshold_failed / assumption_weakened / ...)
+        ↓
+DecisionMemory updated (stage: preliminary → validated)
+        ↓
+existing ExperimentResultResponse returned to the caller, unchanged
+```
+
+A memory-layer failure is logged and never fails the request — the experiment result and re-evaluation have already succeeded and must still be returned. Learning ids are derived deterministically from `(experiment_result_id, learning_type, discriminator)`, so re-processing the same result twice can never create duplicate learnings — a conditional DynamoDB write on that same, reproducible id is the idempotency guarantee, not a separate lock.
+
+### Where it's exposed
+
+| Endpoint | Returns |
+|---|---|
+| `GET /decisions/{decision_id}/memory` | The memory summary, its learnings, the real experiments/re-evaluations it references, and its current unresolved uncertainties — one call. |
+| `GET /decisions/{decision_id}/learnings` | Every learning ever recorded for a decision, oldest first. |
+| `GET /memory/{memory_id}` | A single memory object by its own id. |
+
+On the frontend, a decision's report page has a **Decision Memory** section (`DecisionMemoryPanel`) that makes the "what we thought" vs "what we learned" distinction visually explicit — the learned side stays visibly provisional (dashed border, "Not yet tested" badge) until a real experiment result exists — plus a timeline (`MemoryTimeline`) walking through Decision Created → Analysis Completed → Critical Threshold Identified → Experiment Started/Completed → Decision Re-evaluated → Learning Recorded. The dashboard's "Recent decision learnings" card surfaces a few of the workspace's most recent, real learnings.
+
+### What this does not do (yet)
+
+Decision Memory is a per-decision record. It does not compare decisions to each other, does not use one decision's memory to influence a different, future decision, and performs no semantic similarity search — that cross-decision capability was out of scope for Step 18. It is exactly what [Historical Decision Intelligence](#24-regret-engine-20--historical-decision-intelligence) below adds.
+
+## 24. REGRET ENGINE 2.0 — Historical Decision Intelligence
+
+> "A new decision can now discover relevant learning from the user's OWN previous decisions. Historical information is context, not truth."
+
+**REGRET ENGINE 1.0:**
+
+```
+Decision → Failure Conditions → Threshold → Experiment → Re-evaluation
+```
+
+**REGRET ENGINE 2.0:**
+
+```
+Past Decisions → Memory → Historical Insight → New Decision → Failure Conditions → Threshold → Experiment → Re-evaluation → Updated Memory
+```
+
+Step 18 gave every decision a durable memory. This step ([`backend/app/memory/similarity.py`](backend/app/memory/similarity.py), [`backend/app/memory/historical_context.py`](backend/app/memory/historical_context.py)) makes that memory useful to the user's *next* decision — without a vector database, without embeddings, and without ever letting the past override the present.
+
+### Decision Similarity — deterministic, explainable, never a black box
+
+`DecisionSimilarityService` scores a new decision against the same user's own past decisions using a small, fixed set of named, independently-computed features — decision-text token overlap (Jaccard similarity over a lightweight, stopword-filtered tokenizer, not exact string matching and not an embedding model), assumption/key-variable overlap, budget closeness, and risk-tolerance/location matches. Every score's `matched_features` names exactly which components contributed, and `explanation` is a plain sentence built directly from them — never free-form LLM prose, and never a number a user or developer can't trace back to a concrete reason.
+
+The result is a `SimilarityScore` with a `score` in `[0, 1]` — explicitly documented, in the schema itself, as a **historical relevance score**, not a probability and not a statistically calibrated measure of anything.
+
+### Historical Insight retrieval — surfacing real learnings, never fabricating a pattern
+
+`HistoricalContextService` orchestrates the rest, entirely in deterministic Python — no fourth agent, no LLM call:
+
+```
+DecisionRepository.list_for_user (bounded, user-scoped, existing GSI1 index)
+        ↓
+DecisionSimilarityService.rank (deterministic scoring, no vector DB)
+        ↓
+top HISTORICAL_TOP_K relevant past decisions
+        ↓
+MemoryRepository.list_learnings_for_decision (per relevant decision)
+        ↓
+HistoricalContext: relevant decisions, individual insights, recurring variables,
+previously-failed assumptions, previously-validated thresholds, unresolved patterns
+```
+
+Every `HistoricalInsight` is copied verbatim from a real, already-persisted `MemoryLearning` (see [Decision Memory](#23-regret-engine-20--decision-memory)) — `source_decision_id`/`source_memory_id`/`learning_id` always point at the exact record it came from. Nothing is invented at this layer.
+
+### User-scoping — the ownership boundary is explicit, not incidental
+
+**A user's decision memory must never be returned to another user.** This is enforced at the service layer, not left to the API:
+
+- The only way `HistoricalContextService` ever discovers candidate past decisions is `DecisionRepository.list_for_user(user_id, ...)`, which queries the existing GSI1 index keyed by `USER#<user_id>` — it is architecturally impossible for this query to return another user's decision, because the partition key itself is the user id.
+- `get_historical_context`/`get_historical_context_preview` take `user_id` as a required, explicit parameter — never inferred, never defaulted.
+- This is covered by a **mandatory** regression test: [`backend/tests/test_historical_context.py::test_user_a_cannot_retrieve_user_b_historical_context`](backend/tests/test_historical_context.py) seeds an essentially identical, fully-analyzed decision for two different users and asserts User A's historical context never surfaces User B's decision, memory, or learnings — even though the text would otherwise score very highly.
+
+### The evidence hierarchy — historical context is background, never truth
+
+Historical information is deliberately treated as the *lowest*-priority input into any analysis, explicitly ranked below the current decision's own evidence and constraints:
+
+1. Current user-provided evidence
+2. Current experiment observations
+3. Deterministic calculations from current data
+4. Explicit user constraints
+5. Current analysis outputs
+6. Historical validated learnings
+7. Historical provisional learnings
+8. General AI inference
+
+`app/agents/decision_analyzer.py` renders historical context as its own, clearly-labeled section, appended *after* the current decision's own text and evidence, with an explicit instruction never to state a historical number as fact. Every individual insight is phrased as **"a previous decision observed X"**, never as a claim about the current decision — e.g. if a past decision's memory recorded a 17% repeat-order rate but the current decision's own evidence shows 31%, the prompt says "Previous decision observed 17%, but current evidence indicates 31%," never "Historical data proves the repeat-order rate is 17%."
+
+Historical context is gathered as an additive step in `AnalysisOrchestrator`, before the Decision Analyzer runs — never a fourth agent call, and never able to block or fail the analysis: if gathering raises for any reason, the run proceeds exactly as if no history existed.
+
+**Historical insights never automatically:** reject a decision, approve a decision, change a threshold, change an experiment result, change a user constraint, make a financial decision, or trigger an irreversible action. They surface information. The user remains the decision-maker.
+
+### Where it's exposed
+
+| Endpoint | Returns |
+|---|---|
+| `GET /decisions/{decision_id}/historical-context` | The full `HistoricalContext` for an existing decision: relevant past decisions with their similarity scores, individual insights, recurring variables, previously-failed assumptions, previously-validated thresholds, and warnings. |
+| `POST /decisions/historical-context/preview` | The same computation for a decision that hasn't been created yet — nothing is persisted — powering the intake-page preview below. |
+
+The 9-stage analysis pipeline's own result also gains a `historical_context` key (see `AnalysisRun.result`) alongside every agent stage's output, recording what history was available when that specific run happened.
+
+On the frontend: the **new-decision intake page** shows a live, debounced "Relevant from your past decisions" preview as the user types (never persisting anything); the **analysis workspace** has its own "Historical Insights" section once analysis completes; a decision's **report page** has a "Related past decisions" section explaining, in plain language, why REGRET connected each match; and the **dashboard** carries one small, bounded "Historical lessons" card (e.g. "3 validated learnings could apply to your recent decisions") rather than surfacing the full insight list everywhere.
+
+### Configuration
+
+Three bounded settings (mirroring the existing `research_max_*` bounding pattern) keep this a cheap, in-process computation regardless of how much decision history a user accumulates — see `backend/.env.example`:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `HISTORICAL_SEARCH_LIMIT` | 20 | How many of the user's own most recent decisions are even considered as candidates. |
+| `HISTORICAL_TOP_K` | 5 | How many of the highest-scoring candidates are kept as "relevant decisions". |
+| `HISTORICAL_INSIGHT_LIMIT` | 10 | Upper bound on how many individual insights are ever surfaced at once. |
+
+### What this does not do (yet)
+
+No vector database, no embeddings, no semantic search — similarity is deterministic, lexical, and fully explainable. Value-of-Information prioritization now exists — see the next section. The Adaptive Experiment Loop that acts on a sequence of these rankings over time now exists too — see [Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop). Cross-Decision Learning beyond one user's own history (i.e. learning shared *across* users) remains out of scope. See [Future improvements](#28-future-improvements).
+
+## 25. REGRET ENGINE 2.0 — Value of Information
+
+> "REGRET ENGINE doesn't just ask what could make this decision fail. It asks which of those unknowns is actually worth spending effort to resolve before you commit."
+
+**REGRET ENGINE 1.0 / early 2.0:**
+
+```
+Decision → Failure Conditions → Threshold → Experiment
+```
+
+**REGRET ENGINE 2.0 with Value of Information:**
+
+```
+Decision → Uncertainties → Potential Impact → Decision Sensitivity →
+Current Evidence → Cost of Testing → Reversibility → Value of Information →
+Priority → Experiment
+```
+
+Steps 18-19 gave REGRET ENGINE memory and the ability to compare a decision against a user's own history. This step ([`backend/app/services/value_of_information_service.py`](backend/app/services/value_of_information_service.py), [`backend/app/agents/value_of_information.py`](backend/app/agents/value_of_information.py)) answers a question none of the prior steps answer on their own: **of everything still uncertain about this decision, which uncertainty is most worth resolving first?**
+
+### Risk is not the same thing as value to resolve
+
+A common mistake decision tools make is conflating "how dangerous is this if wrong" with "how much should I spend effort finding out." REGRET ENGINE keeps these explicitly separate:
+
+| Concept | Question it answers |
+|---|---|
+| **Risk / regret severity** | How bad would it be if this assumption turns out to be wrong? |
+| **Uncertainty** | How much is genuinely unknown about this variable today? |
+| **Impact** | How much would the decision's outcome change if this variable were wrong? |
+| **Decision sensitivity** | If this variable changes even a little, how much does the decision's assessment move? |
+| **Cost of learning** | What would it actually cost — money, time, reversibility — to find out? |
+| **Value of Information** | Given all of the above, how much is it actually worth resolving this uncertainty *before* committing? |
+
+A critical-impact assumption the decision is highly sensitive to, but that is already backed by strong evidence, has low remaining value to resolve — there's little left to learn. A moderate uncertainty that can be tested in a day for almost no cost can have *higher* practical value than a severe one that would take six months and significant capital to test. REGRET ENGINE's own regression suite pins this down explicitly: `test_high_risk_but_already_understood_scores_lower_than_genuinely_uncertain` and `test_low_cost_high_impact_outranks_high_cost_high_impact` in [`backend/tests/test_value_of_information_service.py`](backend/tests/test_value_of_information_service.py).
+
+### The scoring methodology — documented, deterministic, never a fabricated statistic
+
+No LLM call is involved anywhere in this feature. `DecisionSimilarityService`'s sibling here, `app/services/value_of_information_service.py`, computes everything from already-persisted, already-structured fields (`Assumption`, `Blindspot`, `Threshold`, `RegretScenario`, `Experiment`, and Step 19's `HistoricalContext`) using a fixed, documented formula (`methodology_version = "voi-v1"`):
+
+1. **Information value** — three ordinal inputs (potential decision impact, decision sensitivity, current uncertainty level), each normalized into a small bounded range, multiplied together: `information_value_raw = impact × sensitivity × uncertainty`. It's a product, not an average, so information value can only be genuinely high when the decision is *both* sensitive to the variable *and* meaningfully uncertain about it *and* the downside if wrong is material — a well-understood variable caps the score low even if the impact would be severe. If any of the three inputs is unavailable, the result is `unknown`, never guessed.
+2. **Practical value** — `information_value_raw` adjusted by real cost-to-test, feasibility, and reversibility multipliers, sourced only from an already-recommended `Experiment` that targets a related threshold (never fabricated for an uncertainty with no experiment). A cheap, feasible, reversible test barely discounts the score; an expensive, infeasible, irreversible one discounts it heavily.
+3. **Bands, not fake precision** — both scores are bucketed into one of five interpretable bands (`very_low` / `low` / `medium` / `high` / `very_high`, or `unknown`) via fixed, documented cutoffs. The underlying raw float is never returned by the API or shown in the UI as if it were a calibrated probability.
+4. **Ranking** sorts by practical value, tying on information value, then by a stable id — fully deterministic, same inputs always produce the same order.
+5. **Historical relevance** (Step 19) is a **tiebreaker only** — it can decide between two uncertainties whose scores are nearly identical, but it can never reorder two uncertainties whose scores genuinely differ. Current evidence and the deterministic formula always outrank history, mirroring Step 19's own evidence hierarchy.
+
+### Threshold and Experiment Planner integration — a hint, never an override
+
+Every high-value uncertainty is connected to a real, persisted `Threshold` when one exists (`threshold_status: linked`); if none has been established yet, that's stated explicitly (`not_established`) rather than inventing one. The Value-of-Information analysis is computed as an additive step in `AnalysisOrchestrator`, right after thresholds are persisted and just before the Experiment Planner runs. The Experiment Planner receives the top-ranked uncertainty and its threshold (if any) as a clearly labeled **preference**, not a rule — its own system prompt (rule 13) explicitly allows it to target a different threshold if a cheaper or more reversible test serves the decision better. A Value-of-Information computation failure never blocks or fails the analysis run; the pipeline proceeds exactly as if it had never run.
+
+### Where it's exposed
+
+| Endpoint | Returns |
+|---|---|
+| `GET /decisions/{decision_id}/value-of-information` | The most recently computed analysis: every ranked uncertainty, the primary one, its linked threshold (if any), and the rationale behind the ranking. |
+| `POST /decisions/{decision_id}/value-of-information/recompute` | Recomputes from the decision's current state (e.g. after an experiment result changes the evidence) — creates a new analysis and marks the previous one superseded, but never deletes it, so the decision's full prioritization history stays reconstructable. |
+
+Submitting a real experiment result (`POST /experiments/{id}/results`) automatically triggers a recompute — an uncertainty that was previously the top priority can drop once it's been tested, and a different one can become primary. Step 26 is what actually *acts* on that sequence of rankings over time.
+
+On the frontend, a decision's report page has a **"What should you test first?"** section: a compact ranked bar list ("What matters most") for an at-a-glance read, followed by expandable cards for each uncertainty showing why it matters, its linked threshold, cost to learn, test duration, feasibility, and reversibility — with the top-ranked uncertainty visually marked "Test this first."
+
+### What this does not do (yet)
+
+Value of Information ranks uncertainties within one decision, at one point in time. On its own, it does not automatically re-run the ranking on a schedule or select the next experiment — it recommends what's worth finding out; the user remains the decision-maker. See the next section for the loop that carries that ranking forward across an entire testing journey.
+
+## 26. REGRET ENGINE 2.0 — Adaptive Experiment Loop
+
+> "REGRET ENGINE doesn't stop at one experiment. After a result comes in, it learns from it and asks: what's the next most valuable thing to find out?"
+
+**Through Step 20:**
+
+```
+Decision → Uncertainties → Value of Information → Best Experiment → (done)
+```
+
+**REGRET ENGINE 2.0 with the Adaptive Experiment Loop:**
+
+```
+Decision → Uncertainties → Value of Information → Best Experiment →
+Real-World Result → Re-evaluation → Updated Uncertainties →
+Value of Information (recomputed) → Next Best Experiment → ... → Stop
+```
+
+Step 20 answers "what's worth testing right now?" This step ([`backend/app/adaptive/service.py`](backend/app/adaptive/service.py), [`backend/app/adaptive/schemas.py`](backend/app/adaptive/schemas.py), [`backend/app/adaptive/repository.py`](backend/app/adaptive/repository.py)) answers the question that only matters once a result actually comes back: **now what?** It closes the loop — Decision → Uncertainties → Value of Information → Best Experiment → Real Result → Re-evaluation → Updated Uncertainties → repeat — turning a single round of analysis into an ongoing validation journey.
+
+### No new state machine over fabricated data — every field is derived from real records
+
+`AdaptiveExperimentState` is the one new persisted entity this step adds, and it invents nothing: `current_assessment` is deterministically derived from the latest real `ReEvaluation`'s `decision_assessment` (status + confidence); each threshold's standing (`unknown` / `provisional` / `under_test` / `validated` / `failed` / `inconclusive`) is deterministically derived from real `ThresholdComparisonStatus` history; the next experiment is always a real, already-recommended `Experiment` selected from the freshest `ValueOfInformationAnalysis`'s own ranking — never a fabricated one. No LLM call happens anywhere in this feature; it is pure, deterministic Python reading data every prior step already produced.
+
+### Why an experiment is never blindly repeated
+
+The core rule (and the mandatory regression test, `test_after_resolving_uncertainty_a_selects_uncertainty_b_by_voi_rank` in [`backend/tests/test_adaptive_service.py`](backend/tests/test_adaptive_service.py)): once Uncertainty A's threshold reaches a conclusive state (`validated` or `failed`, from a real experiment result) or its experiment is `completed`, it is permanently skipped when selecting the next candidate — the loop walks the current VOI ranking in order and picks the highest-ranked uncertainty that hasn't already been conclusively tested. Re-testing something only happens if a later VOI recompute (reading the current, possibly-changed evidence) legitimately reopens it — this service never "reopens" a threshold on its own initiative.
+
+### Knowing when to stop
+
+The loop reaches a clearly labeled stopping state, never a silent "nothing happens," for any of these reasons:
+
+| Status | Meaning |
+|---|---|
+| `sufficiently_validated` | Every uncertainty with meaningful practical value has already been conclusively tested, or what remains has low practical value relative to the effort to resolve it. |
+| `inconclusive` | A worthwhile uncertainty remains, but no feasible (not-yet-run, not-cancelled) experiment exists for it. |
+| `blocked` | No Value-of-Information analysis exists yet, or the decision has reached the configured maximum number of adaptive cycles (`max_adaptive_cycles`, default 8 — a hard ceiling against runaway looping, never an infinite test-forever machine). |
+| `user_stopped` | The user explicitly stopped testing (`POST /decisions/{id}/adaptive/stop`) — the human always remains in control; REGRET ENGINE never decides on its own that testing is permanently "done" in a way the user can't override, and stopping never triggers any automatic action. |
+
+### Idempotent and concurrency-safe by construction
+
+`POST /decisions/{id}/adaptive/advance` computes the candidate next state and derives its id deterministically from `(decision_id, cycle_number, status, experiment_id, discriminator)` — the same inputs always produce the same id. Calling `advance` twice with no new evidence returns the *existing* state with `outcome: no_change` rather than creating a duplicate cycle, and two genuinely concurrent calls collide on the same DynamoDB item key, with a conditional write (`Attr("PK").not_exists()`) guaranteeing only one of them actually creates a new record. `cycle_number` only increments once a real result has actually been processed (`ready_for_next_experiment`) — re-advancing while still awaiting one result reuses the same cycle number instead of numbering phantom cycles.
+
+### Deliberately deferred result-submission integration
+
+`POST /experiments/{id}/results` calls `AdaptiveExperimentService.mark_experiment_completed`, which only marks the current cycle `ready_for_next_experiment` — it deliberately does **not** auto-select or start the next experiment inline. Picking what runs next always requires the separate, explicit `POST /decisions/{id}/adaptive/advance` call. This keeps "a result came in" and "here's what to test next" as two distinct, user-visible steps rather than one implicit side effect, and a failure in this bookkeeping (logged, never raised) can never block the result submission itself.
+
+### Where it's exposed
+
+| Endpoint | Returns |
+|---|---|
+| `GET /decisions/{decision_id}/adaptive` | The current cycle: cycle number, validation status, the decision's current evidence-supported assessment (and the previous one, when it changed this cycle), the primary uncertainty/threshold/experiment being tracked, and what to do next. `404` if the loop hasn't started yet. |
+| `GET /decisions/{decision_id}/adaptive/history` | Every cycle ever recorded for this decision, oldest first — append-only, so the full validation journey (Experiment 1 → Result → Learning → Experiment 2 → ...) stays reconstructable; nothing is ever deleted or overwritten. |
+| `POST /decisions/{decision_id}/adaptive/advance` | Advances to the next logical state (idempotent — see above). |
+| `POST /decisions/{decision_id}/adaptive/stop` | The user manually stops the loop; preserves all prior history. |
+
+On the frontend, a decision's report page has a **"Decision validation"** section showing the current cycle and, when the assessment changed this cycle, the previous → current transition (e.g. "Supported → Weakened") rather than a vague "assessment updated," plus **"The next question"** — the next uncertainty/experiment and why, or a clear stopping banner once concluded — and a **validation history** timeline of every cycle the decision has gone through.
+
+### What this does not do
+
+The adaptive loop sequences experiments *within* one decision, one cycle at a time, and never on its own initiative: it never starts, runs, or submits results for an experiment automatically — a human always runs the real-world test and reports what happened. It does not learn across different users' decisions (see [Historical Decision Intelligence](#24-regret-engine-20--historical-decision-intelligence) for same-user history, which is as far as learning currently reaches), and it does not introduce any new infrastructure — `AdaptiveExperimentState` lives in the exact same single-table DynamoDB design as every other entity (`PK=DECISION#<id>`, `SK=ADAPTIVE_STATE#<state_id>`).
+
+## 27. Limitations
 
 - AI-generated analysis (assumptions, blindspots, challenges, regret scenarios, thresholds, experiments) can be wrong or incomplete — it reflects what the model inferred from what it was given, not ground truth.
 - A threshold can remain `provisional` or qualitative (no numeric value) when the available evidence doesn't support deriving a specific number — the system never fabricates one to look more concrete.
@@ -383,7 +665,7 @@ The difference isn't that REGRET ENGINE uses more agents. It's that the product 
 - There is no authentication yet; every request is attributed to a single placeholder user id. The data model and every access pattern are already user-scoped so real auth can be added later without rewriting routes.
 - `/analyze` is currently synchronous — the HTTP request blocks until the full ~9-stage pipeline finishes (with generous timeouts and an idempotency guard against duplicate runs), rather than a submit-and-poll background job model.
 
-## 24. Future improvements
+## 28. Future improvements
 
 - An S3-backed `StorageBackend` implementation for evidence, behind the interface that already exists.
 - Move `/analyze` to a genuinely asynchronous, submit-and-poll execution model now that the pipeline has grown to ~9 sequential stages.
@@ -391,7 +673,9 @@ The difference isn't that REGRET ENGINE uses more agents. It's that the product 
 - OCR/image support for scanned documents in the evidence pipeline.
 - Infrastructure-as-code (CDK/Terraform/CloudFormation) for the AWS resources currently provisioned via one-off CLI commands, plus CI/CD for both deployments.
 - A custom domain, ACM certificate, and Route 53 record for the CloudFront distribution.
+- Cross-User Learning — deliberately out of scope. Value-of-Information prioritization (see [Value of Information](#25-regret-engine-20--value-of-information)) and the Adaptive Experiment Loop that acts on it over time (see [Adaptive Experiment Loop](#26-regret-engine-20--adaptive-experiment-loop)) now exist; cross-decision learning within a single user's own history now exists (see [Historical Decision Intelligence](#24-regret-engine-20--historical-decision-intelligence)); learning shared *across* users does not.
+- Semantic/embedding-based similarity for historical retrieval, as a richer alternative to today's deterministic, lexical-overlap scoring, should a real need for it emerge.
 
-## 25. License
+## 29. License
 
 [MIT](LICENSE).

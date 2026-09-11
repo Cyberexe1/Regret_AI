@@ -8,9 +8,12 @@ import {
   CompletionBanner,
   LiveFindings,
 } from '@/components/analysis';
+import { HistoricalInsightsPanel, ReportSection } from '@/components/report';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { useAnalysisRun } from '@/hooks/useAnalysisRun';
 import { useDecisionById } from '@/hooks/useDecisionById';
+import { useHistoricalContext } from '@/hooks/useHistoricalContext';
+import { buildHistoricalContext, EMPTY_HISTORICAL_SUMMARY } from '@/lib/buildHistoricalContext';
 
 /**
  * Live stress test, driven entirely by the real backend pipeline. On
@@ -24,6 +27,7 @@ export function AnalysisPage() {
   const { id } = useParams<{ id: string }>();
   const decisionState = useDecisionById(id);
   const analysis = useAnalysisRun(id);
+  const historicalContext = useHistoricalContext(id);
 
   if (!id) return <DecisionNotFound id={id} />;
 
@@ -70,6 +74,19 @@ export function AnalysisPage() {
 
           <AnalysisMetricsPanel run={analysis.run} isComplete={analysis.isComplete} />
         </div>
+
+        {analysis.isComplete && !analysis.hasFailed ? (
+          <ReportSection
+            index="H"
+            title="Historical Insights"
+            description="Relevant context from your own past decisions - background only, never a substitute for this decision's own evidence and thresholds."
+          >
+            <HistoricalInsightsPanel
+              summary={historicalContext.data ? buildHistoricalContext(historicalContext.data) : EMPTY_HISTORICAL_SUMMARY}
+              isLoading={historicalContext.isLoading}
+            />
+          </ReportSection>
+        ) : null}
 
         {analysis.isStalled ? (
           <ErrorState

@@ -14,13 +14,17 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
+    adaptive,
     analysis,
     decision_analysis_resources,
     decisions,
     evidence,
     experiments,
     health,
+    historical_context,
+    memory,
     research,
+    value_of_information,
 )
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
@@ -123,3 +127,8 @@ app.include_router(experiments.decision_experiments_router, prefix=settings.api_
 app.include_router(experiments.experiments_router, prefix=settings.api_v1_prefix)
 app.include_router(research.router, prefix=settings.api_v1_prefix)
 app.include_router(decision_analysis_resources.router, prefix=settings.api_v1_prefix)
+app.include_router(memory.decision_memory_router, prefix=settings.api_v1_prefix)
+app.include_router(memory.memory_router, prefix=settings.api_v1_prefix)
+app.include_router(historical_context.router, prefix=settings.api_v1_prefix)
+app.include_router(value_of_information.router, prefix=settings.api_v1_prefix)
+app.include_router(adaptive.router, prefix=settings.api_v1_prefix)
