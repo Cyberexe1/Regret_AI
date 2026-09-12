@@ -1,4 +1,4 @@
-import { History } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import type { HistoricalLessonsSummary } from '@/lib/buildDashboard';
@@ -20,7 +20,7 @@ export function HistoricalLessonsCard({ summary }: HistoricalLessonsCardProps) {
   return (
     <Card padding="md" className="flex h-full min-w-0 flex-col overflow-hidden">
       <div className="flex min-w-0 items-center gap-2.5">
-        <History className="size-4 shrink-0 text-ink-muted" aria-hidden />
+        <GraduationCap className="size-4 shrink-0 text-ink-muted" aria-hidden />
         <CardTitle>Historical lessons</CardTitle>
       </div>
 
@@ -33,7 +33,7 @@ export function HistoricalLessonsCard({ summary }: HistoricalLessonsCardProps) {
       ) : (
         <EmptyState
           size="inline"
-          icon={History}
+          icon={GraduationCap}
           title="No historical lessons yet"
           description="Once decisions share similar context, validated learnings will surface here."
         />

@@ -1,4 +1,11 @@
-import { FileText, FlaskConical, ScanSearch, ShieldQuestion, SquarePen, TriangleAlert } from 'lucide-react';
+import {
+  CircleCheckBig,
+  FilePenLine,
+  FilePlus2,
+  FlaskConical,
+  Layers,
+  TriangleAlert,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ApiDecision } from '@/api/types';
 import { learningTypeTone } from '@/lib/buildDecisionMemory';
@@ -93,7 +100,8 @@ export function buildDashboardMetrics(data: DashboardData): DashboardMetric[] {
     {
       label: 'Decisions in workspace',
       value: decisions.length,
-      icon: ScanSearch,
+      // A plain count of things held, not an act of scanning.
+      icon: Layers,
       tone: 'neutral',
       help: 'Decisions created in this workspace, most recent first.',
     },
@@ -114,7 +122,8 @@ export function buildDashboardMetrics(data: DashboardData): DashboardMetric[] {
     {
       label: 'Analysis complete',
       value: completed,
-      icon: ShieldQuestion,
+      // Completion, not the open question a shielded question mark implied.
+      icon: CircleCheckBig,
       tone: 'success',
       help: 'Decisions whose full analysis pipeline has completed.',
     },
@@ -170,7 +179,7 @@ export function buildActivityEvents(data: DashboardData, limit = 5): ActivityEve
   for (const decision of data.decisions) {
     events.push({
       id: `decision-created-${decision.id}`,
-      icon: SquarePen,
+      icon: FilePlus2,
       label: 'Decision created',
       detail: decision.title,
       timestamp: formatRelative(decision.created_at),
@@ -180,7 +189,8 @@ export function buildActivityEvents(data: DashboardData, limit = 5): ActivityEve
     if (decision.updated_at !== decision.created_at) {
       events.push({
         id: `decision-updated-${decision.id}`,
-        icon: FileText,
+        // Created vs updated must not both read as a generic document.
+        icon: FilePenLine,
         label: 'Decision updated',
         detail: decision.title,
         timestamp: formatRelative(decision.updated_at),

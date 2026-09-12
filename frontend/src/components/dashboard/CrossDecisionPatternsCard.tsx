@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import { Repeat } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -28,7 +28,7 @@ export function CrossDecisionPatternsCard({ rows, isLoading = false }: CrossDeci
   return (
     <Card padding="md" className="flex h-full min-w-0 flex-col overflow-hidden">
       <div className="flex min-w-0 items-center gap-2.5">
-        <Sparkles className="size-4 shrink-0 text-ink-muted" aria-hidden />
+        <Repeat className="size-4 shrink-0 text-ink-muted" aria-hidden />
         <CardTitle>Patterns across your decisions</CardTitle>
       </div>
 
@@ -47,7 +47,7 @@ export function CrossDecisionPatternsCard({ rows, isLoading = false }: CrossDeci
       ) : topRows.length === 0 ? (
         <EmptyState
           size="inline"
-          icon={Sparkles}
+          icon={Repeat}
           title="No recurring patterns yet"
           description="Once you have a few completed decisions, REGRET ENGINE will surface what keeps recurring across them."
         />

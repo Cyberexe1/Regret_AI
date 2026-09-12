@@ -1,4 +1,4 @@
-import { Brain } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardTitle } from '@/components/ui/Card';
@@ -29,7 +29,7 @@ export function RecentDecisionLearningsCard({ rows }: RecentDecisionLearningsCar
       {rows.length === 0 ? (
         <EmptyState
           size="inline"
-          icon={Brain}
+          icon={Lightbulb}
           title="No learnings yet"
           description="Submit a real experiment result to start building decision memory."
         />

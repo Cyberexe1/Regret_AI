@@ -20,42 +20,58 @@
     Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace;
 
-  /* --- Surfaces ----------------------------------------------------------- */
-  --color-canvas: #08090c;
-  --color-surface: #0c0e13;
-  --color-surface-raised: #11141b;
-  --color-surface-overlay: #171a22;
-  --color-surface-inset: #06070a;
+  /* --- Surfaces ----------------------------------------------------------- *
+   * Neutral black, with no hue in it. The previous ramp carried a blue cast
+   * (#08090c, #0c0e13), which fought the orange accent: warm on cool reads as
+   * dirty rather than deliberate. These are pure greys, so the only hue on a
+   * dashboard screen is the accent and the status colours.
+   * ------------------------------------------------------------------------ */
+  --color-canvas: #0a0a0a;
+  --color-surface: #121212;
+  --color-surface-raised: #1b1b1b;
+  --color-surface-overlay: #212121;
+  --color-surface-inset: #050505;
 
-  /* --- Borders ------------------------------------------------------------ */
+  /* --- Borders ------------------------------------------------------------ *
+   * Plain white at low alpha, so a hairline picks up whatever surface it sits
+   * on instead of tinting it.
+   * ----------------------------------------------------------------------- */
   --color-hairline: #ffffff12;
   --color-hairline-strong: #ffffff1f;
 
   /* --- Text --------------------------------------------------------------- *
+   * ink is snow rather than pure white: #ffffff on near-black is harsh at body
+   * size and haloes on LCDs.
+   *
    * ink-muted is used throughout for real secondary text (captions,
    * timestamps, hints) at text-small (13px), so it must clear 4.5:1 (WCAG AA
-   * for normal-size text), not just the 3:1 large-text exception. #7d8390
-   * clears 4.5:1 even against the lightest surface it appears on
-   * (surface-overlay) and 5.2:1 against canvas.
+   * for normal-size text), not just the 3:1 large-text exception. #8a8a8a
+   * clears it against the lightest surface it appears on (surface-overlay,
+   * 4.7:1) and reaches 5.7:1 against canvas.
    * ink-faint is decorative only (dividers, inactive dots, chart gridlines)
    * and is never applied to text, so it is exempt from the text contrast
    * requirement.
    * ------------------------------------------------------------------------- */
-  --color-ink: #f4f5f8;
-  --color-ink-secondary: #a2a9b6;
-  --color-ink-muted: #7d8390;
-  --color-ink-faint: #4d5360;
-  --color-ink-inverse: #0a0b0f;
+  --color-ink: #fafafa;
+  --color-ink-secondary: #b8b8b8;
+  --color-ink-muted: #8a8a8a;
+  --color-ink-faint: #4a4a4a;
+  --color-ink-inverse: #0a0a0a;
 
-  /* --- Accent (warm copper, deliberately not blue) ------------------------ */
-  --color-accent: #ae5c22;
-  --color-accent-hover: #c4702f;
-  --color-accent-press: #8f4a1b;
-  --color-accent-ink: #f0be8c;
-  --color-accent-soft: #ae5c221f;
-  --color-accent-line: #ae5c224d;
+  /* --- Accent (orange) ---------------------------------------------------- *
+   * The single hue the product is built around. `accent` is the fill,
+   * `accent-hover` the lift, `accent-press` the deep tone the landing glows and
+   * planet rim burn down from, and `accent-ink` the only one safe for text:
+   * it clears 9:1 on every surface, while `accent` itself would not.
+   * ------------------------------------------------------------------------ */
+  --color-accent: #f26a1b;
+  --color-accent-hover: #ff8a3d;
+  --color-accent-press: #c2530f;
+  --color-accent-ink: #ffb480;
+  --color-accent-soft: #f26a1b1f;
+  --color-accent-line: #f26a1b4d;
   /* Partial / in-progress fills, distinct from a completed accent fill. */
-  --color-accent-muted: #ae5c2259;
+  --color-accent-muted: #f26a1b59;
 
   /* --- Semantic: success -------------------------------------------------- */
   --color-success: #10b981;
@@ -63,11 +79,15 @@
   --color-success-soft: #10b9811f;
   --color-success-line: #10b9814d;
 
-  /* --- Semantic: warning -------------------------------------------------- */
-  --color-warning: #f59e0b;
-  --color-warning-ink: #fcd34d;
-  --color-warning-soft: #f59e0b1f;
-  --color-warning-line: #f59e0b4d;
+  /* --- Semantic: warning -------------------------------------------------- *
+   * Pushed from amber (#f59e0b) to yellow. Amber sat within a few degrees of
+   * the orange accent, so a warning badge and an accent badge were hard to tell
+   * apart; status must never depend on the user resolving a subtle hue shift.
+   * ----------------------------------------------------------------------- */
+  --color-warning: #eab308;
+  --color-warning-ink: #fde047;
+  --color-warning-soft: #eab3081f;
+  --color-warning-line: #eab3084d;
 
   /* --- Semantic: danger --------------------------------------------------- */
   --color-danger: #ef4444;
@@ -85,23 +105,26 @@
    * One tint strength for every semantic panel, so sections that need
    * emphasis do not each invent their own opacity.
    * ----------------------------------------------------------------------- */
-  --color-panel-accent: #ae5c2212;
+  --color-panel-accent: #f26a1b14;
   --color-panel-success: #10b98112;
-  --color-panel-warning: #f59e0b12;
+  --color-panel-warning: #eab30812;
   --color-panel-danger: #ef444412;
   --color-panel-info: #38bdf812;
 
   /* Card inset sitting on top of a tinted panel. */
-  --color-panel-inset: #08090c66;
+  --color-panel-inset: #0a0a0a66;
   /* Header strip inside a card or list. */
-  --color-header-bar: #11141b99;
+  --color-header-bar: #1b1b1b99;
   /* Overlay backdrop behind modals, drawers and the command palette. */
-  --color-scrim: #08090ccc;
+  --color-scrim: #0a0a0acc;
   /* Destructive button hover. */
   --color-danger-hover: #ef444433;
 
-  /* --- Focus -------------------------------------------------------------- */
-  --color-focus: #e0a968;
+  /* --- Focus -------------------------------------------------------------- *
+   * A light orange rather than the accent itself: the ring has to stay visible
+   * where it lands on an accent-filled button.
+   * ----------------------------------------------------------------------- */
+  --color-focus: #ffa257;
 
   /* --- Radii (rounded, never pill-shaped) --------------------------------- */
   --radius-sm: 0.375rem;

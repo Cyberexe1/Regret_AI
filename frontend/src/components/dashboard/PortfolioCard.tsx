@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { PieChart as PieChartIcon } from 'lucide-react';
+import { ChartPie } from 'lucide-react';
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -43,7 +43,7 @@ export function PortfolioCard({ bands }: PortfolioCardProps) {
       {total === 0 ? (
         <EmptyState
           size="inline"
-          icon={PieChartIcon}
+          icon={ChartPie}
           title="Nothing to show yet"
           description="Create a decision to see its status here."
         />

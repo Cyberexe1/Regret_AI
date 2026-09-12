@@ -1,4 +1,4 @@
-import { ArrowRight, CircleQuestionMark } from 'lucide-react';
+import { ArrowRight, ClipboardCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { buttonClasses } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -20,7 +20,7 @@ export function UncertaintyCard({ needsValidationCount }: UncertaintyCardProps) 
   return (
     <section className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-accent-line bg-panel-accent p-5 sm:p-6">
       <div className="flex min-w-0 items-center gap-2.5">
-        <CircleQuestionMark className="size-4 shrink-0 text-accent-ink" aria-hidden />
+        <ClipboardCheck className="size-4 shrink-0 text-accent-ink" aria-hidden />
         <p className="eyebrow min-w-0 break-words">Needs validation</p>
       </div>
 
@@ -46,7 +46,7 @@ export function UncertaintyCard({ needsValidationCount }: UncertaintyCardProps) 
       ) : (
         <EmptyState
           size="inline"
-          icon={CircleQuestionMark}
+          icon={ClipboardCheck}
           title="Nothing needs validation"
           description="Every recommended experiment has been run, or none exist yet."
         />

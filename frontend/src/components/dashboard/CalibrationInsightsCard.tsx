@@ -1,4 +1,4 @@
-import { Gauge } from 'lucide-react';
+import { Target } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -30,7 +30,7 @@ export function CalibrationInsightsCard({ rows, isLoading = false }: Calibration
   return (
     <Card padding="md" className="flex h-full min-w-0 flex-col overflow-hidden">
       <div className="flex min-w-0 items-center gap-2.5">
-        <Gauge className="size-4 shrink-0 text-ink-muted" aria-hidden />
+        <Target className="size-4 shrink-0 text-ink-muted" aria-hidden />
         <CardTitle>What your past decisions reveal</CardTitle>
       </div>
 
@@ -49,7 +49,7 @@ export function CalibrationInsightsCard({ rows, isLoading = false }: Calibration
       ) : topRows.length === 0 ? (
         <EmptyState
           size="inline"
-          icon={Gauge}
+          icon={Target}
           title="Not enough history yet"
           description="Once you complete a few experiments, REGRET ENGINE will show how your expectations for a variable have compared to what actually happened."
         />
