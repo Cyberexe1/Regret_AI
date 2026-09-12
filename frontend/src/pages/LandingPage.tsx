@@ -25,7 +25,7 @@ import {
  */
 export function LandingPage() {
   return (
-    <div className="min-h-dvh bg-canvas text-ink">
+    <div className="min-h-dvh overflow-x-clip bg-canvas text-ink">
       <LaunchNavbar />
 
       <main id="landing-content">

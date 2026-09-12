@@ -53,7 +53,7 @@ export function RisingPlanet() {
       // `slice` keeps the crown of the arc in frame at every width, cropping
       // the sides on narrow screens rather than shrinking it to a sliver.
       preserveAspectRatio="xMidYMin slice"
-      className="size-full overflow-visible"
+      className="block size-full max-w-full overflow-visible"
     >
       <defs>
         {/* Confines the rim to the upper arc: light comes from behind the top

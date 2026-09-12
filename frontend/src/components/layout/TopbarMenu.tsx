@@ -23,9 +23,13 @@ export interface TopbarMenuProps {
 export function TopbarMenu({ icon, label, title, className, children }: TopbarMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const reduceMotion = useReducedMotion();
 
-  useEscapeKey(open, () => setOpen(false));
+  useEscapeKey(open, () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -41,6 +45,7 @@ export function TopbarMenu({ icon, label, title, className, children }: TopbarMe
   return (
     <div ref={wrapperRef} className="relative">
       <Button
+        ref={triggerRef}
         variant="ghost"
         size="sm"
         iconOnly
@@ -56,7 +61,7 @@ export function TopbarMenu({ icon, label, title, className, children }: TopbarMe
             role="dialog"
             aria-label={title}
             className={cn(
-              'absolute top-full right-0 z-40 mt-2 w-72 overflow-hidden rounded-xl border border-hairline-strong bg-surface-overlay shadow-overlay',
+              'absolute top-full right-0 z-40 mt-2 max-h-[min(26rem,calc(100dvh-var(--header-offset)-1rem))] w-[min(18rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-xl border border-hairline-strong bg-surface-overlay shadow-overlay',
               className,
             )}
             initial={reduceMotion ? undefined : { opacity: 0, y: -6, scale: 0.98 }}

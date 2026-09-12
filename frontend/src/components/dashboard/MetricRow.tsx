@@ -9,16 +9,16 @@ export interface MetricRowProps {
 /** Four compact figures: context for the page, not the headline. */
 export function MetricRow({ metrics }: MetricRowProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 2xl:grid-cols-4">
       {metrics.map((metric, index) => (
-        <Reveal key={metric.label} delay={index * 0.05}>
+        <Reveal key={metric.label} className="min-w-0" delay={index * 0.05}>
           <StatCard
             label={metric.label}
             value={String(metric.value)}
             icon={metric.icon}
             tone={metric.tone}
             help={metric.help}
-            className="h-full"
+            className="h-full min-w-0"
           />
         </Reveal>
       ))}

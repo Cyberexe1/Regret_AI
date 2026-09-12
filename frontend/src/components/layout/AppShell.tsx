@@ -32,7 +32,7 @@ export function AppShell() {
   }, [pathname]);
 
   return (
-    <div className="min-h-dvh bg-canvas text-ink">
+    <div className="min-h-dvh min-w-0 overflow-x-clip bg-canvas text-ink">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-70 focus:rounded-md focus:border focus:border-hairline-strong focus:bg-surface-overlay focus:px-3 focus:py-2 focus:text-small"

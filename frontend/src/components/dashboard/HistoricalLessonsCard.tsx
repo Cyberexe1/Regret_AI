@@ -18,16 +18,17 @@ export interface HistoricalLessonsCardProps {
  */
 export function HistoricalLessonsCard({ summary }: HistoricalLessonsCardProps) {
   return (
-    <Card padding="md" className="flex h-full flex-col">
-      <div className="flex items-center gap-2.5">
+    <Card padding="md" className="flex h-full min-w-0 flex-col overflow-hidden">
+      <div className="flex min-w-0 items-center gap-2.5">
         <History className="size-4 shrink-0 text-ink-muted" aria-hidden />
         <CardTitle>Historical lessons</CardTitle>
       </div>
 
       {summary.validatedLearningCount > 0 ? (
-        <p className="mt-3 text-small text-ink-secondary">
-          {summary.validatedLearningCount} validated learning{summary.validatedLearningCount === 1 ? '' : 's'} from
-          your past decisions could apply to your recent decisions.
+        <p className="mt-3 break-words text-small leading-relaxed text-ink-secondary">
+          <span className="numeric font-medium text-ink">{summary.validatedLearningCount}</span> validated learning
+          {summary.validatedLearningCount === 1 ? '' : 's'} from your past decisions could apply to your recent
+          decisions.
         </p>
       ) : (
         <EmptyState

@@ -137,13 +137,20 @@ export function GlobeFigure() {
   const { r, cx, cy } = GLOBE;
 
   return (
-    <div aria-hidden className="relative flex h-full items-center justify-center">
-      <Glow variant="spot" className="left-1/2 size-96 -translate-x-1/2" opacity={0.55} />
+    <div
+      aria-hidden
+      className="relative flex h-full min-w-0 items-center justify-center overflow-hidden"
+    >
+      <Glow
+        variant="spot"
+        className="left-1/2 size-72 -translate-x-1/2 sm:size-96"
+        opacity={0.55}
+      />
 
       <svg
         viewBox="0 0 320 320"
         preserveAspectRatio="xMidYMid meet"
-        className="h-full w-full"
+        className="aspect-square h-auto max-h-full w-full max-w-64 sm:h-full sm:max-w-none"
       >
         <defs>
           {/* Body lit from the base, as if the lamp sits below the sphere. */}
@@ -231,12 +238,19 @@ export function RippleFigure() {
   const rings = Array.from({ length: RING_COUNT });
 
   return (
-    <div aria-hidden className="relative flex h-full items-center justify-center overflow-hidden">
-      <Glow variant="spot" className="left-1/2 size-112 -translate-x-1/2" opacity={0.55} />
+    <div
+      aria-hidden
+      className="relative flex h-full min-w-0 items-center justify-center overflow-hidden"
+    >
+      <Glow
+        variant="spot"
+        className="left-1/2 size-72 -translate-x-1/2 sm:size-112"
+        opacity={0.55}
+      />
 
-      {/* Fixed square so the rings stay circular; the parent crops it, which
-          is how the reference frames this figure too. */}
-      <div className="relative flex size-[30rem] shrink-0 items-center justify-center">
+      {/* The rings fit the phone interior, then return to the reference's
+          deliberately oversized crop from `sm` upward. */}
+      <div className="relative flex aspect-square w-[min(100%,18rem)] shrink-0 items-center justify-center sm:w-[30rem]">
         {rings.reduce<ReactNode>(
           (inner, _, index) => (
             /* `reduce` wraps outward, so iteration 0 produces the innermost
@@ -261,7 +275,7 @@ export function RippleFigure() {
             }}
           >
             <div className="flex size-full items-center justify-center rounded-full border border-white/10 bg-gradient-to-t from-white/[0.04] to-white/[0.12]">
-              <LogoMark className="size-20" />
+              <LogoMark className="size-16 sm:size-20" />
             </div>
           </div>,
         )}
@@ -288,15 +302,22 @@ export function TilesFigure() {
   ];
 
   return (
-    <div aria-hidden className="relative flex h-full items-center justify-center overflow-hidden">
-      <Glow variant="spot" className="left-1/2 size-96 -translate-x-1/2" opacity={0.55} />
+    <div
+      aria-hidden
+      className="relative flex h-full min-w-0 items-center justify-center overflow-hidden"
+    >
+      <Glow
+        variant="spot"
+        className="left-1/2 size-72 -translate-x-1/2 sm:size-96"
+        opacity={0.55}
+      />
 
-      <div className="grid grid-cols-4 gap-1">
+      <div className="grid min-w-0 grid-cols-4 gap-1">
         {lit.map((Icon, index) => (
           <div
             key={index}
             className={cn(
-              'flex size-16 items-center justify-center rounded-xl sm:size-20',
+              'flex size-14 items-center justify-center rounded-xl sm:size-20',
               Icon
                 ? 'border-4 border-canvas/20 bg-gradient-to-t from-transparent to-white/5'
                 : 'bg-gradient-to-t from-canvas/30 to-transparent',
@@ -323,7 +344,7 @@ const BUBBLES: Bubble[] = [
   {
     text: 'This only works if repeat orders hold above 24%.',
     side: 'left',
-    author: 'Devilâ€™s advocate',
+    author: 'Devil’s advocate',
     accent: true,
   },
   { text: 'Where is that number coming from?', side: 'right', author: 'You' },
@@ -333,24 +354,31 @@ const BUBBLES: Bubble[] = [
 /** Chat thread: the adversarial exchange, with cursor name tags. */
 export function ChatFigure() {
   return (
-    <div aria-hidden className="relative flex h-full items-center justify-center overflow-hidden px-6">
-      <Glow variant="spot" className="left-1/2 size-96 -translate-x-1/2" opacity={0.55} />
+    <div
+      aria-hidden
+      className="relative flex h-full min-w-0 items-center justify-center overflow-hidden px-0 sm:px-6"
+    >
+      <Glow
+        variant="spot"
+        className="left-1/2 size-72 -translate-x-1/2 sm:size-96"
+        opacity={0.55}
+      />
 
-      <div className="relative w-full max-w-115 space-y-8">
+      <div className="relative min-w-0 w-full max-w-115 space-y-4 sm:space-y-8">
         {BUBBLES.map((bubble) => (
           <div
             key={bubble.text}
             className={cn('relative flex', bubble.side === 'right' ? 'justify-end' : 'justify-start')}
           >
-            <div className="relative">
-              <p className="rounded-xl bg-gradient-to-t from-white/5 to-white/10 px-3 py-2 text-xs font-medium text-ink-secondary">
+            <div className="relative min-w-0 max-w-full">
+              <p className="break-words rounded-xl bg-gradient-to-t from-white/5 to-white/10 px-3 py-2 text-xs font-medium text-ink-secondary">
                 {bubble.text}
               </p>
 
               <span
                 className={cn(
-                  'absolute top-full mt-1 inline-flex items-center rounded-md border px-2 py-0.5 text-[0.625rem] font-medium',
-                  bubble.side === 'right' ? 'right-0' : 'left-0',
+                  'mt-1 inline-flex max-w-full items-center rounded-md border px-2 py-0.5 text-[0.625rem] font-medium sm:absolute sm:top-full',
+                  bubble.side === 'right' ? 'ml-auto sm:ml-0 sm:right-0' : 'sm:left-0',
                   bubble.accent
                     ? 'border-accent bg-accent-press text-ink'
                     : 'border-hairline-strong bg-ink text-ink-inverse',

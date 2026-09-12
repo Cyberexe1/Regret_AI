@@ -15,8 +15,8 @@ import { BAND, GRADIENT_TEXT, TYPE_DISPLAY, TYPE_LEAD } from './tokens';
  */
 export function LaunchRising() {
   return (
-    <section className="relative isolate overflow-hidden pt-24 md:pt-32">
-      <Reveal className={cn(BAND, 'flex flex-col items-center gap-8')}>
+    <section className="relative isolate overflow-hidden pt-20 sm:pt-24 md:pt-32">
+      <Reveal className={cn(BAND, 'flex min-w-0 flex-col items-center gap-6 sm:gap-8')}>
         <h2 className={cn(TYPE_DISPLAY, GRADIENT_TEXT, 'max-w-5xl text-center')}>
           {rising.title}
         </h2>
@@ -27,10 +27,13 @@ export function LaunchRising() {
           blurred atmosphere can feather upward instead of being cut at the
           illustration's own top edge. The section still clips at the viewport
           boundary, preventing horizontal scroll. */}
-      <div aria-hidden className="relative mt-6 h-64 w-full sm:h-80 lg:h-[26rem]">
+      <div
+        aria-hidden
+        className="relative mt-3 aspect-[60/23] w-full sm:mt-6 sm:aspect-auto sm:h-80 lg:h-[26rem]"
+      >
         <Glow
           variant="wide"
-          className="-top-20 -right-20 -left-20 h-60 -z-10"
+          className="-top-8 -right-8 -left-8 h-32 -z-10 sm:-top-20 sm:-right-20 sm:-left-20 sm:h-60"
           opacity={0.58}
         />
 

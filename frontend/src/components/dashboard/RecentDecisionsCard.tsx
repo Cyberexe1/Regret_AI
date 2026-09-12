@@ -1,9 +1,8 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { FileText } from 'lucide-react';
 import { decisionPath, ROUTES } from '@/data/navigation';
 import type { RecentDecisionRow } from '@/lib/buildDashboard';
 
@@ -15,14 +14,14 @@ function DecisionRow({ row }: { row: RecentDecisionRow }) {
   return (
     <Link
       to={decisionPath(row.id)}
-      className="group flex flex-col gap-3 px-5 py-4 transition-colors duration-150 hover:bg-surface-raised sm:flex-row sm:items-center sm:gap-4"
+      className="group flex min-w-0 flex-col gap-3 px-4 py-4 transition-colors duration-150 hover:bg-surface-raised sm:flex-row sm:items-center sm:gap-4 sm:px-5"
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-card-title text-ink">{row.title}</p>
-        <p className="numeric mt-0.5 text-micro text-ink-muted">{row.id}</p>
+        <p className="break-words text-card-title text-ink sm:truncate">{row.title}</p>
+        <p className="numeric mt-0.5 break-all text-micro text-ink-muted">{row.id}</p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <Badge tone={row.statusTone} size="sm" dot>
           {row.statusLabel}
         </Badge>
@@ -33,8 +32,8 @@ function DecisionRow({ row }: { row: RecentDecisionRow }) {
         ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center justify-between gap-2 sm:w-28 sm:justify-end">
-        <span className="text-small text-ink-muted">{row.updatedLabel}</span>
+      <div className="flex min-w-0 items-center justify-between gap-2 sm:w-28 sm:shrink-0 sm:justify-end">
+        <span className="break-words text-small text-ink-muted sm:text-right">{row.updatedLabel}</span>
         <ChevronRight
           className="size-4 shrink-0 text-ink-muted transition-colors group-hover:text-ink-secondary"
           aria-hidden
@@ -46,15 +45,15 @@ function DecisionRow({ row }: { row: RecentDecisionRow }) {
 
 export function RecentDecisionsCard({ rows }: RecentDecisionsCardProps) {
   return (
-    <Card padding="none" className="overflow-hidden">
-      <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 md:px-6">
-        <div>
+    <Card padding="none" className="min-w-0 overflow-hidden">
+      <div className="flex min-w-0 items-start justify-between gap-3 border-b border-hairline px-4 py-4 sm:items-center sm:gap-4 sm:px-5 md:px-6">
+        <div className="min-w-0">
           <CardTitle>Recent decisions</CardTitle>
-          <p className="mt-0.5 text-small text-ink-muted">Sorted by most recently updated</p>
+          <p className="mt-0.5 break-words text-small text-ink-muted">Sorted by most recently updated</p>
         </div>
         <Link
           to={ROUTES.decisions}
-          className="shrink-0 text-small text-accent-ink transition-colors hover:text-ink"
+          className="shrink-0 whitespace-nowrap text-small text-accent-ink transition-colors hover:text-ink"
         >
           View all
         </Link>
@@ -68,7 +67,7 @@ export function RecentDecisionsCard({ rows }: RecentDecisionsCardProps) {
           description="Start by testing a decision."
         />
       ) : (
-        <div className="divide-y divide-hairline">
+        <div className="min-w-0 divide-y divide-hairline">
           {rows.map((row) => (
             <DecisionRow key={row.id} row={row} />
           ))}

@@ -16,13 +16,13 @@ export function LaunchCapabilities() {
         </h2>
       </Reveal>
 
-      <ul className="mt-16 grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="mt-16 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-12 sm:grid-cols-2 lg:grid-cols-4">
         {capabilityItems.map(({ icon: Icon, title, body }, index) => (
-          <Reveal key={title} delay={index * 0.04}>
-            <li className="min-w-60">
-              <div className="flex items-center gap-2">
+          <Reveal key={title} delay={index * 0.04} className="min-w-0">
+            <li className="min-w-0 w-full">
+              <div className="flex min-w-0 items-center gap-2">
                 <Icon className="size-6 shrink-0 text-ink" aria-hidden />
-                <h3 className="text-lg font-semibold text-ink">{title}</h3>
+                <h3 className="min-w-0 text-lg font-semibold text-ink">{title}</h3>
               </div>
               <p className="mt-2 text-base text-ink-secondary">{body}</p>
             </li>

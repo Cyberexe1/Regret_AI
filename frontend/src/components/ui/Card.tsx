@@ -38,7 +38,7 @@ export function Card({
   return (
     <Tag
       className={cn(
-        'rounded-xl',
+        'min-w-0 rounded-xl',
         VARIANT[variant],
         PADDING[padding],
         interactive &&

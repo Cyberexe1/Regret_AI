@@ -17,7 +17,7 @@ export function Skeleton({ shape = 'text', className }: SkeletonProps) {
   return (
     <div
       aria-hidden
-      className={cn('animate-pulse bg-hairline-strong', SHAPE[shape], className)}
+      className={cn('animate-pulse bg-hairline-strong motion-reduce:animate-none', SHAPE[shape], className)}
     />
   );
 }

@@ -18,26 +18,29 @@ export interface UncertaintyCardProps {
  */
 export function UncertaintyCard({ needsValidationCount }: UncertaintyCardProps) {
   return (
-    <section className="flex h-full flex-col rounded-xl border border-accent-line bg-panel-accent p-6">
-      <div className="flex items-center gap-2.5">
+    <section className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-accent-line bg-panel-accent p-5 sm:p-6">
+      <div className="flex min-w-0 items-center gap-2.5">
         <CircleQuestionMark className="size-4 shrink-0 text-accent-ink" aria-hidden />
-        <p className="eyebrow">Needs validation</p>
+        <p className="eyebrow min-w-0 break-words">Needs validation</p>
       </div>
 
       {needsValidationCount > 0 ? (
         <>
-          <h3 className="mt-4 text-section-title text-ink">
+          <h3 className="mt-4 break-words text-section-title text-ink">
             {needsValidationCount} decision{needsValidationCount === 1 ? '' : 's'} awaiting validation
           </h3>
-          <p className="mt-2.5 text-small text-ink-secondary">
+          <p className="mt-2.5 break-words text-small text-ink-secondary">
             These decisions have a recommended experiment that hasn&apos;t been run yet.
           </p>
           <Link
             to={ROUTES.decisions}
-            className={cn(buttonClasses({ variant: 'primary', size: 'sm' }), 'mt-6 self-start')}
+            className={cn(
+              buttonClasses({ variant: 'primary', size: 'sm' }),
+              'mt-6 max-w-full self-start',
+            )}
           >
             Review
-            <ArrowRight className="size-3.5" aria-hidden />
+            <ArrowRight className="size-3.5 shrink-0" aria-hidden />
           </Link>
         </>
       ) : (

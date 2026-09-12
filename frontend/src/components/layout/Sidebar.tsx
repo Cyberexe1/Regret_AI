@@ -173,12 +173,14 @@ export function Sidebar({ open, onClose, onOpenCommandPalette }: SidebarProps) {
               onClick={onClose}
             />
             <motion.aside
-              className="absolute inset-y-0 left-0 w-[min(17rem,85vw)] border-r border-hairline-strong bg-surface shadow-overlay"
+              className="absolute inset-y-0 left-0 w-[min(18rem,calc(100vw-0.75rem))] max-w-full overflow-hidden border-r border-hairline-strong bg-surface shadow-overlay"
               initial={reduceMotion ? undefined : { x: '-100%' }}
               animate={reduceMotion ? undefined : { x: 0 }}
               exit={reduceMotion ? undefined : { x: '-100%' }}
               transition={{ duration: DURATION.quick, ease: EASE_OUT }}
-              aria-label="Sidebar"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation"
             >
               <Button
                 variant="ghost"

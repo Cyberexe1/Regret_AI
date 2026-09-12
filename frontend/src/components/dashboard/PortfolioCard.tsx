@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useReducedMotion } from 'framer-motion';
+import { PieChart as PieChartIcon } from 'lucide-react';
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { PieChart as PieChartIcon } from 'lucide-react';
 import type { PortfolioBand } from '@/lib/buildDashboard';
 import { cn } from '@/lib/cn';
 import { toneFill, toneHex } from '@/lib/tone';
@@ -34,10 +34,10 @@ export function PortfolioCard({ bands }: PortfolioCardProps) {
   }, [bands]);
 
   return (
-    <Card className="flex h-full flex-col">
-      <div>
+    <Card className="flex h-full min-w-0 flex-col overflow-hidden">
+      <div className="min-w-0">
         <CardTitle>Decision portfolio</CardTitle>
-        <p className="mt-0.5 text-small text-ink-muted">Status spread across your decisions</p>
+        <p className="mt-0.5 break-words text-small text-ink-muted">Status spread across your decisions</p>
       </div>
 
       {total === 0 ? (
@@ -48,8 +48,8 @@ export function PortfolioCard({ bands }: PortfolioCardProps) {
           description="Create a decision to see its status here."
         />
       ) : (
-        <div className="mt-5 flex flex-1 flex-col items-center gap-6 sm:flex-row sm:gap-7">
-          <div className="relative size-38 shrink-0">
+        <div className="mt-5 flex min-w-0 flex-1 flex-col items-center gap-5 2xl:flex-row 2xl:gap-7">
+          <div className="relative aspect-square w-full max-w-36 shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -78,14 +78,17 @@ export function PortfolioCard({ bands }: PortfolioCardProps) {
             </div>
           </div>
 
-          <ul className="w-full space-y-3">
+          <ul className="w-full min-w-0 space-y-3">
             {bands.map((band) => {
               const share = Math.round((band.count / total) * 100);
 
               return (
-                <li key={band.label} className="flex items-center gap-3">
+                <li
+                  key={band.label}
+                  className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-2 sm:gap-x-3"
+                >
                   <span className={cn('size-2 shrink-0 rounded-full', toneFill[band.tone])} aria-hidden />
-                  <span className="flex-1 text-small text-ink-secondary">{band.label}</span>
+                  <span className="min-w-0 break-words text-small text-ink-secondary">{band.label}</span>
                   <span className="numeric text-small font-medium text-ink">{band.count}</span>
                   <span className="numeric w-9 text-right text-small text-ink-muted">{share}%</span>
                 </li>

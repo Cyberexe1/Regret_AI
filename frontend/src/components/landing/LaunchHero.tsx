@@ -71,9 +71,9 @@ export function LaunchHero() {
 
         {/* Mockup + lamp. The glow sits behind the frame and above the canvas,
             which is what gives the reference its lit-from-below look. */}
-        <motion.div className="relative mt-24 w-full" {...rise(0.3)}>
+        <motion.div className="relative mt-20 min-w-0 w-full sm:mt-24" {...rise(0.3)}>
           <Glow variant="wide" className="top-1 -right-16 -left-16 h-72 -z-10" />
-          <MockFrame variant="dashboard" fade className="h-[26rem] sm:h-[34rem] lg:h-[46rem]" />
+          <MockFrame variant="dashboard" fade className="h-[20rem] sm:h-[34rem] lg:h-[46rem]" />
         </motion.div>
       </div>
     </section>

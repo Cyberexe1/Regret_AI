@@ -13,24 +13,24 @@ export interface OpenExperimentsCardProps {
 
 function ExperimentRow({ row }: { row: OpenExperimentRow }) {
   return (
-    <div className="px-5 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <p className="min-w-0 text-card-title text-ink">{row.title}</p>
+    <div className="min-w-0 px-4 py-4 sm:px-5">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <p className="min-w-0 flex-1 break-words text-card-title text-ink">{row.title}</p>
         <Badge tone={row.statusTone} size="sm" dot>
           {row.statusLabel}
         </Badge>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p className="text-small text-ink-muted">
+      <div className="mt-3 flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="min-w-0 break-words text-small text-ink-muted">
           {row.durationDays !== null ? `${row.durationDays}-day experiment` : 'Duration not set'}
         </p>
         <Link
           to={decisionPath(row.decisionId)}
-          className="inline-flex items-center gap-1.5 text-small text-accent-ink transition-colors hover:text-ink"
+          className="inline-flex max-w-full items-center gap-1.5 text-small text-accent-ink transition-colors hover:text-ink"
         >
-          View experiment
-          <ArrowRight className="size-3.5" aria-hidden />
+          <span className="break-words">View experiment</span>
+          <ArrowRight className="size-3.5 shrink-0" aria-hidden />
         </Link>
       </div>
     </div>
@@ -39,17 +39,17 @@ function ExperimentRow({ row }: { row: OpenExperimentRow }) {
 
 export function OpenExperimentsCard({ rows, totalCount }: OpenExperimentsCardProps) {
   return (
-    <Card padding="none" className="flex h-full flex-col overflow-hidden">
-      <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 md:px-6">
-        <div>
+    <Card padding="none" className="flex h-full min-w-0 flex-col overflow-hidden">
+      <div className="flex min-w-0 items-start justify-between gap-3 border-b border-hairline px-4 py-4 sm:items-center sm:gap-4 sm:px-5 md:px-6">
+        <div className="min-w-0">
           <CardTitle>Open experiments</CardTitle>
-          <p className="mt-0.5 text-small text-ink-muted">
+          <p className="numeric mt-0.5 break-words text-small text-ink-muted">
             Showing {rows.length} of {totalCount}
           </p>
         </div>
         <Link
           to={ROUTES.experiments}
-          className="shrink-0 text-small text-accent-ink transition-colors hover:text-ink"
+          className="shrink-0 whitespace-nowrap text-small text-accent-ink transition-colors hover:text-ink"
         >
           View all
         </Link>
@@ -63,7 +63,7 @@ export function OpenExperimentsCard({ rows, totalCount }: OpenExperimentsCardPro
           description="Recommended experiments will appear here once analysis completes."
         />
       ) : (
-        <div className="divide-y divide-hairline">
+        <div className="min-w-0 divide-y divide-hairline">
           {rows.map((row) => (
             <ExperimentRow key={row.id} row={row} />
           ))}

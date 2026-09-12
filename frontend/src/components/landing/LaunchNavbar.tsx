@@ -24,14 +24,16 @@ export function LaunchNavbar() {
 
   return (
     <header className="sticky top-0 z-40 glass">
-      <div className={cn(BAND, 'flex h-17 items-center gap-12')}>
+      <div className={cn(BAND, 'flex h-17 min-w-0 items-center gap-4 sm:gap-8 lg:gap-12')}>
         <Link
           to={ROUTES.landing}
           aria-label="REGRET ENGINE home"
-          className="flex shrink-0 items-center gap-2"
+          className="flex min-w-0 items-center gap-2"
         >
-          <LogoMark className="size-6" />
-          <span className="text-lg font-bold tracking-[-0.01em] text-ink">Regret Engine</span>
+          <LogoMark className="size-6 shrink-0" />
+          <span className="truncate text-lg font-bold tracking-[-0.01em] text-ink">
+            Regret Engine
+          </span>
         </Link>
 
         <nav aria-label="Primary" className="hidden flex-1 justify-center lg:flex">
@@ -49,7 +51,7 @@ export function LaunchNavbar() {
           </ul>
         </nav>
 
-        <div className="ml-auto flex items-center gap-3 lg:ml-0">
+        <div className="ml-auto flex shrink-0 items-center gap-3 lg:ml-0">
           <Link
             to={ROUTES.dashboard}
             className="hidden rounded-md px-4 py-2 text-small font-medium text-ink transition-colors hover:bg-white/5 sm:inline-flex"

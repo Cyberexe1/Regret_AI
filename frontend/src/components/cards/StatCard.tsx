@@ -10,40 +10,29 @@ export interface StatDelta {
   /** Pre-formatted change, e.g. "12%" or "3". */
   value: string;
   direction: 'up' | 'down';
-  /**
-   * Whether an upward move is a good outcome. Rising regret is bad, rising
-   * validated experiments is good, so each metric declares its own polarity.
-   */
+  /** Whether an upward move is a good outcome. */
   upIsGood: boolean;
 }
 
 const VALUE_SIZE = {
-  /** Default. Readable without dominating the page. */
   compact: 'text-metric',
-  /** For pages where a single figure is the point. */
   large: 'text-page-title',
 } as const;
 
 export interface StatCardProps {
   label: string;
   value: string;
-  /** Unit or denominator, e.g. "/100" or "decisions". */
   unit?: string;
   icon?: LucideIcon;
   tone?: Tone;
   valueSize?: keyof typeof VALUE_SIZE;
-  /** Signed change versus the previous period. */
   delta?: StatDelta;
-  /** Explanatory copy surfaced on hover over the label. */
   help?: string;
   footer?: ReactNode;
   className?: string;
 }
 
-/**
- * Compact metric tile. Kept presentational so dashboard, analysis and
- * experiment views can all reuse it without re-deriving layout.
- */
+/** Compact, presentational metric tile shared across product views. */
 export function StatCard({
   label,
   value,
@@ -58,27 +47,28 @@ export function StatCard({
 }: StatCardProps) {
   const deltaIsGood = delta ? (delta.direction === 'up') === delta.upIsGood : false;
   const DeltaIcon = delta?.direction === 'up' ? ArrowUpRight : ArrowDownRight;
-
-  const labelNode = <span className="eyebrow">{label}</span>;
+  const labelNode = <span className="eyebrow break-words">{label}</span>;
 
   return (
-    <Card className={cn('flex flex-col gap-3', className)}>
-      <div className="flex items-center justify-between gap-3">
-        {help ? <Tooltip content={help}>{labelNode}</Tooltip> : labelNode}
+    <Card className={cn('relative flex min-h-31 flex-col gap-4 overflow-visible', className)}>
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">{help ? <Tooltip content={help}>{labelNode}</Tooltip> : labelNode}</div>
         {Icon ? (
           <span
             className={cn(
-              'inline-flex size-7 items-center justify-center rounded-md border',
+              'inline-flex size-8 shrink-0 items-center justify-center rounded-lg border',
               toneSurface[tone],
             )}
           >
-            <Icon className="size-3.5" aria-hidden />
+            <Icon className="size-4" aria-hidden />
           </span>
         ) : null}
       </div>
 
-      <div className="flex items-baseline gap-1.5">
-        <span className={cn('numeric text-ink', VALUE_SIZE[valueSize])}>{value}</span>
+      <div className="mt-auto flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-2">
+        <span className={cn('numeric min-w-0 break-words text-ink', VALUE_SIZE[valueSize])}>
+          {value}
+        </span>
         {unit ? <span className="text-small text-ink-muted">{unit}</span> : null}
         {delta ? (
           <span

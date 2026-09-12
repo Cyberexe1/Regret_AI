@@ -30,19 +30,19 @@ export function LaunchWorkflow() {
       id={LAUNCH_ANCHORS.howItWorks}
       className={cn(BAND, 'scroll-mt-24 pt-8 pb-16 md:pt-10 md:pb-20')}
     >
-      <Reveal className="flex flex-col items-center gap-8">
+      <Reveal className="flex min-w-0 flex-col items-center gap-8">
         <h2 className={cn(TYPE_SECTION, GRADIENT_TEXT, 'max-w-4xl text-center')}>
           {workflowHeading}
         </h2>
         <p className={cn(TYPE_LEAD, 'max-w-2xl text-center')}>{workflowLead}</p>
       </Reveal>
 
-      <div className="mt-16 grid gap-4 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
+      <div className="mt-12 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 sm:mt-16 lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)]">
         <div
           role="tablist"
           aria-label="Workflow stages"
           aria-orientation="vertical"
-          className="flex flex-col gap-3"
+          className="flex min-w-0 flex-col gap-3"
           onKeyDown={(event) => {
             if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
               event.preventDefault();
@@ -67,19 +67,19 @@ export function LaunchWorkflow() {
                 tabIndex={selected ? 0 : -1}
                 onClick={() => setActive(index)}
                 className={cn(
-                  'flex gap-2 rounded-md py-3 pr-5 pl-3 text-left transition-colors duration-150 ease-out',
+                  'flex w-full min-w-0 gap-2 rounded-md py-3 pr-4 pl-3 text-left transition-colors duration-150 ease-out sm:pr-5',
                   selected
                     ? 'bg-gradient-to-t from-white/5 to-white/10'
                     : 'hover:bg-white/[0.04]',
                 )}
               >
-                <span className="p-0.5">
+                <span className="shrink-0 p-0.5">
                   <Icon
                     className={cn('size-4', selected ? 'text-ink' : 'text-ink-secondary')}
                     aria-hidden
                   />
                 </span>
-                <span className="flex flex-col">
+                <span className="flex min-w-0 flex-1 flex-col">
                   <span
                     className={cn(
                       'text-small font-semibold',
@@ -102,9 +102,12 @@ export function LaunchWorkflow() {
             id={panelId(index)}
             aria-labelledby={tabId(index)}
             hidden={index !== active}
-            className={cn(TILE, TILE_LINE, 'p-4 sm:p-8')}
+            className={cn(TILE, TILE_LINE, 'min-w-0 overflow-hidden p-3 sm:p-8')}
           >
-            <MockFrame variant={tab.mockup} className="h-[22rem] sm:h-[28rem] lg:h-[30rem]" />
+            <MockFrame
+              variant={tab.mockup}
+              className="h-[18rem] min-w-0 max-w-full sm:h-[28rem] lg:h-[30rem]"
+            />
           </div>
         ))}
       </div>

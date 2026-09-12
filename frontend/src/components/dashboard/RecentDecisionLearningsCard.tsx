@@ -18,10 +18,10 @@ export interface RecentDecisionLearningsCardProps {
  */
 export function RecentDecisionLearningsCard({ rows }: RecentDecisionLearningsCardProps) {
   return (
-    <Card padding="none" className="overflow-hidden">
-      <div className="border-b border-hairline px-5 py-4 md:px-6">
+    <Card padding="none" className="min-w-0 overflow-hidden">
+      <div className="border-b border-hairline px-4 py-4 sm:px-5 md:px-6">
         <CardTitle>Recent decision learnings</CardTitle>
-        <p className="mt-0.5 text-small text-ink-muted">
+        <p className="mt-0.5 break-words text-small text-ink-muted">
           What REGRET ENGINE has learned from real experiment results
         </p>
       </div>
@@ -34,20 +34,20 @@ export function RecentDecisionLearningsCard({ rows }: RecentDecisionLearningsCar
           description="Submit a real experiment result to start building decision memory."
         />
       ) : (
-        <div className="divide-y divide-hairline">
+        <div className="min-w-0 divide-y divide-hairline">
           {rows.map((row) => (
             <Link
               key={row.id}
               to={decisionPath(row.decisionId)}
-              className="group flex flex-col gap-2 px-5 py-4 transition-colors duration-150 hover:bg-surface-raised sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              className="group flex min-w-0 flex-col gap-3 px-4 py-4 transition-colors duration-150 hover:bg-surface-raised sm:flex-row sm:items-start sm:justify-between sm:gap-5 sm:px-5"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-small text-ink">{row.statement}</p>
-                <p className="mt-0.5 truncate text-micro text-ink-muted">{row.decisionTitle}</p>
+                <p className="break-words text-small leading-relaxed text-ink">{row.statement}</p>
+                <p className="mt-1 break-words text-micro text-ink-muted">{row.decisionTitle}</p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:max-w-48 sm:shrink-0 sm:justify-end">
                 <Badge tone={row.tone} size="sm" dot />
-                <span className="text-micro text-ink-muted">{row.timestamp}</span>
+                <span className="break-words text-micro text-ink-muted sm:text-right">{row.timestamp}</span>
               </div>
             </Link>
           ))}

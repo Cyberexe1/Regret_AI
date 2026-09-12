@@ -37,7 +37,13 @@ export function PageContainer({
   const hasHeader = Boolean(eyebrow || title || description || actions);
 
   return (
-    <div className={cn('mx-auto w-full px-[var(--page-gutter)] py-6 md:py-8', WIDTH[width], className)}>
+    <div
+      className={cn(
+        'mx-auto w-full min-w-0 px-4 py-5 sm:px-[var(--page-gutter)] sm:py-6 md:py-8',
+        WIDTH[width],
+        className,
+      )}
+    >
       {hasHeader ? (
         <header className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0 space-y-2">

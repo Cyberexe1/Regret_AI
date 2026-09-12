@@ -14,10 +14,10 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
   const lastIndex = events.length - 1;
 
   return (
-    <Card variant="inset" padding="none" className="overflow-hidden">
-      <div className="border-b border-hairline px-5 py-4 md:px-6">
+    <Card variant="inset" padding="none" className="min-w-0 overflow-hidden">
+      <div className="border-b border-hairline px-4 py-4 sm:px-5 md:px-6">
         <CardTitle>Decision activity</CardTitle>
-        <p className="mt-0.5 text-small text-ink-muted">Most recent events in this workspace</p>
+        <p className="mt-0.5 break-words text-small text-ink-muted">Most recent events in this workspace</p>
       </div>
 
       {events.length === 0 ? (
@@ -28,13 +28,13 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
           description="Create your first decision to see activity here."
         />
       ) : (
-        <ol className="px-5 py-5">
+        <ol className="min-w-0 px-4 py-5 sm:px-5">
           {events.map((event, index) => {
             const Icon = event.icon;
             const isLast = index === lastIndex;
 
             return (
-              <li key={event.id} className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-4">
+              <li key={event.id} className="grid min-w-0 grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 sm:gap-x-4">
                 <div className="flex flex-col items-center">
                   <span
                     className={cn(
@@ -48,11 +48,13 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
                 </div>
 
                 <div className={cn('min-w-0', isLast ? 'pb-0' : 'pb-6')}>
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <p className="text-card-title text-ink">{event.label}</p>
-                    <span className="numeric shrink-0 text-micro text-ink-muted">{event.timestamp}</span>
+                  <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <p className="min-w-0 break-words text-card-title text-ink">{event.label}</p>
+                    <span className="numeric max-w-full break-words text-micro text-ink-muted sm:text-right">
+                      {event.timestamp}
+                    </span>
                   </div>
-                  <p className="mt-1 text-small text-ink-secondary">{event.detail}</p>
+                  <p className="mt-1 break-words text-small text-ink-secondary">{event.detail}</p>
                 </div>
               </li>
             );
