@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Search, Sparkles, X } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
@@ -8,7 +9,9 @@ import { Kbd } from '@/components/ui/Kbd';
 import { primaryNav, ROUTES } from '@/data/navigation';
 import { workspaceProfile } from '@/data/workspace';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/cn';
 import type { NavItem } from '@/types';
 import { DURATION, EASE_OUT } from '@/lib/motion';
@@ -149,9 +152,23 @@ export interface SidebarProps {
 
 export function Sidebar({ open, onClose, onOpenCommandPalette }: SidebarProps) {
   const reduceMotion = useReducedMotion();
+  const drawerRef = useRef<HTMLElement>(null);
+  const isDesktop = useIsDesktop();
 
-  useLockBodyScroll(open);
-  useEscapeKey(open, onClose);
+  // The drawer is a modal surface below `lg`: scroll is frozen, Escape
+  // dismisses, Tab cycles inside it, and focus returns to the opener on close.
+  useLockBodyScroll(open && !isDesktop);
+  useEscapeKey(open && !isDesktop, onClose);
+  useFocusTrap(open && !isDesktop, drawerRef);
+
+  /**
+   * Crossing to `lg` hides the drawer with CSS while its state stays open,
+   * which would otherwise leave the page scroll locked with nothing visible to
+   * dismiss. Reset the state instead of relying on the media query alone.
+   */
+  useEffect(() => {
+    if (isDesktop && open) onClose();
+  }, [isDesktop, open, onClose]);
 
   return (
     <>
@@ -173,7 +190,8 @@ export function Sidebar({ open, onClose, onOpenCommandPalette }: SidebarProps) {
               onClick={onClose}
             />
             <motion.aside
-              className="absolute inset-y-0 left-0 w-[min(18rem,calc(100vw-0.75rem))] max-w-full overflow-hidden border-r border-hairline-strong bg-surface shadow-overlay"
+              ref={drawerRef}
+              className="absolute inset-y-0 left-0 w-[min(18rem,calc(100vw-0.75rem))] max-w-full overflow-hidden border-r border-hairline-strong bg-surface shadow-overlay outline-none"
               initial={reduceMotion ? undefined : { x: '-100%' }}
               animate={reduceMotion ? undefined : { x: 0 }}
               exit={reduceMotion ? undefined : { x: '-100%' }}
@@ -181,6 +199,8 @@ export function Sidebar({ open, onClose, onOpenCommandPalette }: SidebarProps) {
               role="dialog"
               aria-modal="true"
               aria-label="Navigation"
+              /* Focus target of last resort for the trap. */
+              tabIndex={-1}
             >
               <Button
                 variant="ghost"

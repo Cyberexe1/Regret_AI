@@ -1,19 +1,23 @@
 import {
   useCallback,
-  useEffect,
+  useLayoutEffect,
   useId,
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useOutsidePointerDown } from '@/hooks/useOutsidePointerDown';
 import { cn } from '@/lib/cn';
 import { DURATION } from '@/lib/motion';
 
 export type TooltipSide = 'top' | 'bottom' | 'left' | 'right';
 
+/** Entry/exit travel per side, so the bubble drifts away from its trigger. */
 const OFFSET: Record<TooltipSide, { x: number; y: number }> = {
   top: { x: 0, y: 4 },
   bottom: { x: 0, y: -4 },
@@ -23,6 +27,12 @@ const OFFSET: Record<TooltipSide, { x: number; y: number }> = {
 
 const VIEWPORT_GUTTER = 12;
 const TRIGGER_GAP = 8;
+
+/** Off-screen until measured, so a first paint never lands in the wrong place. */
+const UNMEASURED: TooltipPosition = {
+  side: 'top',
+  style: { left: 0, top: 0, visibility: 'hidden' },
+};
 
 export interface TooltipProps {
   content: ReactNode;
@@ -37,16 +47,23 @@ interface TooltipPosition {
   style: CSSProperties;
 }
 
+/**
+ * Describes its trigger on hover, focus and touch.
+ *
+ * Rendered into `document.body` so an ancestor with `overflow: hidden` cannot
+ * clip it, then positioned against the live trigger rect and flipped to the
+ * opposite side when the preferred one would leave the viewport.
+ */
 export function Tooltip({ content, side = 'top', children, className }: TooltipProps) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<TooltipPosition>({
-    side,
-    style: { left: 0, top: 0, visibility: 'hidden' },
-  });
+  const [position, setPosition] = useState<TooltipPosition>(UNMEASURED);
+  const wrapperRef = useRef<HTMLSpanElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   const reduceMotion = useReducedMotion();
   const id = useId();
+
+  const close = useCallback(() => setOpen(false), []);
 
   const updatePosition = useCallback(() => {
     const trigger = triggerRef.current?.getBoundingClientRect();
@@ -57,6 +74,7 @@ export function Tooltip({ content, side = 'top', children, className }: TooltipP
     const viewportHeight = window.innerHeight;
     let resolvedSide = side;
 
+    // Flip to the opposite side when the preferred one has no room.
     if (side === 'top' && trigger.top - tooltip.height - TRIGGER_GAP < VIEWPORT_GUTTER) {
       resolvedSide = 'bottom';
     } else if (
@@ -81,6 +99,7 @@ export function Tooltip({ content, side = 'top', children, className }: TooltipP
     if (resolvedSide === 'left') left = trigger.left - tooltip.width - TRIGGER_GAP;
     if (resolvedSide === 'right') left = trigger.right + TRIGGER_GAP;
 
+    // Then keep the whole bubble inside the viewport on the cross axis.
     left = Math.min(
       Math.max(left, VIEWPORT_GUTTER),
       Math.max(VIEWPORT_GUTTER, viewportWidth - tooltip.width - VIEWPORT_GUTTER),
@@ -93,33 +112,38 @@ export function Tooltip({ content, side = 'top', children, className }: TooltipP
     setPosition({ side: resolvedSide, style: { left, top, visibility: 'visible' } });
   }, [side]);
 
-  useEffect(() => {
-    if (!open) return;
+  useEscapeKey(open, close);
+  // Touch has no pointer-leave, so a tap elsewhere is what dismisses it.
+  useOutsidePointerDown(open, wrapperRef, close);
 
-    const frame = window.requestAnimationFrame(updatePosition);
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (!triggerRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
-    };
+  /**
+   * Measured in a layout effect rather than an animation frame: the bubble
+   * mounts in the same commit that opens it, so this runs before paint and the
+   * user never sees it at a stale position from the previous opening.
+   */
+  useLayoutEffect(() => {
+    if (!open) {
+      setPosition((current) => (current === UNMEASURED ? current : UNMEASURED));
+      return;
+    }
 
+    updatePosition();
+
+    // `true` captures scrolls in any ancestor, not just the document.
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
-    document.addEventListener('pointerdown', closeOnOutsidePointer);
-    document.addEventListener('keydown', closeOnEscape);
 
     return () => {
-      window.cancelAnimationFrame(frame);
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
-      document.removeEventListener('pointerdown', closeOnOutsidePointer);
-      document.removeEventListener('keydown', closeOnEscape);
     };
   }, [open, updatePosition]);
+
+  /** Touch and pen have no hover, so pressing the trigger toggles instead. */
+  const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === 'mouse') return;
+    setOpen((value) => !value);
+  };
 
   const tooltip = (
     <AnimatePresence>
@@ -143,19 +167,26 @@ export function Tooltip({ content, side = 'top', children, className }: TooltipP
 
   return (
     <span
+      ref={wrapperRef}
       className={cn('inline-flex', className)}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onPointerEnter={(event) => {
+        if (event.pointerType === 'mouse') setOpen(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === 'mouse') setOpen(false);
+      }}
     >
       <button
         ref={triggerRef}
         type="button"
+        // A tooltip is a description, not a disclosure: `aria-describedby` is
+        // the whole contract, and `aria-expanded` would misreport the trigger
+        // as an expandable widget.
         aria-describedby={open ? id : undefined}
-        aria-expanded={open}
         className="inline-flex min-w-0 cursor-help items-center rounded-sm text-left"
         onFocus={() => setOpen(true)}
-        onBlur={() => setOpen(false)}
-        onClick={() => setOpen(true)}
+        onBlur={close}
+        onPointerDown={onPointerDown}
       >
         {children}
       </button>

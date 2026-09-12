@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useCallback, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { Reveal } from '@/components/Reveal';
 import { LAUNCH_ANCHORS, workflowHeading, workflowLead, workflowTabs } from '@/data/landingLaunch';
 import { cn } from '@/lib/cn';
@@ -16,13 +16,39 @@ import { BAND, GRADIENT_TEXT, TILE, TILE_LINE, TYPE_LEAD, TYPE_SECTION } from '.
  */
 export function LaunchWorkflow() {
   const [active, setActive] = useState(0);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const baseId = useId();
 
   const tabId = (index: number) => `${baseId}-tab-${index}`;
   const panelId = (index: number) => `${baseId}-panel-${index}`;
 
-  const move = (delta: number) => {
-    setActive((current) => (current + delta + workflowTabs.length) % workflowTabs.length);
+  /**
+   * Roving tabindex: only the selected tab is in the Tab order, so keyboard
+   * selection has to carry focus with it. Without this the previously focused
+   * tab becomes `tabIndex={-1}` and focus falls back to the document body,
+   * stranding the user after a single arrow press.
+   */
+  const selectAndFocus = useCallback((index: number) => {
+    const next = (index + workflowTabs.length) % workflowTabs.length;
+    setActive(next);
+    tabRefs.current[next]?.focus();
+  }, []);
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const keys: Record<string, number | undefined> = {
+      ArrowDown: active + 1,
+      ArrowRight: active + 1,
+      ArrowUp: active - 1,
+      ArrowLeft: active - 1,
+      Home: 0,
+      End: workflowTabs.length - 1,
+    };
+
+    const next = keys[event.key];
+    if (next === undefined) return;
+
+    event.preventDefault();
+    selectAndFocus(next);
   };
 
   return (
@@ -43,15 +69,7 @@ export function LaunchWorkflow() {
           aria-label="Workflow stages"
           aria-orientation="vertical"
           className="flex min-w-0 flex-col gap-3"
-          onKeyDown={(event) => {
-            if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
-              event.preventDefault();
-              move(1);
-            } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
-              event.preventDefault();
-              move(-1);
-            }
-          }}
+          onKeyDown={onKeyDown}
         >
           {workflowTabs.map(({ icon: Icon, title, body }, index) => {
             const selected = index === active;
@@ -59,6 +77,9 @@ export function LaunchWorkflow() {
             return (
               <button
                 key={title}
+                ref={(node) => {
+                  tabRefs.current[index] = node;
+                }}
                 type="button"
                 role="tab"
                 id={tabId(index)}

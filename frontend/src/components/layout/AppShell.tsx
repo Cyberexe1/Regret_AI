@@ -24,6 +24,11 @@ export function AppShell() {
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
 
+  // Stable identities: both are effect dependencies inside Sidebar, so an
+  // inline arrow would resubscribe its listeners on every shell render.
+  const openDrawer = useCallback(() => setDrawerOpen(true), []);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
   useModifierHotkey('k', togglePalette);
 
   // Navigating from inside the drawer should always close it.
@@ -40,14 +45,10 @@ export function AppShell() {
         Skip to content
       </a>
 
-      <Sidebar
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onOpenCommandPalette={openPalette}
-      />
+      <Sidebar open={drawerOpen} onClose={closeDrawer} onOpenCommandPalette={openPalette} />
 
       <div className="lg:pl-[var(--sidebar-width)]">
-        <Topbar onOpenSidebar={() => setDrawerOpen(true)} onOpenCommandPalette={openPalette} />
+        <Topbar onOpenSidebar={openDrawer} onOpenCommandPalette={openPalette} />
 
         <main id="main-content">
           {/* A failing view must not blank the shell, and must not survive navigation. */}

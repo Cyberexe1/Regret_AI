@@ -3,11 +3,15 @@ import { useEffect, useState } from 'react';
 /** Subscribes to a CSS media query. Used to switch the sidebar to a drawer. */
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
     return window.matchMedia(query).matches;
   });
 
   useEffect(() => {
+    // Absent in server rendering and in bare test environments; treating it as
+    // "no match" keeps callers on their mobile-first branch instead of throwing.
+    if (typeof window.matchMedia !== 'function') return;
+
     const list = window.matchMedia(query);
     const onChange = (event: MediaQueryListEvent) => setMatches(event.matches);
 
