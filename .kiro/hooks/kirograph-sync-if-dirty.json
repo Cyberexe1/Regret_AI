@@ -4,10 +4,10 @@
     {
       "name": "KiroGraph Sync on Agent Stop",
       "trigger": "Stop",
-      "description": "Syncs the KiroGraph knowledge graph after each agent run, using PowerShell-compatible output redirection.",
+      "description": "Syncs the KiroGraph knowledge graph after each agent run. No shell redirection: the command runs under cmd.exe, where `*>` is not redirection and the asterisk is passed to kirograph as a target path. --quiet already suppresses output.",
       "action": {
         "type": "command",
-        "command": "kirograph sync --quiet *> $null"
+        "command": "kirograph sync --quiet"
       }
     }
   ]
