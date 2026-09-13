@@ -1,17 +1,21 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Globe, TriangleAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import {
-  ConstraintFields,
+  DecisionTypeSelector,
+  DynamicContextSection,
   EvidenceDropzone,
+  ExampleDecisionPicker,
   IntakeActionBar,
   IntakeProgress,
   IntakeSection,
+  SmartContextChips,
 } from '@/components/intake';
 import { CrossDecisionPatternsPanel, HistoricalInsightsPanel } from '@/components/report';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
+import { inferDecisionCategory, type ExampleDecision } from '@/data/decisionTypes';
 import { INTAKE_SECTION_IDS } from '@/data/intake';
 import { analysisPath } from '@/data/navigation';
 import { useCrossDecisionPatterns } from '@/hooks/useCrossDecisionPatterns';
@@ -21,6 +25,18 @@ import { useHistoricalContextPreview } from '@/hooks/useHistoricalContextPreview
 import { buildCrossDecisionPatternRows } from '@/lib/buildCrossDecisionPatterns';
 import { EMPTY_HISTORICAL_SUMMARY } from '@/lib/buildHistoricalContext';
 
+/**
+ * REGRET ENGINE's "Smart Minimal Intake" (Step 26). Three visible
+ * stages, in strict visual-hierarchy order (spec section 22): THE
+ * DECISION first and largest, CONTEXT second (five always-optional
+ * questions, never a business questionnaire), EVIDENCE third, then
+ * START STRESS TEST. Everything financial/timing/location/risk/
+ * commitment-related is progressively disclosed via `SmartContextChips`
+ * - nothing forces the user to fill every possible decision attribute
+ * (Step 25's larger, always-visible field set is deliberately replaced
+ * here). A decision with zero optional context is still a complete,
+ * submittable decision - REGRET's own agents discover what's missing.
+ */
 export function NewDecisionPage() {
   const navigate = useNavigate();
   const {
@@ -29,7 +45,10 @@ export function NewDecisionPage() {
     canSubmit,
     evidenceErrors,
     setField,
+    setCategories,
     setConstraint,
+    setExtraDetail,
+    applyExample,
     addFiles,
     removeFile,
   } = useDecisionIntake();
@@ -38,6 +57,7 @@ export function NewDecisionPage() {
   const historicalPreview = useHistoricalContextPreview(draft.decision);
   const crossDecisionPatterns = useCrossDecisionPatterns();
   const patternRows = buildCrossDecisionPatternRows(crossDecisionPatterns.data ?? []);
+  const inferredCategory = useMemo(() => inferDecisionCategory(draft.decision), [draft.decision]);
 
   const isSubmitting = submission.stage === 'creating-decision' || submission.stage === 'uploading-evidence';
 
@@ -61,12 +81,32 @@ export function NewDecisionPage() {
     void startStressTest();
   };
 
+  const onSelectExample = (example: ExampleDecision) => {
+    applyExample({
+      decision: example.decision,
+      categories: example.categories,
+      desiredOutcome: example.desiredOutcome ?? '',
+      constraintsText: example.constraints ?? '',
+      beliefs: example.beliefs ?? '',
+      uncertainties: example.uncertainties ?? '',
+      alternatives: example.alternatives ?? '',
+      commitment: example.commitment ?? '',
+      constraints: {
+        budget: example.financialCommitment ?? '',
+        timeline: example.timing ?? '',
+        location: example.location ?? '',
+        riskTolerance: draft.constraints.riskTolerance,
+      },
+    });
+    document.getElementById(INTAKE_SECTION_IDS.decision)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <PageContainer
       width="narrow"
       eyebrow="New Decision"
       title="What are you about to commit to?"
-      description="Give REGRET ENGINE enough context to discover what you may be missing."
+      description="Give REGRET enough context to discover what you may be missing — whatever kind of decision this is."
     >
       <IntakeProgress steps={steps} />
 
@@ -77,62 +117,74 @@ export function NewDecisionPage() {
         </div>
       ) : null}
 
-      <form onSubmit={onFormSubmit} noValidate className="mt-10 space-y-5">
+      <div className="mt-8">
+        <ExampleDecisionPicker onSelect={onSelectExample} />
+      </div>
+
+      <form onSubmit={onFormSubmit} noValidate className="mt-8 space-y-5">
         <IntakeSection
           id={INTAKE_SECTION_IDS.decision}
           phase="01 · Decision"
           title="The decision"
-          description="Write it as you would say it out loud, including the number and the commitment."
+          description="Write the decision exactly as you're considering it - including what you would commit, change, accept, or give up."
         >
-          <Textarea
-            aria-label="The decision"
-            rows={5}
-            maxLength={600}
-            showCount
-            placeholder="Example: Should I invest ₹5,00,000 to start a cloud kitchen in Mumbai?"
-            className="md:text-body-lg"
-            value={draft.decision}
-            onChange={(event) => setField('decision', event.target.value)}
-          />
+          <div className="space-y-5">
+            <Textarea
+              aria-label="The decision"
+              rows={4}
+              maxLength={600}
+              showCount
+              placeholder="Should I accept the software engineering offer from Company A?"
+              className="md:text-body-lg"
+              value={draft.decision}
+              onChange={(event) => setField('decision', event.target.value)}
+            />
+
+            <DecisionTypeSelector
+              value={draft.categories}
+              onChange={setCategories}
+              inferredCategory={inferredCategory}
+            />
+          </div>
         </IntakeSection>
 
         <IntakeSection
-          id={INTAKE_SECTION_IDS.outcome}
+          id={INTAKE_SECTION_IDS.context}
           phase="02 · Context"
-          title="What outcome are you trying to achieve?"
-          description="The engine tests the decision against this, not against a generic definition of success."
+          title="Context"
+          description="That's enough to start. Add only what actually matters here - REGRET's agents will discover the rest."
         >
-          <Textarea
-            aria-label="Desired outcome"
-            rows={4}
-            placeholder="Describe what success looks like."
-            value={draft.desiredOutcome}
-            onChange={(event) => setField('desiredOutcome', event.target.value)}
-          />
-        </IntakeSection>
+          <div className="space-y-6">
+            <DynamicContextSection
+              values={{
+                desiredOutcome: draft.desiredOutcome,
+                constraintsText: draft.constraintsText,
+                beliefs: draft.beliefs,
+                uncertainties: draft.uncertainties,
+                alternatives: draft.alternatives,
+              }}
+              onChange={(key, value) => setField(key, value)}
+            />
 
-        <IntakeSection
-          id={INTAKE_SECTION_IDS.constraints}
-          phase="02 · Context"
-          title="Constraints"
-          description="What actually binds this decision. Leave anything blank if it does not apply."
-        >
-          <ConstraintFields constraints={draft.constraints} onChange={setConstraint} />
-        </IntakeSection>
-
-        <IntakeSection
-          id={INTAKE_SECTION_IDS.beliefs}
-          phase="02 · Context"
-          title="What do you already believe?"
-          description="These beliefs become assumptions for the stress test."
-        >
-          <Textarea
-            aria-label="What you already believe"
-            rows={4}
-            placeholder="I believe this decision will work because..."
-            value={draft.beliefs}
-            onChange={(event) => setField('beliefs', event.target.value)}
-          />
+            <SmartContextChips
+              categories={draft.categories}
+              values={{
+                budget: draft.constraints.budget,
+                timeline: draft.constraints.timeline,
+                location: draft.constraints.location,
+                riskTolerance: draft.constraints.riskTolerance,
+                commitment: draft.commitment,
+                extraDetails: draft.extraDetails,
+              }}
+              onChangeConstraint={(key, value) =>
+                key === 'riskTolerance'
+                  ? setConstraint('riskTolerance', value as never)
+                  : setConstraint(key, value)
+              }
+              onChangeCommitment={(value) => setField('commitment', value)}
+              onChangeExtraDetail={setExtraDetail}
+            />
+          </div>
         </IntakeSection>
 
         {historicalPreview.summary?.found || historicalPreview.isLoading ? (
@@ -165,7 +217,7 @@ export function NewDecisionPage() {
           id={INTAKE_SECTION_IDS.evidence}
           phase="03 · Evidence"
           title="Evidence you already have"
-          description="Anything that supports or contradicts your reasoning. The contradictions are the useful part."
+          description="Give REGRET what you already know. Evidence can support, contradict, or leave your reasoning uncertain."
         >
           <div className="space-y-6">
             <EvidenceDropzone

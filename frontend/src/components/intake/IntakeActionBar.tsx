@@ -31,8 +31,8 @@ export function IntakeActionBar({ id, canSubmit, onSubmit, submitting = false }:
           {submitting
             ? 'Submitting your decision…'
             : canSubmit
-              ? 'Ready. Everything else can be added after the first pass.'
-              : 'Describe the decision to begin the stress test.'}
+              ? 'Start with what you know. REGRET will uncover what you haven\'t considered.'
+              : 'Start with the decision. The engine will discover what could make it fail.'}
         </p>
 
         <div className="order-1 flex items-center gap-3 sm:order-2">

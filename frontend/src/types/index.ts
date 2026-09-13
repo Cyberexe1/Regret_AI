@@ -33,6 +33,34 @@ export interface NavItem {
 export type RiskTolerance = 'conservative' | 'balanced' | 'aggressive';
 
 /**
+ * Universal decision category (Step 25 - "Universal Decision Intake &
+ * Adaptive Context UI"). Frontend-only, contextual metadata used to
+ * personalize which intake fields/labels are shown - never a hard
+ * requirement, and never sent to the backend as a structured field (the
+ * current `DecisionCreate` schema has no such field - see
+ * `@/data/decisionTypes` for how this folds into the existing
+ * `description`/`beliefs` text instead). The backend's own Decision
+ * Analyzer performs its own independent classification from the full
+ * decision text during analysis; that classification, not this
+ * frontend selection, is the source of truth about what kind of
+ * decision this actually is.
+ */
+export type DecisionCategory =
+  | 'career'
+  | 'education'
+  | 'personal'
+  | 'financial'
+  | 'business'
+  | 'product'
+  | 'technology'
+  | 'hiring'
+  | 'operations'
+  | 'strategy'
+  | 'relationships'
+  | 'health'
+  | 'other';
+
+/**
  * A file the user attached during intake, before it has been uploaded.
  * Metadata only for display; the underlying `File` blob lives alongside
  * it in `DraftEvidenceFileWithBlob` (see `@/hooks/useEvidenceFiles`) so
@@ -46,19 +74,55 @@ export interface DraftEvidenceFile {
   mimeType: string;
 }
 
-/** Everything captured on the intake page before a decision is created
+/**
+ * Everything captured on the intake page before a decision is created
  * through the real API. Mapped to `ApiDecisionCreate` on submission - see
- * `useDecisionSubmission`. */
+ * `useDecisionSubmission`.
+ *
+ * Step 26 ("Smart Minimal Intake Experience"): only FIVE context
+ * questions are ever shown by default (`desiredOutcome`,
+ * `constraintsText`, `beliefs`, `uncertainties`, `alternatives`) -
+ * everything else (`commitment`, the legacy `constraints` object, and
+ * category-specific `extraDetails`) is progressively disclosed via
+ * `SmartContextChips` and stays hidden until the user explicitly opts
+ * in. `categories` replaces Step 25's single `category` - a decision
+ * can genuinely span more than one (e.g. "accept a higher-paying job
+ * that requires relocating" is Career + Personal), and none of them are
+ * ever a hard requirement (see `DecisionCategory`'s doc comment). Only
+ * `decision` is required; every other field is optional.
+ */
 export interface DecisionDraft {
   decision: string;
+  /** Contextual metadata only, zero or more - see `DecisionCategory`'s
+   * doc comment. */
+  categories: DecisionCategory[];
   desiredOutcome: string;
+  /** Free-text: "what could realistically limit this decision?" (Step
+   * 26 section 3B) - distinct from the legacy structured `constraints`
+   * object below, which still carries the budget/timeline/location/risk
+   * fields the backend has dedicated columns for. */
+  constraintsText: string;
+  beliefs: string;
+  /** "What are you least sure about?" (Step 26 section 3D). */
+  uncertainties: string;
+  /** "What are the alternatives?" (Step 26 section 3E). */
+  alternatives: string;
+  /** "What are you putting at stake?" (Step 26 section 7) - progressively
+   * disclosed via the `commitment`-kind chip, never shown by default. */
+  commitment: string;
+  /** Free-text values for category-specific "note" chips (e.g. "Career
+   * growth", "Customer demand"), keyed by the chip's stable id - see
+   * `@/data/decisionTypes`'s `ContextChip`. Folded into `description` on
+   * submission, each labeled by that chip's own field label. */
+  extraDetails: Record<string, string>;
+  /** Financial/timing/location/risk - progressively disclosed via chips,
+   * never shown by default (Step 26 sections 9-11). */
   constraints: {
     budget: string;
     timeline: string;
     location: string;
     riskTolerance: RiskTolerance;
   };
-  beliefs: string;
   evidence: DraftEvidenceFile[];
   sourceUrl: string;
   /** ISO timestamp of the moment the draft was submitted. */

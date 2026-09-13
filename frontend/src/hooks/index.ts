@@ -14,6 +14,7 @@ export { useDashboard } from './useDashboard';
 export { useDecisionById } from './useDecisionById';
 export { useDecisionHistory } from './useDecisionHistory';
 export { useDecisionIntake } from './useDecisionIntake';
+export { useInterview } from './useInterview';
 export { useDecisionReportData } from './useDecisionReportData';
 export { useDecisionSubmission } from './useDecisionSubmission';
 export { useEscapeKey } from './useEscapeKey';

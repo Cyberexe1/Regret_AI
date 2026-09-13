@@ -157,6 +157,15 @@ class Settings(BaseSettings):
     # rather than inventing a second, separate limit for the same kind
     # of "how much of a user's history to scan" bounding concern.
 
+    # --- Adaptive Decision Interview Agent (REGRET ENGINE 2.0, Step 27) -------
+    # Hard ceiling on how many user turns one interview can go through -
+    # spec section 12's "MUST NOT continue indefinitely." Question
+    # SELECTION is deterministic (see app.interview.question_selector);
+    # only the per-turn extraction/phrasing call actually reaches
+    # Bedrock, reusing `bedrock_invoke_timeout_seconds` above rather than
+    # inventing a second per-call timeout for the same kind of call.
+    interview_max_turns: int = 7
+
     @property
     def research_enabled(self) -> bool:
         return self.research_provider.strip().lower() not in {"", "none"}

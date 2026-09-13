@@ -9,14 +9,20 @@ import type { DecisionDraft } from '@/types';
  */
 export const emptyDecisionDraft: DecisionDraft = {
   decision: '',
+  categories: [],
   desiredOutcome: '',
+  constraintsText: '',
+  beliefs: '',
+  uncertainties: '',
+  alternatives: '',
+  commitment: '',
+  extraDetails: {},
   constraints: {
     budget: '',
     timeline: '',
     location: '',
     riskTolerance: 'balanced',
   },
-  beliefs: '',
   evidence: [],
   sourceUrl: '',
 };

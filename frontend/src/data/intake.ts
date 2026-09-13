@@ -9,7 +9,7 @@ import type { DecisionDraft, RiskTolerance } from '@/types';
 
 export const INTAKE_SECTION_IDS = {
   decision: 'intake-decision',
-  outcome: 'intake-outcome',
+  context: 'intake-context',
   constraints: 'intake-constraints',
   beliefs: 'intake-beliefs',
   // REGRET ENGINE 2.0: "Relevant from your past decisions" - a live,
@@ -31,7 +31,7 @@ export interface IntakeStep {
 
 export const intakeSteps: IntakeStep[] = [
   { index: '01', label: 'Decision', target: INTAKE_SECTION_IDS.decision },
-  { index: '02', label: 'Context', target: INTAKE_SECTION_IDS.outcome },
+  { index: '02', label: 'Context', target: INTAKE_SECTION_IDS.context },
   { index: '03', label: 'Evidence', target: INTAKE_SECTION_IDS.evidence },
   { index: '04', label: 'Stress Test', target: INTAKE_SECTION_IDS.submit },
 ];
@@ -47,7 +47,7 @@ export interface ResolvedIntakeStep extends IntakeStep {
 export function resolveIntakeSteps(draft: DecisionDraft): ResolvedIntakeStep[] {
   const completion = [
     draft.decision.trim().length > 0,
-    draft.desiredOutcome.trim().length > 0 && draft.beliefs.trim().length > 0,
+    draft.desiredOutcome.trim().length > 0 || draft.beliefs.trim().length > 0,
     draft.evidence.length > 0 || draft.sourceUrl.trim().length > 0,
     false,
   ];
@@ -72,17 +72,17 @@ export const riskToleranceOptions: RiskToleranceOption[] = [
   {
     value: 'conservative',
     label: 'Conservative',
-    description: 'Protect the downside, even at the cost of upside.',
+    description: 'Protect the downside, even if it limits upside.',
   },
   {
     value: 'balanced',
     label: 'Balanced',
-    description: 'Accept measured risk where the evidence supports it.',
+    description: 'Accept measured risk when evidence supports it.',
   },
   {
     value: 'aggressive',
     label: 'Aggressive',
-    description: 'Chase the upside and absorb a larger loss if wrong.',
+    description: 'Accept greater downside for a potentially larger upside.',
   },
 ];
 

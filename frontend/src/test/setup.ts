@@ -26,6 +26,13 @@ class MockResizeObserver implements ResizeObserver {
 }
 vi.stubGlobal('ResizeObserver', MockResizeObserver);
 
+// jsdom has no scrollIntoView implementation either - used by the intake
+// progress rail and "Try an example" to scroll to a section. A no-op is
+// enough for tests that only assert on rendered content/state.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 afterEach(() => {
   cleanup();
 });

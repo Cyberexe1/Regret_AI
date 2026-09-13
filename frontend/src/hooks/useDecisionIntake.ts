@@ -6,7 +6,15 @@ import { useEvidenceFiles, type DraftEvidenceFileWithBlob } from './useEvidenceF
 
 type IntakeForm = Omit<DecisionDraft, 'evidence'>;
 type ConstraintKey = keyof DecisionDraft['constraints'];
-type TextFieldKey = 'decision' | 'desiredOutcome' | 'beliefs' | 'sourceUrl';
+type TextFieldKey =
+  | 'decision'
+  | 'desiredOutcome'
+  | 'constraintsText'
+  | 'beliefs'
+  | 'uncertainties'
+  | 'commitment'
+  | 'alternatives'
+  | 'sourceUrl';
 
 /** Same shape as `DecisionDraft`, but `evidence` keeps the real `File`
  * blobs so submission can actually upload them. */
@@ -24,10 +32,16 @@ export interface DecisionIntake {
   /** Rejection messages from the last attempt to attach files. */
   evidenceErrors: string[];
   setField: (key: TextFieldKey, value: string) => void;
+  setCategories: (categories: DecisionDraft['categories']) => void;
   setConstraint: <K extends ConstraintKey>(
     key: K,
     value: DecisionDraft['constraints'][K],
   ) => void;
+  /** One category-specific "note" chip's free-text value, keyed by the
+   * chip's own stable id - see `@/data/decisionTypes`'s `ContextChip`. */
+  setExtraDetail: (id: string, value: string) => void;
+  /** Replaces the entire form in one shot - used by "Try an example". */
+  applyExample: (example: Partial<IntakeForm>) => void;
   addFiles: (files: File[]) => void;
   removeFile: (id: string) => void;
 }
@@ -44,11 +58,26 @@ export function useDecisionIntake(): DecisionIntake {
     setForm((current) => ({ ...current, [key]: value }));
   }, []);
 
+  const setCategories = useCallback((categories: DecisionDraft['categories']) => {
+    setForm((current) => ({ ...current, categories }));
+  }, []);
+
   const setConstraint = useCallback<DecisionIntake['setConstraint']>((key, value) => {
     setForm((current) => ({
       ...current,
       constraints: { ...current.constraints, [key]: value },
     }));
+  }, []);
+
+  const setExtraDetail = useCallback((id: string, value: string) => {
+    setForm((current) => ({
+      ...current,
+      extraDetails: { ...current.extraDetails, [id]: value },
+    }));
+  }, []);
+
+  const applyExample = useCallback((example: Partial<IntakeForm>) => {
+    setForm((current) => ({ ...current, ...example }));
   }, []);
 
   const draft = useMemo<DecisionDraftWithFiles>(
@@ -64,7 +93,10 @@ export function useDecisionIntake(): DecisionIntake {
     canSubmit: draft.decision.trim().length > 0,
     evidenceErrors: evidence.errors,
     setField,
+    setCategories,
     setConstraint,
+    setExtraDetail,
+    applyExample,
     addFiles: evidence.addFiles,
     removeFile: evidence.removeFile,
   };

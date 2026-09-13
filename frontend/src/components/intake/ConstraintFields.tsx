@@ -1,30 +1,105 @@
 import { CalendarDays, MapPin, Wallet } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
+import { getContextFieldConfig } from '@/data/decisionTypes';
 import { riskToleranceOptions } from '@/data/intake';
 import { cn } from '@/lib/cn';
-import type { DecisionDraft, RiskTolerance } from '@/types';
+import type { DecisionCategory, RiskTolerance } from '@/types';
 
-export interface ConstraintFieldsProps {
-  constraints: DecisionDraft['constraints'];
-  onChange: <K extends keyof DecisionDraft['constraints']>(
-    key: K,
-    value: DecisionDraft['constraints'][K],
-  ) => void;
+/**
+ * One field per progressively-disclosed "core" chip (Step 26 - "Smart
+ * Minimal Intake Experience"). None of these render by default anymore
+ * - `SmartContextChips` mounts exactly the ones the user has selected,
+ * so a career decision never shows an empty "Location" box it doesn't
+ * need. Each field still adapts its label/placeholder to the decision's
+ * selected categories via `getContextFieldConfig` (Step 25), unchanged.
+ */
+
+export interface FinancialCommitmentFieldProps {
+  categories: DecisionCategory[];
+  value: string;
+  onChange: (value: string) => void;
 }
 
-function RiskToleranceField({
-  value,
-  onChange,
-}: {
+export function FinancialCommitmentField({ categories, value, onChange }: FinancialCommitmentFieldProps) {
+  const config = getContextFieldConfig(categories[0] ?? null);
+  return (
+    <Input
+      label={config.financialLabel}
+      labelAside="Optional"
+      icon={Wallet}
+      placeholder={config.financialPlaceholder}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
+export interface TimingFieldProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export function TimingField({ value, onChange }: TimingFieldProps) {
+  return (
+    <Input
+      label="When does this decision need to be made?"
+      labelAside="Optional"
+      icon={CalendarDays}
+      placeholder="By Friday, within 3 months, no fixed deadline..."
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
+export interface LocationFieldProps {
+  categories: DecisionCategory[];
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export function LocationField({ categories, value, onChange }: LocationFieldProps) {
+  const config = getContextFieldConfig(categories[0] ?? null);
+  return (
+    <Input
+      label="Location"
+      labelAside="Optional"
+      icon={MapPin}
+      placeholder={config.locationPlaceholder}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
+export interface CommitmentFieldProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export function CommitmentField({ value, onChange }: CommitmentFieldProps) {
+  return (
+    <Input
+      label="What are you putting at stake?"
+      labelAside="Optional"
+      placeholder="Money, time, career opportunity, reputation, relationships, resources, etc."
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
+export interface RiskToleranceFieldProps {
   value: RiskTolerance;
   onChange: (value: RiskTolerance) => void;
-}) {
+}
+
+export function RiskToleranceField({ value, onChange }: RiskToleranceFieldProps) {
   return (
     <fieldset>
-      <legend className="text-small font-medium text-ink">Risk tolerance</legend>
-      <p className="mt-1 text-small text-ink-muted">
-        Sets how hard the engine argues against the downside.
-      </p>
+      <legend className="text-small font-medium text-ink">
+        How much downside are you willing to accept?
+      </legend>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         {riskToleranceOptions.map((option) => {
@@ -71,41 +146,5 @@ function RiskToleranceField({
         })}
       </div>
     </fieldset>
-  );
-}
-
-export function ConstraintFields({ constraints, onChange }: ConstraintFieldsProps) {
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Input
-          label="Budget"
-          icon={Wallet}
-          placeholder="₹5,00,000 upfront, ₹40,000 a month"
-          value={constraints.budget}
-          onChange={(event) => onChange('budget', event.target.value)}
-        />
-        <Input
-          label="Timeline"
-          icon={CalendarDays}
-          placeholder="Decide by 30 September, launch in November"
-          value={constraints.timeline}
-          onChange={(event) => onChange('timeline', event.target.value)}
-        />
-        <Input
-          label="Location"
-          icon={MapPin}
-          placeholder="Andheri West, Mumbai"
-          value={constraints.location}
-          onChange={(event) => onChange('location', event.target.value)}
-          fieldClassName="sm:col-span-2"
-        />
-      </div>
-
-      <RiskToleranceField
-        value={constraints.riskTolerance}
-        onChange={(value) => onChange('riskTolerance', value)}
-      />
-    </div>
   );
 }

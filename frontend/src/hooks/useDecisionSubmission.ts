@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { decisionsApi, evidenceApi } from '@/api';
 import { describeApiError } from '@/lib/apiError';
+import { buildDecisionCreatePayload } from '@/lib/decisionPayload';
 import type { DecisionDraftWithFiles } from './useDecisionIntake';
 
 export type SubmissionStage = 'idle' | 'creating-decision' | 'uploading-evidence' | 'done' | 'error';
@@ -54,16 +55,7 @@ export function useDecisionSubmission(): DecisionSubmission {
 
     let decisionId: string;
     try {
-      const created = await decisionsApi.createDecision({
-        title: draft.decision.slice(0, 200) || 'Untitled decision',
-        description: draft.decision,
-        desired_outcome: draft.desiredOutcome || undefined,
-        budget: draft.constraints.budget ? Number(draft.constraints.budget) || undefined : undefined,
-        timeline: draft.constraints.timeline || undefined,
-        location: draft.constraints.location || undefined,
-        risk_tolerance: draft.constraints.riskTolerance,
-        beliefs: draft.beliefs || undefined,
-      });
+      const created = await decisionsApi.createDecision(buildDecisionCreatePayload(draft));
       decisionId = created.id;
     } catch (error) {
       setState({

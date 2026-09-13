@@ -972,6 +972,147 @@ export interface ApiCalibrationInsight {
 }
 
 /* -------------------------------------------------------------------------- *
+ * Adaptive Decision Interview Agent (REGRET ENGINE 2.0, Step 27,
+ * backend/app/interview/schemas.py)
+ * -------------------------------------------------------------------------- */
+
+export type InterviewStatus =
+  | 'not_started'
+  | 'active'
+  | 'awaiting_answer'
+  | 'ready'
+  | 'completed'
+  | 'user_stopped'
+  | 'blocked'
+  | 'failed';
+
+export type InterviewTurnRole = 'user' | 'regret';
+
+/** What TOPIC a question/answer is about - never chain-of-thought, just
+ * a closed label REGRET uses to decide what to ask next. */
+export type InterviewQuestionType =
+  | 'clarification'
+  | 'goal'
+  | 'constraint'
+  | 'belief'
+  | 'uncertainty'
+  | 'alternative'
+  | 'commitment'
+  | 'evidence'
+  | 'stakeholder'
+  | 'priority'
+  | 'validation'
+  | 'readiness';
+
+/** Deterministic, structured-completeness readiness band - NEVER a
+ * fabricated confidence score. See the backend's own
+ * `app.interview.state.compute_readiness`. */
+export type InterviewReadinessLevel = 'early' | 'enough' | 'ready';
+
+export interface ApiExtractedFields {
+  desired_outcome: string | null;
+  constraints: string[];
+  beliefs: string[];
+  uncertainties: string[];
+  alternatives: string[];
+  commitments: string[];
+  stakeholders: string[];
+  important_variables: string[];
+  evidence_mentions: string[];
+  discovered_assumptions: string[];
+  discovered_unknowns: string[];
+}
+
+export interface ApiDecisionInterviewState {
+  interview_id: string;
+  decision_id: string;
+  user_id: string;
+  status: InterviewStatus;
+  turn_number: number;
+  max_turns: number;
+  decision_text: string;
+  decision_type: string | null;
+  selected_categories: string[];
+  desired_outcome: string | null;
+  constraints: string[];
+  beliefs: string[];
+  uncertainties: string[];
+  alternatives: string[];
+  commitments: string[];
+  stakeholders: string[];
+  important_variables: string[];
+  evidence_summary: string[];
+  discovered_assumptions: string[];
+  discovered_unknowns: string[];
+  questions_asked: InterviewQuestionType[];
+  answers: string[];
+  current_question: string | null;
+  readiness: InterviewReadinessLevel;
+  readiness_reason: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** The structured output of a completed/skipped interview - the input
+ * to the EXISTING Decision Analyzer, never a replacement for it, and
+ * never itself a verdict on the decision. */
+export interface ApiDecisionSnapshot {
+  decision: string;
+  goal: string | null;
+  constraints: string[];
+  commitments: string[];
+  beliefs: string[];
+  uncertainties: string[];
+  alternatives: string[];
+  evidence: string[];
+  important_variables: string[];
+  stakeholders: string[];
+  decision_criteria: string[];
+  missing_information: string[];
+  interview_summary: string;
+}
+
+export interface ApiStartInterviewRequest {
+  selected_categories?: string[];
+}
+
+export interface ApiStartInterviewResponse {
+  interview_id: string;
+  first_question: string;
+  state: ApiDecisionInterviewState;
+}
+
+export interface ApiRespondRequest {
+  message: string;
+  /** Optional idempotency guard - the `turn_number` the caller last saw
+   * (mirrors `ApiDecisionUpdate.expected_updated_at`'s own optimistic-
+   * concurrency pattern). Omit for a simple, unconditional request. */
+  expected_turn_number?: number;
+}
+
+export interface ApiRespondResponse {
+  response: string;
+  extracted_fields: ApiExtractedFields;
+  current_state: ApiDecisionInterviewState;
+  next_question: string | null;
+  readiness: InterviewReadinessLevel;
+  turn_number: number;
+  suggested_chips: string[];
+  /** False only when the Interview Agent's own call failed this turn
+   * and a deterministic fallback question was used instead - the UI
+   * uses this to show "REGRET couldn't continue the interview, but you
+   * can continue with the information you've already provided," never
+   * a silent swap. */
+  agent_available: boolean;
+}
+
+export interface ApiCompleteInterviewResponse {
+  snapshot: ApiDecisionSnapshot;
+  readiness: InterviewReadinessLevel;
+  missing_information: string[];
+}
+
+/* -------------------------------------------------------------------------- *
  * Health (app/schemas/health.py)
  * -------------------------------------------------------------------------- */
 

@@ -23,6 +23,7 @@ from app.api.routes import (
     experiments,
     health,
     historical_context,
+    interview,
     learning,
     memory,
     quality,
@@ -138,3 +139,4 @@ app.include_router(adaptive.router, prefix=settings.api_v1_prefix)
 app.include_router(evolution.router, prefix=settings.api_v1_prefix)
 app.include_router(learning.router, prefix=settings.api_v1_prefix)
 app.include_router(quality.router, prefix=settings.api_v1_prefix)
+app.include_router(interview.router, prefix=settings.api_v1_prefix)
