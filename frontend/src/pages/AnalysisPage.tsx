@@ -1,13 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { DecisionNotFound } from '@/components/DecisionNotFound';
 import { PageContainer } from '@/components/layout/PageContainer';
-import {
-  AgentPipeline,
-  AnalysisHeader,
-  AnalysisMetricsPanel,
-  CompletionBanner,
-  LiveFindings,
-} from '@/components/analysis';
+import { AgentPipeline, AnalysisHeader, AnalysisMetricsPanel, CompletionBanner } from '@/components/analysis';
 import { HistoricalInsightsPanel, ReportSection } from '@/components/report';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { useAnalysisRun } from '@/hooks/useAnalysisRun';
@@ -69,7 +63,6 @@ export function AnalysisPage() {
               statuses={analysis.run?.stage_statuses ?? {}}
               activeAgentId={analysis.run?.current_stage ?? null}
             />
-            <LiveFindings events={analysis.events} isComplete={analysis.isComplete} />
           </div>
 
           <AnalysisMetricsPanel run={analysis.run} isComplete={analysis.isComplete} />

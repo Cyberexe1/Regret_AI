@@ -48,7 +48,6 @@ export function EvolutionEventDetailPanel({
                 Cycle {event.cycleNumber}
               </Badge>
             ) : null}
-            <span className="numeric text-micro text-ink-muted">{event.timestampLabel}</span>
           </div>
 
           <div>

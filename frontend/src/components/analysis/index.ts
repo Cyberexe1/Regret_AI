@@ -8,5 +8,5 @@ export { AnalysisMetricsPanel } from './AnalysisMetricsPanel';
 export type { AnalysisMetricsPanelProps } from './AnalysisMetricsPanel';
 export { CompletionBanner } from './CompletionBanner';
 export type { CompletionBannerProps } from './CompletionBanner';
-export { LiveFindings } from './LiveFindings';
-export type { LiveFindingsProps } from './LiveFindings';
+export { AnalysisProgressModal } from './AnalysisProgressModal';
+export type { AnalysisProgressModalProps } from './AnalysisProgressModal';

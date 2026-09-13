@@ -138,10 +138,6 @@ export function DecisionEvolutionTimeline({ events, onSelectEvent }: DecisionEvo
                   <span className="text-small font-semibold text-ink">{event.newStateLabel}</span>
                 </div>
               ) : null}
-
-              <span className="numeric mt-1.5 block text-micro text-ink-muted">
-                {event.timestampLabel}
-              </span>
             </button>
           </li>
         );

@@ -79,13 +79,15 @@ export interface DraftEvidenceFile {
  * through the real API. Mapped to `ApiDecisionCreate` on submission - see
  * `useDecisionSubmission`.
  *
- * Step 26 ("Smart Minimal Intake Experience"): only FIVE context
- * questions are ever shown by default (`desiredOutcome`,
- * `constraintsText`, `beliefs`, `uncertainties`, `alternatives`) -
- * everything else (`commitment`, the legacy `constraints` object, and
- * category-specific `extraDetails`) is progressively disclosed via
- * `SmartContextChips` and stays hidden until the user explicitly opts
- * in. `categories` replaces Step 25's single `category` - a decision
+ * Step 26 ("Smart Minimal Intake Experience") introduced `desiredOutcome`/
+ * `constraintsText`/`beliefs`/`uncertainties`/`alternatives`/`commitment`
+ * as always-optional context fields; Step 27 ("Adaptive Decision
+ * Interview Agent") replaced the always-visible form these fields used
+ * to power with a conversational interview that discovers the same
+ * information adaptively (see `useInterview`/`InterviewConsole`) - these
+ * fields remain on the draft only for the "Try an example" pre-fill path
+ * and the legacy pre-interview submission fallback. `categories`
+ * replaces Step 25's single `category` - a decision
  * can genuinely span more than one (e.g. "accept a higher-paying job
  * that requires relocating" is Career + Personal), and none of them are
  * ever a hard requirement (see `DecisionCategory`'s doc comment). Only

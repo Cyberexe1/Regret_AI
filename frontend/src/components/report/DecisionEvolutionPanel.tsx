@@ -127,9 +127,8 @@ function MajorChangesSection({ summary }: { summary: DecisionEvolutionSummary })
       <p className="eyebrow">Major changes</p>
       <ul className="mt-3 space-y-2.5">
         {summary.majorChanges.map((event) => (
-          <li key={event.eventId} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <span className="text-small text-ink">{event.title}</span>
-            <span className="numeric text-micro text-ink-muted">{event.timestampLabel}</span>
+          <li key={event.eventId} className="text-small text-ink">
+            {event.title}
           </li>
         ))}
       </ul>

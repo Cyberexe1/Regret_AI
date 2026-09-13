@@ -33,6 +33,13 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
+// Nor does jsdom implement `scrollTo` on a scrollable element - used by
+// `InterviewConsole` to keep the latest message in view. A no-op is
+// enough for tests that only assert on rendered content/state.
+if (!Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = () => {};
+}
+
 afterEach(() => {
   cleanup();
 });

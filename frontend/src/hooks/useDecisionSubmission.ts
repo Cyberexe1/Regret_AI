@@ -27,8 +27,16 @@ export interface DecisionSubmission extends DecisionSubmissionState {
    * Returns the created decision id on success (even if some individual
    * evidence uploads failed - a failed upload never discards the decision
    * that was already created, per the intake flow's requirement).
+   *
+   * `existingDecisionId` (REGRET ENGINE 2.0, Step 27): when the Adaptive
+   * Decision Interview has already created the decision (see
+   * `NewDecisionPage`'s `startInterviewFlow`) and applied its own
+   * `DecisionSnapshot` to it server-side, this final step only needs to
+   * upload evidence against that SAME decision - creating a second one
+   * would orphan everything the interview just collected. Omit for the
+   * pre-interview create-then-upload flow, unchanged from before.
    */
-  submit: (draft: DecisionDraftWithFiles) => Promise<string | null>;
+  submit: (draft: DecisionDraftWithFiles, existingDecisionId?: string) => Promise<string | null>;
   reset: () => void;
 }
 
@@ -50,41 +58,53 @@ export function useDecisionSubmission(): DecisionSubmission {
     setState({ stage: 'idle', decisionId: null, evidenceOutcomes: [], error: null });
   }, []);
 
-  const submit = useCallback(async (draft: DecisionDraftWithFiles): Promise<string | null> => {
-    setState({ stage: 'creating-decision', decisionId: null, evidenceOutcomes: [], error: null });
-
-    let decisionId: string;
-    try {
-      const created = await decisionsApi.createDecision(buildDecisionCreatePayload(draft));
-      decisionId = created.id;
-    } catch (error) {
+  const submit = useCallback(
+    async (draft: DecisionDraftWithFiles, existingDecisionId?: string): Promise<string | null> => {
       setState({
-        stage: 'error',
-        decisionId: null,
+        stage: 'creating-decision',
+        decisionId: existingDecisionId ?? null,
         evidenceOutcomes: [],
-        error: describeApiError(error),
+        error: null,
       });
-      return null;
-    }
 
-    setState((current) => ({ ...current, stage: 'uploading-evidence', decisionId }));
-
-    // Uploaded sequentially and independently: one failed file must never
-    // stop the others, and the decision itself is already created and
-    // must never be lost because of an evidence upload failure.
-    const outcomes: EvidenceUploadOutcome[] = [];
-    for (const item of draft.evidence) {
-      try {
-        await evidenceApi.uploadEvidence(decisionId, item.file);
-        outcomes.push({ fileName: item.name, ok: true });
-      } catch (error) {
-        outcomes.push({ fileName: item.name, ok: false, message: describeApiError(error).message });
+      let decisionId: string;
+      if (existingDecisionId) {
+        decisionId = existingDecisionId;
+      } else {
+        try {
+          const created = await decisionsApi.createDecision(buildDecisionCreatePayload(draft));
+          decisionId = created.id;
+        } catch (error) {
+          setState({
+            stage: 'error',
+            decisionId: null,
+            evidenceOutcomes: [],
+            error: describeApiError(error),
+          });
+          return null;
+        }
       }
-    }
 
-    setState({ stage: 'done', decisionId, evidenceOutcomes: outcomes, error: null });
-    return decisionId;
-  }, []);
+      setState((current) => ({ ...current, stage: 'uploading-evidence', decisionId }));
+
+      // Uploaded sequentially and independently: one failed file must never
+      // stop the others, and the decision itself is already created and
+      // must never be lost because of an evidence upload failure.
+      const outcomes: EvidenceUploadOutcome[] = [];
+      for (const item of draft.evidence) {
+        try {
+          await evidenceApi.uploadEvidence(decisionId, item.file);
+          outcomes.push({ fileName: item.name, ok: true });
+        } catch (error) {
+          outcomes.push({ fileName: item.name, ok: false, message: describeApiError(error).message });
+        }
+      }
+
+      setState({ stage: 'done', decisionId, evidenceOutcomes: outcomes, error: null });
+      return decisionId;
+    },
+    [],
+  );
 
   return { ...state, submit, reset };
 }

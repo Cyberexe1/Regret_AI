@@ -43,11 +43,21 @@ export interface ResolvedIntakeStep extends IntakeStep {
 /**
  * Marks each phase complete from the draft itself. The stress test never
  * reports complete here: it only completes once it has actually been run.
+ *
+ * `interviewEngaged` (REGRET ENGINE 2.0, Step 27) marks the Context phase
+ * complete once the Adaptive Decision Interview has produced a
+ * `DecisionSnapshot` (completed or skipped) - the interview REPLACES the
+ * old always-visible context fields as the primary way this phase gets
+ * filled in, but a decision with neither is still a complete, submittable
+ * decision (REGRET's own agents discover what's missing either way).
  */
-export function resolveIntakeSteps(draft: DecisionDraft): ResolvedIntakeStep[] {
+export function resolveIntakeSteps(
+  draft: DecisionDraft,
+  interviewEngaged: boolean = false,
+): ResolvedIntakeStep[] {
   const completion = [
     draft.decision.trim().length > 0,
-    draft.desiredOutcome.trim().length > 0 || draft.beliefs.trim().length > 0,
+    interviewEngaged || draft.desiredOutcome.trim().length > 0 || draft.beliefs.trim().length > 0,
     draft.evidence.length > 0 || draft.sourceUrl.trim().length > 0,
     false,
   ];

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Reveal } from '@/components/Reveal';
+import { cn } from '@/lib/cn';
 
 export interface IntakeSectionProps {
   /** Scroll target for the progress rail. */
@@ -9,6 +10,9 @@ export interface IntakeSectionProps {
   title: string;
   description?: ReactNode;
   delay?: number;
+  /** Extra classes on the outer `<section>` - layout concerns only
+   * (e.g. horizontal inset), never a re-styling escape hatch. */
+  className?: string;
   children: ReactNode;
 }
 
@@ -18,6 +22,7 @@ export function IntakeSection({
   title,
   description,
   delay = 0,
+  className,
   children,
 }: IntakeSectionProps) {
   return (
@@ -25,7 +30,10 @@ export function IntakeSection({
       <section
         id={id}
         aria-labelledby={`${id}-title`}
-        className="scroll-mt-[calc(var(--header-offset)+0.75rem)] rounded-xl border border-hairline bg-surface p-6 md:p-8"
+        className={cn(
+          'scroll-mt-[calc(var(--header-offset)+0.75rem)] rounded-xl border border-hairline bg-surface p-6 md:p-8',
+          className,
+        )}
       >
         <p className="eyebrow">{phase}</p>
 

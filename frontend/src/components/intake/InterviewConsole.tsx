@@ -66,7 +66,7 @@ export function InterviewConsole({
   };
 
   return (
-    <div className="rounded-xl border border-hairline bg-surface">
+    <div data-testid="interview-console" className="rounded-xl border border-hairline bg-surface">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-5 py-4 md:px-6">
         <div>
           <p className="eyebrow">REGRET Interview</p>

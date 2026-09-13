@@ -194,6 +194,10 @@ export function DecisionDetailPage() {
       <div className="mx-auto max-w-5xl space-y-12 md:space-y-14">
         <ReportHeader decision={decision} />
 
+        <ReportSection title="Actions" className={cn('print:hidden')}>
+          <ReportActions decisionId={decision.id} onEvidenceUploaded={reportState.refetch} />
+        </ReportSection>
+
         <ReportSection index="01" title="Decision snapshot">
           <DecisionSnapshot items={snapshot} />
         </ReportSection>
@@ -356,9 +360,6 @@ export function DecisionDetailPage() {
           />
         </ReportSection>
 
-        <ReportSection index="15" title="Actions" className={cn('print:hidden')}>
-          <ReportActions decisionId={decision.id} onEvidenceUploaded={reportState.refetch} />
-        </ReportSection>
       </div>
     </PageContainer>
   );
