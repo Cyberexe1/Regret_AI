@@ -73,6 +73,7 @@ export function AnalysisPage() {
             index="H"
             title="Historical Insights"
             description="Relevant context from your own past decisions - background only, never a substitute for this decision's own evidence and thresholds."
+            defaultOpen
           >
             <HistoricalInsightsPanel
               summary={historicalContext.data ? buildHistoricalContext(historicalContext.data) : EMPTY_HISTORICAL_SUMMARY}

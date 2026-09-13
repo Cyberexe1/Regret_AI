@@ -51,11 +51,12 @@ function ExperimentDetailView({ experimentId }: { experimentId: string }) {
         index="01"
         title="Experiment design"
         description="What is being tested, what gets measured, and what counts as an answer either way."
+        defaultOpen
       >
         <ExperimentDesign experiment={experiment} />
       </ReportSection>
 
-      <ReportSection index="02" title="Results" description="What was actually observed.">
+      <ReportSection index="02" title="Results" description="What was actually observed." defaultOpen>
         <ExperimentResults results={results} />
       </ReportSection>
 
@@ -64,6 +65,7 @@ function ExperimentDetailView({ experimentId }: { experimentId: string }) {
           index="03"
           title="Submit a result"
           description="Record what happened when this experiment was run. This triggers deterministic re-evaluation of the target threshold and related assumptions."
+          defaultOpen
         >
           <ExperimentResultForm
             experimentId={experiment.id}
@@ -76,7 +78,7 @@ function ExperimentDetailView({ experimentId }: { experimentId: string }) {
       ) : null}
 
       {reevaluationId ? (
-        <ReportSection index="04" title="Re-evaluation">
+        <ReportSection index="04" title="Re-evaluation" defaultOpen>
           {reevaluationState.status === 'error' ? (
             <ErrorState title="Unable to load the re-evaluation" description={reevaluationState.error?.message} />
           ) : reevaluationState.isLoading || !reevaluationState.data ? (
