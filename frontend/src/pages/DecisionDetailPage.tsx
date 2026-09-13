@@ -9,7 +9,6 @@ import {
   AssumptionsSection,
   ChallengeCards,
   CrossDecisionPatternsPanel,
-  DecisionEvolutionPanel,
   DecisionMemoryPanel,
   DecisionSnapshot,
   HistoricalInsightsPanel,
@@ -32,7 +31,6 @@ import { useAdaptiveActions } from '@/hooks/useAdaptiveActions';
 import { useAdaptiveHistory } from '@/hooks/useAdaptiveHistory';
 import { useAdaptiveState } from '@/hooks/useAdaptiveState';
 import { useDecisionById } from '@/hooks/useDecisionById';
-import { useDecisionEvolution } from '@/hooks/useDecisionEvolution';
 import { useDecisionMemory } from '@/hooks/useDecisionMemory';
 import { useDecisionQuality } from '@/hooks/useDecisionQuality';
 import { useDecisionReportData } from '@/hooks/useDecisionReportData';
@@ -41,7 +39,6 @@ import { usePatternsForDecision } from '@/hooks/usePatternsForDecision';
 import { useValueOfInformation } from '@/hooks/useValueOfInformation';
 import { buildAdaptiveCycleRows, buildAdaptiveLoopSummary } from '@/lib/buildAdaptiveLoop';
 import { buildCrossDecisionPatternRows } from '@/lib/buildCrossDecisionPatterns';
-import { buildDecisionEvolutionSummary } from '@/lib/buildDecisionEvolution';
 import { buildDecisionMemorySummary, buildMemoryTimeline } from '@/lib/buildDecisionMemory';
 import { buildHistoricalContext, EMPTY_HISTORICAL_SUMMARY } from '@/lib/buildHistoricalContext';
 import { buildQualityAssessmentSummary } from '@/lib/buildQualityAssessment';
@@ -65,7 +62,6 @@ export function DecisionDetailPage() {
   const adaptiveState = useAdaptiveState(id);
   const adaptiveHistoryState = useAdaptiveHistory(id);
   const adaptiveActions = useAdaptiveActions();
-  const evolutionState = useDecisionEvolution(id);
   const patternsState = usePatternsForDecision(id);
   const qualityState = useDecisionQuality(id);
 
@@ -173,13 +169,6 @@ export function DecisionDetailPage() {
   const challenges = buildReportChallenges(report.challenges);
   const recommendedExperiment =
     report.experiments.find((experiment) => experiment.status === 'recommended') ?? report.experiments[0] ?? null;
-
-  const assumptionStatementsById = Object.fromEntries(
-    report.assumptions.map((assumption) => [assumption.id, assumption.statement]),
-  );
-  const experimentTitlesById = Object.fromEntries(
-    report.experiments.map((experiment) => [experiment.id, experiment.title]),
-  );
 
   const snapshot = [
     { label: 'Assumptions', value: String(report.assumptions.length) },
@@ -338,19 +327,6 @@ export function DecisionDetailPage() {
 
         <ReportSection
           index="13"
-          title="Decision Evolution"
-          description="Not a generic activity log - the causal chain from what we believed, through what we tested, to what actually changed and why."
-        >
-          <DecisionEvolutionPanel
-            summary={buildDecisionEvolutionSummary(evolutionState.data ?? null)}
-            isLoading={evolutionState.isLoading}
-            assumptionStatementsById={assumptionStatementsById}
-            experimentTitlesById={experimentTitlesById}
-          />
-        </ReportSection>
-
-        <ReportSection
-          index="14"
           title="Analysis Quality"
           description="How strong is this analysis? A deterministic, inspectable self-assessment of how well-grounded the current evidence, assumptions, and thresholds are - not a re-judgment of whether the decision itself is wise."
         >
