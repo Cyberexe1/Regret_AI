@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowRight, TriangleAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -52,8 +52,7 @@ export function InterviewConsole({
   const turnNumber = interview.state?.turn_number ?? 0;
   const maxTurns = interview.state?.max_turns ?? 7;
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submit = () => {
     if (!draft.trim() || isSubmitting || isDone) return;
     onSend(draft);
     setDraft('');
@@ -127,7 +126,16 @@ export function InterviewConsole({
           ) : null}
 
           {!isDone ? (
-            <form onSubmit={submit} className="flex items-end gap-2 border-t border-hairline px-5 py-4 md:px-6">
+            // Deliberately a <div>, not a <form>: this console is always
+            // rendered inside NewDecisionPage's own outer <form> (for the
+            // final "Start Stress Test" submission at the bottom of the
+            // page) - nesting a second <form> here caused this form's
+            // submit event to bubble up and ALSO fire the outer form's
+            // onSubmit on every "Send" click, which looked like the whole
+            // page refreshing after every answer. A plain click handler
+            // plus the existing Enter-to-send keydown below gives the
+            // exact same UX without ever creating a real <form> in <form>.
+            <div className="flex items-end gap-2 border-t border-hairline px-5 py-4 md:px-6">
               <textarea
                 aria-label="Your answer"
                 rows={1}
@@ -137,16 +145,22 @@ export function InterviewConsole({
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
-                    submit(event as unknown as FormEvent<HTMLFormElement>);
+                    submit();
                   }
                 }}
                 placeholder="Type your answer…"
                 className="max-h-32 min-h-9.5 flex-1 resize-none rounded-md border border-hairline bg-surface-inset px-3 py-2 text-small text-ink placeholder:text-ink-muted transition-colors focus:border-accent focus:bg-surface disabled:opacity-50"
               />
-              <Button type="submit" size="md" disabled={!draft.trim() || isSubmitting} loading={isSubmitting}>
+              <Button
+                type="button"
+                size="md"
+                disabled={!draft.trim() || isSubmitting}
+                loading={isSubmitting}
+                onClick={submit}
+              >
                 Send
               </Button>
-            </form>
+            </div>
           ) : null}
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline px-5 py-3 md:px-6">

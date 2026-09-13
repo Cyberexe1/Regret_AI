@@ -116,6 +116,7 @@ export function DecisionGraphPage() {
 
   return (
     <PageContainer
+      width="wide"
       eyebrow="Dependency graph"
       title="What this decision rests on"
       description="Every assumption, blindspot and threshold the decision depends on. Hover to trace a branch, select a node to inspect it."
@@ -128,12 +129,15 @@ export function DecisionGraphPage() {
     >
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
         <div className="overflow-hidden rounded-xl border border-hairline bg-surface-inset">
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-4 md:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-3 md:px-6">
             <GraphLegend />
             <p className="text-small text-ink-muted">Drag to pan · zoom with the controls</p>
           </div>
 
-          <div className="h-[58vh] min-h-96 lg:h-[66vh]">
+          {/* Taller and viewport-anchored (not just a vh fraction) so the
+           * graph gets the room it actually needs once the sidebar is
+           * collapsed and the page is wider - see Sidebar.tsx. */}
+          <div className="h-[calc(100vh-var(--header-offset)-11rem)] min-h-[32rem]">
             <Suspense fallback={<CanvasFallback />}>
               <DecisionGraphCanvas graph={graph} selectedId={selectedId} onSelect={setSelectedId} />
             </Suspense>

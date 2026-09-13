@@ -9,6 +9,19 @@ import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { DURATION, EASE_OUT } from '@/lib/motion';
 
+const SIDEBAR_COLLAPSED_KEY = 'regret-engine:sidebar-collapsed';
+
+function readStoredCollapsed(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+  } catch {
+    // Storage can throw in locked-down environments (private browsing, etc.) -
+    // fall back to the default, expanded state rather than crashing the shell.
+    return false;
+  }
+}
+
 /**
  * Application chrome for every workspace route: permanent sidebar at `lg`,
  * drawer below it, sticky topbar, command palette on Cmd/Ctrl+K, and a
@@ -17,6 +30,7 @@ import { DURATION, EASE_OUT } from '@/lib/motion';
 export function AppShell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(readStoredCollapsed);
   const { pathname } = useLocation();
   const reduceMotion = useReducedMotion();
 
@@ -28,6 +42,19 @@ export function AppShell() {
   // inline arrow would resubscribe its listeners on every shell render.
   const openDrawer = useCallback(() => setDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed((collapsed) => {
+      const next = !collapsed;
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0');
+      } catch {
+        // Best-effort persistence only - collapsing still works this session
+        // even if storage is unavailable.
+      }
+      return next;
+    });
+  }, []);
 
   useModifierHotkey('k', togglePalette);
 
@@ -45,9 +72,21 @@ export function AppShell() {
         Skip to content
       </a>
 
-      <Sidebar open={drawerOpen} onClose={closeDrawer} onOpenCommandPalette={openPalette} />
+      <Sidebar
+        open={drawerOpen}
+        onClose={closeDrawer}
+        onOpenCommandPalette={openPalette}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={toggleSidebarCollapsed}
+      />
 
-      <div className="lg:pl-[var(--sidebar-width)]">
+      <div
+        className={
+          sidebarCollapsed
+            ? 'transition-[padding] duration-200 lg:pl-[var(--sidebar-width-collapsed)]'
+            : 'transition-[padding] duration-200 lg:pl-[var(--sidebar-width)]'
+        }
+      >
         <Topbar onOpenSidebar={openDrawer} onOpenCommandPalette={openPalette} />
 
         <main id="main-content">

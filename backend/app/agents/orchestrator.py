@@ -219,6 +219,38 @@ class AnalysisOrchestrator:
             )
         )
 
+    def _persist_progress(
+        self, decision_id: UUID, run_id: UUID, agent_statuses: dict[str, AgentRunStatus]
+    ) -> None:
+        """Flushes the current in-memory `agent_statuses` snapshot to
+        DynamoDB without changing the run's own overall status (still
+        `running`) - called right after a stage transitions to `running`
+        (so a poller sees it start) and right after it transitions to
+        `completed` (so a poller sees it finish), not just at the run's
+        start/end/failure boundaries.
+
+        Before this, `GET /decisions/{id}/analysis/latest` only ever
+        reflected two snapshots - all-`pending` at the very start, and the
+        real per-stage outcome only once the ENTIRE ~9-stage pipeline had
+        already finished - so a client polling every ~1.5s (see
+        `AnalysisMetricsPanel`/`AgentPipeline` on the frontend, which
+        already compute `% complete = completed_stages / 9` from whatever
+        `stage_statuses` this returns) saw 0% the whole time and then a
+        single jump to 100%. This makes that percentage real: each of the
+        9 stages' own progress becomes visible as it actually happens,
+        never simulated or interpolated on the frontend.
+
+        Never called on a stage FAILURE path - those already persist a
+        terminal `failed` run status themselves (see each `_run_X_step`'s
+        caller in `_run_analysis_pipeline`), which subsumes this.
+        """
+        self._analyses.update_status(
+            decision_id=decision_id,
+            run_id=run_id,
+            status=AnalysisRunStatus.RUNNING,
+            agent_statuses=agent_statuses,
+        )
+
     async def run_analysis(self, user_id: str, decision_id: UUID) -> AnalysisRun:
         """Run the full analysis pipeline (Decision Analyzer -> Assumption
         Hunter -> Blindspot Hunter -> Evidence Agent -> Devil's Advocate ->
@@ -316,6 +348,7 @@ class AnalysisOrchestrator:
 
         # --- Stage 1: Decision Analyzer --------------------------------------
         agent_statuses[_DECISION_ANALYZER] = AgentRunStatus.RUNNING
+        self._persist_progress(decision_id, run.id, agent_statuses)
         decision_analysis = await self._run_decision_analyzer_step(
             decision_id, run.id, context, agent_statuses
         )
@@ -340,6 +373,7 @@ class AnalysisOrchestrator:
                 agent_statuses=agent_statuses,
             )
         agent_statuses[_DECISION_ANALYZER] = AgentRunStatus.COMPLETED
+        self._persist_progress(decision_id, run.id, agent_statuses)
         context.agent_results[_DECISION_ANALYZER] = decision_analysis
         result[_DECISION_ANALYZER] = decision_analysis.model_dump(mode="json")
         # REGRET ENGINE 2.0: recorded in the run's own result alongside
@@ -352,6 +386,7 @@ class AnalysisOrchestrator:
 
         # --- Stage 2: Assumption Hunter --------------------------------------
         agent_statuses[_ASSUMPTION_HUNTER] = AgentRunStatus.RUNNING
+        self._persist_progress(decision_id, run.id, agent_statuses)
         assumption_analysis = await self._run_assumption_hunter_step(
             decision_id, run.id, context, agent_statuses
         )
@@ -375,6 +410,7 @@ class AnalysisOrchestrator:
                 result=result,
             )
         agent_statuses[_ASSUMPTION_HUNTER] = AgentRunStatus.COMPLETED
+        self._persist_progress(decision_id, run.id, agent_statuses)
         context.agent_results[_ASSUMPTION_HUNTER] = assumption_analysis
         result[_ASSUMPTION_HUNTER] = assumption_analysis.model_dump(mode="json")
 
@@ -387,6 +423,7 @@ class AnalysisOrchestrator:
 
         # --- Stage 3: Blindspot Hunter ----------------------------------------
         agent_statuses[_BLINDSPOT_HUNTER] = AgentRunStatus.RUNNING
+        self._persist_progress(decision_id, run.id, agent_statuses)
         blindspot_analysis = await self._run_blindspot_hunter_step(
             decision_id, run.id, context, agent_statuses
         )
@@ -409,6 +446,7 @@ class AnalysisOrchestrator:
                 result=result,
             )
         agent_statuses[_BLINDSPOT_HUNTER] = AgentRunStatus.COMPLETED
+        self._persist_progress(decision_id, run.id, agent_statuses)
         context.agent_results[_BLINDSPOT_HUNTER] = blindspot_analysis
         result[_BLINDSPOT_HUNTER] = blindspot_analysis.model_dump(mode="json")
 
@@ -424,9 +462,11 @@ class AnalysisOrchestrator:
         # only means external research is unavailable for this analysis.
         # See `_run_research_agent_step`'s docstring.
         agent_statuses[_RESEARCH_AGENT] = AgentRunStatus.RUNNING
+        self._persist_progress(decision_id, run.id, agent_statuses)
         research_outcome = await self._run_research_agent_step(
             decision_id, run.id, context, agent_statuses
         )
+        self._persist_progress(decision_id, run.id, agent_statuses)
         valid_assumption_ids = {str(item.id) for item in context.assumptions}
         valid_blindspot_ids = {str(item.id) for item in context.blindspots}
         if research_outcome is not None:
@@ -474,6 +514,7 @@ class AnalysisOrchestrator:
 
         # --- Stage 4: Evidence Agent -------------------------------------------
         agent_statuses[_EVIDENCE_AGENT] = AgentRunStatus.RUNNING
+        self._persist_progress(decision_id, run.id, agent_statuses)
         evidence_analysis = await self._run_evidence_agent_step(
             decision_id, run.id, context, agent_statuses
         )
@@ -494,6 +535,7 @@ class AnalysisOrchestrator:
                 result=result,
             )
         agent_statuses[_EVIDENCE_AGENT] = AgentRunStatus.COMPLETED
+        self._persist_progress(decision_id, run.id, agent_statuses)
         context.agent_results[_EVIDENCE_AGENT] = evidence_analysis
         result[_EVIDENCE_AGENT] = evidence_analysis.model_dump(mode="json")
 
@@ -529,6 +571,7 @@ class AnalysisOrchestrator:
 
         # --- Stage 5: Devil's Advocate -----------------------------------------
         agent_statuses[_DEVILS_ADVOCATE] = AgentRunStatus.RUNNING
+        self._persist_progress(decision_id, run.id, agent_statuses)
         devil_advocate_analysis = await self._run_devils_advocate_step(
             decision_id, run.id, context, agent_statuses
         )
@@ -545,6 +588,7 @@ class AnalysisOrchestrator:
                 result=result,
             )
         agent_statuses[_DEVILS_ADVOCATE] = AgentRunStatus.COMPLETED
+        self._persist_progress(decision_id, run.id, agent_statuses)
         context.agent_results[_DEVILS_ADVOCATE] = devil_advocate_analysis
         result[_DEVILS_ADVOCATE] = devil_advocate_analysis.model_dump(mode="json")
 
@@ -570,6 +614,7 @@ class AnalysisOrchestrator:
 
         # --- Stage 6: Regret Simulator ------------------------------------------
         agent_statuses[_REGRET_SIMULATOR] = AgentRunStatus.RUNNING
+        self._persist_progress(decision_id, run.id, agent_statuses)
         regret_simulation = await self._run_regret_simulator_step(
             decision_id, run.id, context, agent_statuses
         )
@@ -584,6 +629,7 @@ class AnalysisOrchestrator:
                 result=result,
             )
         agent_statuses[_REGRET_SIMULATOR] = AgentRunStatus.COMPLETED
+        self._persist_progress(decision_id, run.id, agent_statuses)
         context.agent_results[_REGRET_SIMULATOR] = regret_simulation
         result[_REGRET_SIMULATOR] = regret_simulation.model_dump(mode="json")
 
@@ -611,6 +657,7 @@ class AnalysisOrchestrator:
 
         # --- Stage 7: Threshold Engine ------------------------------------------
         agent_statuses[_THRESHOLD_ENGINE] = AgentRunStatus.RUNNING
+        self._persist_progress(decision_id, run.id, agent_statuses)
         threshold_analysis = await self._run_threshold_engine_step(
             decision_id, run.id, context, agent_statuses
         )
@@ -625,6 +672,7 @@ class AnalysisOrchestrator:
                 result=result,
             )
         agent_statuses[_THRESHOLD_ENGINE] = AgentRunStatus.COMPLETED
+        self._persist_progress(decision_id, run.id, agent_statuses)
         context.agent_results[_THRESHOLD_ENGINE] = threshold_analysis
         result[_THRESHOLD_ENGINE] = threshold_analysis.model_dump(mode="json")
 
@@ -668,6 +716,7 @@ class AnalysisOrchestrator:
 
         # --- Stage 8: Experiment Planner ----------------------------------------
         agent_statuses[_EXPERIMENT_PLANNER] = AgentRunStatus.RUNNING
+        self._persist_progress(decision_id, run.id, agent_statuses)
         experiment_plan = await self._run_experiment_planner_step(
             decision_id, run.id, context, agent_statuses
         )

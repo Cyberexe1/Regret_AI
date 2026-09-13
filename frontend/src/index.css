@@ -199,6 +199,8 @@
 /* --- Layout metrics (consumed via var() in layout components) ------------- */
 :root {
   --sidebar-width: 15.5rem; /* 248px, inside the 240-260px band */
+  /* Icon-only rail width when the sidebar is collapsed - see Sidebar.tsx. */
+  --sidebar-width-collapsed: 4.5rem;
   --topbar-height: 3.75rem;
   /* Topbar/landing-nav is a floating bar with top padding, not an edge-to-edge
    * strip, so the space it actually occupies is its height plus that inset.
