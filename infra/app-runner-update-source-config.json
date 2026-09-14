@@ -4,7 +4,7 @@
   },
   "AutoDeploymentsEnabled": false,
   "ImageRepository": {
-    "ImageIdentifier": "961308088417.dkr.ecr.ap-south-1.amazonaws.com/regret-engine-api:v4-incremental-progress",
+    "ImageIdentifier": "961308088417.dkr.ecr.ap-south-1.amazonaws.com/regret-engine-api:v6-adaptive-interview",
     "ImageRepositoryType": "ECR",
     "ImageConfiguration": {
       "Port": "8000",

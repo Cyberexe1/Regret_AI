@@ -86,8 +86,8 @@ export function ReportSummaryCard({
           title={quality.found ? quality.overallBandLabel : 'Not assessed yet'}
           detail={
             quality.found
-              ? quality.blockingIssues.length > 0
-                ? `${quality.blockingIssues.length} thing${quality.blockingIssues.length === 1 ? '' : 's'} to be careful about before you rely on this analysis.`
+              ? carefulAboutCount(quality) > 0
+                ? `${carefulAboutCount(quality)} thing${carefulAboutCount(quality) === 1 ? '' : 's'} to be careful about before you rely on this analysis.`
                 : "This analysis is well-grounded - see 'Analysis Quality' below for the full breakdown."
               : undefined
           }
@@ -138,6 +138,15 @@ function SummaryRow({
       </div>
     </div>
   );
+}
+
+/** Same total the full "Analysis Quality" section's own "What should you
+ * be careful about?" list shows (`CarefulAboutSection` in
+ * `QualityAssessmentPanel.tsx`: blocking issues AND warnings combined) -
+ * this summary card must never quote a different number for the same
+ * question than the section it's summarizing. */
+function carefulAboutCount(quality: QualityAssessmentSummary): number {
+  return quality.blockingIssues.length + quality.warnings.length;
 }
 
 function toneShellClass(tone: Tone): string {

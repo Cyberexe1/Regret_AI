@@ -97,6 +97,7 @@ from app.learning.repository import CrossDecisionLearningRepository
 from app.learning.service import CrossDecisionLearningService
 from app.memory.historical_context import HistoricalContextService
 from app.memory.memory_repository import MemoryRepository
+from app.memory.memory_service import MemoryService
 from app.memory.similarity_schemas import HistoricalContext
 from app.quality.repository import QualityRepository
 from app.quality.service import QualityService
@@ -208,6 +209,15 @@ class AnalysisOrchestrator:
             CrossDecisionLearningRepository(),
             QualityRepository(),
         )
+        # REGRET ENGINE 2.0, Step 18/24: builds the decision's PRELIMINARY
+        # Decision Memory as soon as analysis completes, additively - see
+        # `_create_preliminary_memory`/Stage 9b below. Without this, a
+        # decision's Decision Memory only ever gets created reactively,
+        # inside `update_memory_from_reevaluation` (triggered by an
+        # experiment RESULT) - so any decision that has been fully
+        # analyzed but never had a result submitted yet showed "not
+        # analyzed" in the Decision Memory panel, which was misleading.
+        self._memory_service = MemoryService(MemoryRepository(), decision_repository)
         self._value_of_information = (
             value_of_information_service
             if value_of_information_service is not None
@@ -799,6 +809,18 @@ class AnalysisOrchestrator:
         except Exception:  # noqa: BLE001 - quality check is additive; never fail the run
             logger.exception("Quality check failed decision_id=%s run_id=%s", decision_id, run.id)
 
+        # --- Stage 9b: Preliminary Decision Memory (REGRET ENGINE 2.0, Step 18, additive) ---
+        # Deterministic - no LLM call, never blocks or fails the run.
+        # Mirrors the quality-check call directly above: runs AFTER the
+        # run is already marked completed, and a failure here can never
+        # change this run's own completion status.
+        try:
+            self._create_preliminary_memory(decision_id)
+        except Exception:  # noqa: BLE001 - memory creation is additive; never fail the run
+            logger.exception(
+                "Preliminary memory creation failed decision_id=%s run_id=%s", decision_id, run.id
+            )
+
         return completed_run
 
     def _run_quality_check(self, decision_id: UUID, user_id: str) -> None:
@@ -808,6 +830,16 @@ class AnalysisOrchestrator:
         delegates to `self._quality`; see `app.quality.service
         .QualityService.run_quality_check` for the actual checks."""
         self._quality.run_quality_check(decision_id, user_id)
+
+    def _create_preliminary_memory(self, decision_id: UUID) -> None:
+        """Ensures this decision has at least a PRELIMINARY `DecisionMemory`
+        the moment its analysis completes, so `GET /decisions/{id}/memory`
+        never says "not analyzed yet" for a decision that plainly has
+        been. Idempotent - `get_or_create_preliminary_memory` is a no-op
+        if a memory already exists (e.g. from an earlier analysis run, or
+        because an experiment result already advanced it to VALIDATED) -
+        never re-implemented here; this method only delegates."""
+        self._memory_service.get_or_create_preliminary_memory(decision_id)
 
     async def _run_decision_analyzer_step(
         self,

@@ -219,7 +219,7 @@ export function DecisionDetailPage() {
 
         <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
           <div className="min-w-0 space-y-12 md:space-y-14">
-            <ReportSection title="Actions" className={cn('print:hidden')}>
+            <ReportSection title="Actions" className={cn('print:hidden')} alwaysOpen>
               <ReportActions decisionId={decision.id} onEvidenceUploaded={reportState.refetch} />
             </ReportSection>
 

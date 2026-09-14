@@ -32,7 +32,8 @@ from app.core.logging import get_logger
 from app.interview import question_selector
 from app.interview import state as state_helpers
 from app.interview.prompts import run_interview_turn
-from app.interview.question_selector import FALLBACK_QUESTIONS, suggested_chips_for_topic
+from app.interview.question_generator import generate_question
+from app.interview.question_selector import suggested_chips_for_topic
 from app.interview.repository import InterviewRepository
 from app.interview.schemas import (
     DecisionInterviewState,
@@ -97,19 +98,22 @@ class InterviewService:
 
         now = datetime.now(UTC)
         interview_id = str(uuid4())
-        first_topic = question_selector.select_next_topic(
-            DecisionInterviewState(
-                interview_id=interview_id,
-                decision_id=str(decision_id),
-                user_id=user_id,
-                decision_text=decision.description[:600],
-                selected_categories=selected_categories,
-                created_at=now,
-                updated_at=now,
-            )
+        probe_state = DecisionInterviewState(
+            interview_id=interview_id,
+            decision_id=str(decision_id),
+            user_id=user_id,
+            decision_text=decision.description[:600],
+            selected_categories=selected_categories,
+            created_at=now,
+            updated_at=now,
         )
-        first_topic = first_topic or QuestionType.GOAL
-        first_question = FALLBACK_QUESTIONS[first_topic]
+        first_topic = question_selector.select_next_topic(probe_state) or QuestionType.GOAL
+        # The real Strands Interview Agent is never invoked for the
+        # opening question (there is no user answer yet for it to react
+        # to) - `generate_question` is what makes this first question
+        # decision-aware and category-aware instead of a single fixed
+        # sentence for every decision (Step 27A fix).
+        first_question = generate_question(probe_state, first_topic)
 
         state = DecisionInterviewState(
             interview_id=interview_id,
@@ -131,7 +135,7 @@ class InterviewService:
 
     def _first_question_text(self, state: DecisionInterviewState) -> str:
         topic = state.questions_asked[-1] if state.questions_asked else QuestionType.GOAL
-        return FALLBACK_QUESTIONS.get(topic, FALLBACK_QUESTIONS[QuestionType.GOAL])
+        return generate_question(state, topic)
 
     # --- respond -----------------------------------------------------------------
 
@@ -283,7 +287,12 @@ class InterviewService:
         question_text = (
             agent_next_question
             if (not agent_failed and agent_selected_topic == next_topic and agent_next_question)
-            else FALLBACK_QUESTIONS[next_topic]
+            # Deterministic path (agent unavailable, or it picked a
+            # different topic than the selector) - decision-aware and
+            # category-aware phrasing instead of one fixed sentence per
+            # topic (Step 27A fix), using everything already extracted
+            # from prior answers via `state` (answer-aware follow-ups).
+            else generate_question(state, next_topic)
         )
 
         state.status = InterviewStatus.AWAITING_ANSWER

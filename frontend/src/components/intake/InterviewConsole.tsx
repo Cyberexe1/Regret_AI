@@ -218,7 +218,7 @@ function DecisionModelPanel({ interview }: { interview: InterviewState }) {
       </ModelSection>
 
       <ModelSection title="Known">
-        <ModelList items={[...(state?.constraints ?? []), ...(state?.commitments ?? [])]} mark="✓" />
+        <ModelList items={state?.constraints ?? []} mark="✓" />
       </ModelSection>
 
       <ModelSection title="Assumptions">
@@ -231,6 +231,10 @@ function DecisionModelPanel({ interview }: { interview: InterviewState }) {
 
       <ModelSection title="Alternatives">
         <ModelList items={state?.alternatives ?? []} mark="·" />
+      </ModelSection>
+
+      <ModelSection title="Commitment">
+        <ModelList items={state?.commitments ?? []} mark="!" />
       </ModelSection>
     </div>
   );
