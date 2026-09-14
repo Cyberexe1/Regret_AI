@@ -20,19 +20,18 @@ import { DURATION, EASE_OUT } from '@/lib/motion';
 /**
  * Row styling for one navigation item.
  *
- * Three states, in priority order: active, emphasised (New Decision) and
- * default. Every row carries a transparent border so the emphasised item does
- * not shift the others by a pixel.
+ * Only two real states: active (the current page) and default. No item
+ * carries a permanent accent tint of its own - the active page is always
+ * the only row that looks selected, so it's never ambiguous which page
+ * you're actually on.
  */
-function navRowClasses(isActive: boolean, emphasis: boolean, collapsed: boolean): string {
+function navRowClasses(isActive: boolean, collapsed: boolean): string {
   return cn(
     'group flex items-center gap-3 rounded-md border px-3 py-2 text-small font-medium transition-colors duration-150',
     collapsed && 'justify-center px-0',
-    isActive && 'border-transparent bg-accent-soft text-ink',
-    !isActive && emphasis && 'border-accent-line bg-panel-accent text-ink hover:bg-accent-soft',
-    !isActive &&
-      !emphasis &&
-      'border-transparent text-ink-secondary hover:bg-surface-raised hover:text-ink',
+    isActive
+      ? 'border-transparent bg-accent-soft text-ink'
+      : 'border-transparent text-ink-secondary hover:bg-surface-raised hover:text-ink',
   );
 }
 
@@ -45,23 +44,21 @@ function NavRow({
   onNavigate?: () => void;
   collapsed: boolean;
 }) {
-  const { label, to, icon: Icon, count, emphasis = false } = item;
+  const { label, to, icon: Icon, count } = item;
 
   const row = (
     <NavLink
       to={to}
       end={to === ROUTES.decisions}
       onClick={onNavigate}
-      className={({ isActive }) => navRowClasses(isActive, emphasis, collapsed)}
+      className={({ isActive }) => navRowClasses(isActive, collapsed)}
     >
       {({ isActive }) => (
         <>
           <Icon
             className={cn(
               'size-4 shrink-0 transition-colors',
-              isActive || emphasis
-                ? 'text-accent-ink'
-                : 'text-ink-muted group-hover:text-ink-secondary',
+              isActive ? 'text-accent-ink' : 'text-ink-muted group-hover:text-ink-secondary',
             )}
             aria-hidden
           />

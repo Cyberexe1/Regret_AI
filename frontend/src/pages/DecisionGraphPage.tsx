@@ -119,7 +119,6 @@ export function DecisionGraphPage() {
       width="wide"
       eyebrow="Dependency graph"
       title="What this decision rests on"
-      description="Every assumption, blindspot and threshold the decision depends on. Hover to trace a branch, select a node to inspect it."
       actions={
         <Link to={decisionPath(decision.id)} className={cn(buttonClasses({ variant: 'secondary', size: 'sm' }))}>
           <FileText className="size-4" aria-hidden />
@@ -127,17 +126,18 @@ export function DecisionGraphPage() {
         </Link>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">
         <div className="overflow-hidden rounded-xl border border-hairline bg-surface-inset">
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-hairline px-5 py-3 md:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-hairline px-5 py-2.5 md:px-6">
             <GraphLegend />
             <p className="text-small text-ink-muted">Drag to pan · zoom with the controls</p>
           </div>
 
-          {/* Taller and viewport-anchored (not just a vh fraction) so the
-           * graph gets the room it actually needs once the sidebar is
-           * collapsed and the page is wider - see Sidebar.tsx. */}
-          <div className="h-[calc(100vh-var(--header-offset)-11rem)] min-h-[32rem]">
+          {/* As tall as the viewport reasonably allows (not just a vh
+           * fraction) so the graph is actually easy to read at a glance,
+           * rather than a small box with dead space around it - the
+           * dependency graph is the whole point of this page. */}
+          <div className="h-[calc(100vh-var(--header-offset)-6rem)] min-h-[42rem]">
             <Suspense fallback={<CanvasFallback />}>
               <DecisionGraphCanvas graph={graph} selectedId={selectedId} onSelect={setSelectedId} />
             </Suspense>

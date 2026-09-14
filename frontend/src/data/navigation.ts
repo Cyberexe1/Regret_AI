@@ -40,7 +40,7 @@ export function experimentDetailPath(experimentId: string): string {
 /** Sidebar navigation, in the order a user moves through the product. */
 export const primaryNav: NavItem[] = [
   { label: 'Dashboard', to: ROUTES.dashboard, icon: LayoutDashboard },
-  { label: 'New Decision', to: ROUTES.newDecision, icon: SquarePen, emphasis: true },
+  { label: 'New Decision', to: ROUTES.newDecision, icon: SquarePen },
   { label: 'Decision History', to: ROUTES.decisions, icon: History },
   { label: 'Experiments', to: ROUTES.experiments, icon: FlaskConical },
   { label: 'Settings', to: ROUTES.settings, icon: Settings },

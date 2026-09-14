@@ -20,8 +20,6 @@ export interface NavItem {
   icon: LucideIcon;
   /** Shown as a small counter in the sidebar when present. */
   count?: number;
-  /** Lifts the item above the rest of the nav as the primary action. */
-  emphasis?: boolean;
 }
 
 /* -------------------------------------------------------------------------- *
