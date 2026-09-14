@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { AgentPipeline } from './AgentPipeline';
 import { AnalysisMetricsPanel } from './AnalysisMetricsPanel';
 import { Modal } from '@/components/ui/Modal';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -42,12 +41,11 @@ export function AnalysisProgressModal({ decisionId, open, onComplete, onClose }:
       dismissOnBackdrop={false}
     >
       <div className="space-y-5">
+        {/* The compact per-stage list inside AnalysisMetricsPanel already
+         * shows every stage's real status - `AgentPipeline`'s richer,
+         * icon-and-description layout belongs on the full AnalysisPage,
+         * not duplicated here where it just forced this popup to scroll. */}
         <AnalysisMetricsPanel run={analysis.run} isComplete={analysis.isComplete} />
-
-        <AgentPipeline
-          statuses={analysis.run?.stage_statuses ?? {}}
-          activeAgentId={analysis.run?.current_stage ?? null}
-        />
 
         {analysis.triggerState === 'trigger-failed' ? (
           <ErrorState
